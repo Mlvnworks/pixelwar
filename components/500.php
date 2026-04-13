@@ -12,87 +12,46 @@ $errorPageActionLabel = $errorPageActionLabel ?? 'Back to Home';
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= htmlspecialchars($errorPageTitle, ENT_QUOTES, 'UTF-8') ?></title>
-    <style>
-        :root {
-            color-scheme: dark;
-            --bg: #08111f;
-            --panel: rgba(15, 23, 42, 0.88);
-            --line: rgba(34, 211, 238, 0.24);
-            --text: #e2e8f0;
-            --muted: #94a3b8;
-            --accent: #06b6d4;
-        }
-
-        * {
-            box-sizing: border-box;
-        }
-
-        body {
-            margin: 0;
-            min-height: 100vh;
-            display: grid;
-            place-items: center;
-            font-family: "Segoe UI", sans-serif;
-            color: var(--text);
-            background:
-                radial-gradient(circle at top left, rgba(6, 182, 212, 0.16), transparent 32%),
-                radial-gradient(circle at bottom right, rgba(59, 130, 246, 0.18), transparent 34%),
-                var(--bg);
-            padding: 24px;
-        }
-
-        .panel {
-            width: min(640px, 100%);
-            border: 1px solid var(--line);
-            border-radius: 24px;
-            background: var(--panel);
-            padding: 32px;
-            box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
-        }
-
-        .code {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            width: 72px;
-            height: 72px;
-            border-radius: 20px;
-            background: rgba(6, 182, 212, 0.14);
-            color: var(--accent);
-            font-size: 30px;
-            font-weight: 700;
-        }
-
-        h1 {
-            margin: 18px 0 12px;
-            font-size: clamp(30px, 5vw, 42px);
-        }
-
-        p {
-            margin: 0;
-            color: var(--muted);
-            line-height: 1.7;
-        }
-
-        a {
-            display: inline-block;
-            margin-top: 24px;
-            padding: 12px 18px;
-            border-radius: 14px;
-            background: var(--accent);
-            color: #082f49;
-            font-weight: 700;
-            text-decoration: none;
-        }
-    </style>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        arcade: {
+                            cream: '#fff7e8',
+                            yellow: '#ffd166',
+                            orange: '#ff8c42',
+                            coral: '#f97373',
+                            cyan: '#4cc9f0',
+                            ink: '#26190f',
+                            panel: '#fffdf6'
+                        }
+                    },
+                    fontFamily: {
+                        arcade: ['"Press Start 2P"', 'cursive'],
+                        body: ['"Space Grotesk"', 'sans-serif']
+                    },
+                    boxShadow: {
+                        arcade: '0 24px 60px rgba(38, 25, 15, 0.14)'
+                    }
+                }
+            }
+        };
+    </script>
 </head>
 
-<body>
-    <section class="panel">
-        <div class="code">500</div>
-        <h1><?= htmlspecialchars($errorPageHeading, ENT_QUOTES, 'UTF-8') ?></h1>
-        <p><?= htmlspecialchars($errorPageMessage, ENT_QUOTES, 'UTF-8') ?></p>
-        <a href="<?= htmlspecialchars($errorPageActionHref, ENT_QUOTES, 'UTF-8') ?>">
+<body class="flex min-h-screen items-center justify-center bg-arcade-cream px-4 py-24 font-body text-arcade-ink">
+    <section class="w-full max-w-2xl rounded-[32px] border-4 border-arcade-ink/10 bg-arcade-panel p-8 text-center shadow-arcade md:p-12">
+        <p class="font-arcade text-[11px] uppercase tracking-[0.28em] text-arcade-coral">500</p>
+        <h1 class="mt-6 text-4xl font-bold tracking-tight md:text-6xl"><?= htmlspecialchars($errorPageHeading, ENT_QUOTES, 'UTF-8') ?></h1>
+        <p class="mt-5 text-base leading-8 text-arcade-ink/70"><?= htmlspecialchars($errorPageMessage, ENT_QUOTES, 'UTF-8') ?></p>
+        <a
+            href="<?= htmlspecialchars($errorPageActionHref, ENT_QUOTES, 'UTF-8') ?>"
+            class="mt-8 inline-flex rounded-2xl border-2 border-arcade-ink/10 bg-arcade-cyan px-6 py-3 text-sm font-semibold text-arcade-ink no-underline transition hover:-translate-y-0.5 hover:bg-arcade-orange hover:text-white">
             <?= htmlspecialchars($errorPageActionLabel, ENT_QUOTES, 'UTF-8') ?>
         </a>
     </section>

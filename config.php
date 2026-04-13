@@ -12,7 +12,7 @@ if (!defined('APP_DEBUG')) {
 }
 
 if (!defined('APP_NAME')) {
-    define('APP_NAME', Env::get('APP_NAME', 'PHVN Framework'));
+    define('APP_NAME', Env::get('APP_NAME', 'PHVN'));
 }
 
 if (!defined('APP_URL')) {

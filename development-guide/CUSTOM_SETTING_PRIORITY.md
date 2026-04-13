@@ -35,4 +35,7 @@ Add project-specific rules below this section.
 
 - always prioritize using tailwind in styling
 - you can use libraries for animation, icons etc...
-- use modern and Minimalism.
+- use retro & arcade light theme.
+- Improve UI/UX
+
+- website description: gamified CSS game for students

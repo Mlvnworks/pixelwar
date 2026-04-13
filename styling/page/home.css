@@ -1,3 +1,449 @@
-html {
-    scroll-behavior: smooth;
+#game-test {
+    height: 100vh;
+    height: 100dvh;
+    max-height: 100dvh;
+    overflow: hidden;
+}
+
+.challenge-shell {
+    height: 100%;
+    position: relative;
+    width: 100%;
+    padding: 0.35rem !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+}
+
+.challenge-grid {
+    --target-width: 560px;
+    --frame-width: 400px;
+    --frame-height: 300px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 14px var(--target-width);
+    gap: 0.6rem;
+    height: 100%;
+}
+
+.builder-pane {
+    display: grid;
+    grid-template-rows: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 0.46fr);
+    gap: 0.55rem;
+    min-height: 0;
+    overflow: hidden;
+    padding: 0.65rem !important;
+}
+
+.target-pane {
+    padding: 0.65rem !important;
+    display: flex;
+    flex-direction: column;
+}
+
+.panel-card {
+    min-height: 0;
+    padding: 0.65rem !important;
+    border-radius: 14px !important;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.panel-card h2 {
+    margin-bottom: 0.5rem !important;
+}
+
+.preview-frame,
+.target-frame {
+    height: 100%;
+    padding: 0.6rem !important;
+    overflow: auto;
+}
+
+.preview-stage,
+.target-stage {
+    display: grid;
+    place-items: center;
+    min-height: 0;
+    height: 100%;
+    overflow: visible;
+}
+
+.preview-scope,
+.target-scope {
+    width: var(--frame-width);
+    height: var(--frame-height);
+    min-width: var(--frame-width);
+    min-height: var(--frame-height);
+    max-width: var(--frame-width);
+    max-height: var(--frame-height);
+    display: grid;
+    place-items: center;
+    padding: 0.9rem 0.9rem 1.2rem;
+    overflow: visible;
+}
+
+.target-scope * {
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+.target-scope a,
+.target-scope button,
+.target-scope [role="button"],
+.target-scope input,
+.target-scope select,
+.target-scope textarea {
+    cursor: default !important;
+}
+
+.target-scope a:hover,
+.target-scope a:focus,
+.target-scope button:hover,
+.target-scope button:focus {
+    text-decoration: none !important;
+    color: inherit !important;
+    transform: none !important;
+    box-shadow: none !important;
+}
+
+.identifiers-scroll {
+    max-height: 100%;
+    min-height: 0;
+    overflow-y: auto;
+    padding-right: 0.2rem;
+    flex: 1 1 auto;
+}
+
+.selector-zone {
+    min-height: 88px;
+    max-height: 108px;
+    overflow-y: auto;
+}
+
+.selector-card {
+    position: relative;
+    transition: border-color 150ms ease, background-color 150ms ease, box-shadow 150ms ease;
+}
+
+.selector-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.5rem;
+}
+
+.selector-meta {
+    flex: 0 0 auto;
+    border: 1px solid rgba(38, 25, 15, 0.2);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.78);
+    color: rgba(38, 25, 15, 0.78);
+    font-size: 0.62rem;
+    font-weight: 700;
+    line-height: 1;
+    padding: 0.22rem 0.42rem;
+}
+
+.selector-card.is-target-active {
+    box-shadow: inset 0 0 0 2px rgba(255, 140, 66, 0.28), 0 0 0 2px rgba(255, 140, 66, 0.34);
+}
+
+.selector-card.is-target-active p {
+    color: #26190f !important;
+}
+
+.selector-card.is-target-danger {
+    border-color: rgba(239, 68, 68, 0.92) !important;
+    background: rgba(248, 113, 113, 0.2) !important;
+}
+
+.selector-card.is-target-complete {
+    border-color: rgba(34, 197, 94, 0.9) !important;
+    background: rgba(74, 222, 128, 0.22) !important;
+}
+
+.selector-card.is-target-danger p,
+.selector-card.is-target-complete p {
+    color: #26190f !important;
+}
+
+.identifiers-header {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+}
+
+.identifiers-header h2 {
+    margin: 0 !important;
+    flex: 0 0 auto;
+}
+
+.progress-inline {
+    flex: 1 1 auto;
+    min-width: 100px;
+}
+
+.progress-inline__track {
+    display: block;
+    width: 100%;
+    height: 0.56rem;
+    border-radius: 999px;
+    border: 1px solid rgba(38, 25, 15, 0.2);
+    background: rgba(38, 25, 15, 0.08);
+    overflow: hidden;
+}
+
+.progress-inline__fill {
+    display: block;
+    height: 100%;
+    width: 0%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, #ff8c42, #ffd166, #8bd3c7);
+    transition: width 180ms ease;
+}
+
+.chip-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.chip-list--horizontal {
+    flex-wrap: nowrap;
+    width: max-content;
+    min-width: 100%;
+    max-width: none;
+    overflow: visible;
+    padding-bottom: 0.35rem;
+    align-items: center;
+}
+
+.property-zone {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    min-height: 70px;
+    max-height: 86px;
+    flex: 1 1 auto;
+    contain: content;
+}
+
+.property-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    min-width: 0;
+}
+
+.property-search-wrap {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+#property-search {
+    min-width: 0;
+}
+
+#reset-layout-btn {
+    flex: 0 0 auto;
+    white-space: nowrap;
+}
+
+.drop-zone {
+    border: 2px dashed rgba(38, 25, 15, 0.2);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.72);
+    padding: 0.48rem;
+    transition: border-color 160ms ease, background-color 160ms ease;
+}
+
+.drop-zone.is-over {
+    border-color: #ff8c42;
+    background: rgba(255, 217, 168, 0.55);
+}
+
+.empty-zone {
+    margin: 0;
+    font-size: 0.85rem;
+    color: rgba(38, 25, 15, 0.56);
+}
+
+.property-chip {
+    border: 2px solid rgba(38, 25, 15, 0.14);
+    border-radius: 10px;
+    background: #fff;
+    color: #26190f;
+    padding: 0.34rem 0.5rem;
+    font-size: 0.74rem;
+    line-height: 1.2;
+    font-weight: 600;
+    cursor: grab;
+    text-align: left;
+    white-space: nowrap;
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    max-width: 100%;
+}
+
+.property-chip__swatch {
+    width: 0.92rem;
+    height: 0.92rem;
+    border-radius: 0.22rem;
+    border: 1px solid rgba(38, 25, 15, 0.35);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.35);
+    flex: 0 0 auto;
+}
+
+.property-chip__label {
+    white-space: nowrap;
+}
+
+.property-chip__count {
+    width: 1.12rem;
+    height: 1.12rem;
+    border-radius: 999px;
+    border: 1px solid rgba(38, 25, 15, 0.22);
+    background: rgba(255, 209, 102, 0.92);
+    color: #26190f;
+    font-size: 0.64rem;
+    font-weight: 700;
+    line-height: 1;
+    display: grid;
+    place-items: center;
+    flex: 0 0 auto;
+}
+
+.property-chip:active {
+    cursor: grabbing;
+}
+
+.property-chip:hover {
+    border-color: rgba(38, 25, 15, 0.27);
+    transform: translateY(-1px);
+}
+
+#game-status.is-success {
+    background: rgba(139, 211, 199, 0.55);
+    border-color: rgba(38, 25, 15, 0.18);
+}
+
+.split-handle {
+    width: 12px;
+    border-radius: 999px;
+    background: linear-gradient(180deg, rgba(255, 209, 102, 0.6), rgba(76, 201, 240, 0.55));
+    border: 2px solid rgba(38, 25, 15, 0.2);
+    cursor: col-resize;
+    position: relative;
+}
+
+.split-handle::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 4px;
+    height: 44px;
+    border-radius: 999px;
+    background: rgba(38, 25, 15, 0.28);
+}
+
+body.is-resizing-split,
+body.is-resizing-split * {
+    cursor: col-resize !important;
+    user-select: none !important;
+}
+
+.target-pane {
+    min-width: 0;
+    overflow: hidden;
+    min-height: 0;
+}
+
+.target-panel-body {
+    height: 100%;
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+}
+
+.target-panel-body .target-frame {
+    flex: 1 1 auto;
+    min-height: 0;
+}
+
+.floating-hud {
+    position: fixed;
+    bottom: 8px;
+    right: 8px;
+    z-index: 120;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    width: min(360px, calc(100vw - 24px));
+}
+
+.hud-pill {
+    border: 2px solid rgba(38, 25, 15, 0.18);
+    background: rgba(255, 209, 102, 0.9);
+    color: #26190f;
+    border-radius: 11px;
+    padding: 0.45rem 0.62rem;
+    font-size: 0.79rem;
+    font-weight: 700;
+    line-height: 1.25;
+    box-shadow: 0 8px 16px rgba(38, 25, 15, 0.14);
+}
+
+#game-status.is-success {
+    background: rgba(139, 211, 199, 0.9);
+}
+
+@media (max-width: 1220px) {
+    #game-test {
+        height: auto;
+        max-height: none;
+        overflow: visible;
+    }
+
+    .challenge-shell {
+        height: auto;
+    }
+
+    .challenge-grid {
+        grid-template-columns: 1fr;
+        height: auto;
+    }
+
+    .builder-pane {
+        grid-template-rows: auto auto auto auto;
+    }
+
+    .identifiers-scroll {
+        max-height: 340px;
+    }
+
+    .split-handle {
+        display: none;
+    }
+
+    .target-panel-body {
+        height: auto;
+    }
+
+    .floating-hud {
+        position: static;
+        width: 100%;
+        margin-bottom: 0.45rem;
+    }
+
+    .preview-scope,
+    .target-scope {
+        min-width: 100%;
+        max-width: 100%;
+        width: 100%;
+    }
 }

@@ -1,164 +1,812 @@
-<?php
-$guideFiles = [
-    [
-        'title' => 'Start Here',
-        'path' => './development-guide/00_START_HERE.md',
-        'description' => 'Entry point for the project documentation and reading order.',
-    ],
-    [
-        'title' => 'Setup And Environment',
-        'path' => './development-guide/01_SETUP_AND_ENVIRONMENT.md',
-        'description' => 'Environment variables, local setup, and development rules.',
-    ],
-    [
-        'title' => 'Structure And Runtime',
-        'path' => './development-guide/02_STRUCTURE_AND_RUNTIME.md',
-        'description' => 'Bootstrap flow, folder responsibilities, and runtime behavior.',
-    ],
-    [
-        'title' => 'Extension And Examples',
-        'path' => './development-guide/03_EXTENSION_AND_EXAMPLES.md',
-        'description' => 'Reference patterns for pages, handlers, helpers, and components.',
-    ],
-    [
-        'title' => 'Custom Setting Priority',
-        'path' => './development-guide/CUSTOM_SETTING_PRIORITY.md',
-        'description' => 'Default engineering principles plus a custom section for extra project rules.',
-    ],
-];
+<section id="game-test" class="p-0">
+        <div class="challenge-shell border-4 border-arcade-ink/10 bg-arcade-panel/80 p-2">
+            <aside class="floating-hud" aria-live="polite">
+                <span id="game-status" class="hud-pill">Waiting for your first move.</span>
+            </aside>
 
-$workingRules = [
-    [
-        'step' => '01',
-        'title' => 'Configure first',
-        'description' => 'Use config.php and .env for app, database, and mail behavior. Keep runtime secrets out of page files.',
-    ],
-    [
-        'step' => '02',
-        'title' => 'Place code by responsibility',
-        'description' => 'Put shared logic in classes/, request handling in submissions/, page rendering in pages/, and shared UI in components/.',
-    ],
-    [
-        'step' => '03',
-        'title' => 'Check project priorities',
-        'description' => 'Review CUSTOM_SETTING_PRIORITY.md before expanding the app so new work stays DRY, simple, modular, and minimal.',
-    ],
-];
+            <div class="challenge-grid" id="challenge-grid">
+                <section class="builder-pane rounded-[26px] border-4 border-arcade-ink/10 bg-white/70 p-4 md:p-5">
+                    <section class="panel-card panel-card--preview rounded-[20px] border-2 border-arcade-ink/10 bg-white p-4">
+                        <h2 class="mb-3 font-arcade text-[10px] uppercase tracking-[0.22em] text-arcade-orange">1. Live Preview</h2>
+                        <div class="preview-frame rounded-[20px] border-2 border-dashed border-arcade-ink/15 bg-[#f7efe1] p-4">
+                            <div class="preview-stage">
+                                <div class="preview-scope">
+                                    <article class="pixel-card">
+                                        <span class="pixel-badge">Student Build</span>
+                                        <h3 class="pixel-title">Pixelwar</h3>
+                                        <p class="pixel-subtitle">Drag CSS properties to match the target design.</p>
+                                        <a class="pixel-cta" href="javascript:void(0)">Launch Run</a>
+                                    </article>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
 
-$quickStartSteps = [
-    'Read development-guide/00_START_HERE.md.',
-    'Configure .env only if database or mail features are needed.',
-    'Use development-guide/02_STRUCTURE_AND_RUNTIME.md before moving files or adding runtime code.',
-    'Use development-guide/03_EXTENSION_AND_EXAMPLES.md before adding pages or request handlers.',
-    'Write extra rules in development-guide/CUSTOM_SETTING_PRIORITY.md when the project needs stronger conventions.',
-];
-?>
+                    <section class="panel-card panel-card--identifiers rounded-[20px] border-2 border-arcade-ink/10 bg-white p-4">
+                        <div class="identifiers-header mb-3">
+                            <h2 class="font-arcade text-[10px] uppercase tracking-[0.22em] text-arcade-orange">2. Identifier Containers</h2>
+                            <div class="progress-inline" aria-label="Challenge progress">
+                                <span class="progress-inline__track">
+                                    <span id="progress-bar-fill" class="progress-inline__fill"></span>
+                                </span>
+                            </div>
+                        </div>
+                        <div class="identifiers-scroll">
+                            <div class="grid gap-3 md:grid-cols-2">
+                                <article class="selector-card rounded-2xl border-2 border-arcade-ink/10 bg-arcade-cream/60 p-3" data-selector-card="card">
+                                    <div class="selector-head">
+                                        <p class="mb-2 font-mono text-xs font-semibold text-arcade-ink/80">.pixel-card</p>
+                                        <span class="selector-meta" data-selector-meta="card"></span>
+                                    </div>
+                                    <div class="drop-zone selector-zone" data-drop-key="card">
+                                        <div class="chip-list" data-property-list="card"></div>
+                                    </div>
+                                </article>
 
-<section class="relative overflow-hidden bg-slate-950 text-slate-100">
-    <div class="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(34,211,238,0.18),transparent_28%),radial-gradient(circle_at_85%_15%,rgba(56,189,248,0.16),transparent_24%),linear-gradient(180deg,rgba(2,6,23,0.42),rgba(2,6,23,0.97))]"></div>
+                                <article class="selector-card rounded-2xl border-2 border-arcade-ink/10 bg-arcade-cream/60 p-3" data-selector-card="badge">
+                                    <div class="selector-head">
+                                        <p class="mb-2 font-mono text-xs font-semibold text-arcade-ink/80">.pixel-badge</p>
+                                        <span class="selector-meta" data-selector-meta="badge"></span>
+                                    </div>
+                                    <div class="drop-zone selector-zone" data-drop-key="badge">
+                                        <div class="chip-list" data-property-list="badge"></div>
+                                    </div>
+                                </article>
 
-    <section class="relative flex min-h-screen items-center pt-28 pb-16">
-        <div class="container">
-            <div class="mx-auto max-w-5xl">
-                <span class="inline-flex rounded-full border border-cyan-400/30 bg-cyan-400/10 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.28em] text-cyan-300">
-                    PHVN Development Guide
-                </span>
-                <h1 class="mt-6 max-w-4xl text-5xl font-semibold leading-[0.95] tracking-tight text-white md:text-7xl">
-                    Build from the guide first, then extend the codebase with clear boundaries.
-                </h1>
-                <p class="mt-6 max-w-3xl text-lg leading-8 text-slate-300 md:text-xl">
-                    PHVN is a minimal PHP starter built around a config-first bootstrap, route-like pages, shared
-                    components, and a dedicated development guide folder that defines how the project should evolve.
-                </p>
-                <div class="mt-10 flex flex-wrap gap-4">
-                    <a href="#guide-map" class="rounded-2xl bg-cyan-400 px-6 py-3 text-sm font-semibold text-slate-950 no-underline shadow-[0_18px_50px_rgba(34,211,238,0.2)] transition hover:-translate-y-0.5 hover:bg-cyan-300">
-                        Open Guide Map
-                    </a>
-                    <a href="#working-rules" class="rounded-2xl border border-cyan-400/35 px-6 py-3 text-sm font-semibold text-cyan-200 no-underline transition hover:border-cyan-300 hover:bg-cyan-400/10">
-                        View Working Rules
-                    </a>
-                </div>
+                                <article class="selector-card rounded-2xl border-2 border-arcade-ink/10 bg-arcade-cream/60 p-3" data-selector-card="title">
+                                    <div class="selector-head">
+                                        <p class="mb-2 font-mono text-xs font-semibold text-arcade-ink/80">.pixel-title</p>
+                                        <span class="selector-meta" data-selector-meta="title"></span>
+                                    </div>
+                                    <div class="drop-zone selector-zone" data-drop-key="title">
+                                        <div class="chip-list" data-property-list="title"></div>
+                                    </div>
+                                </article>
 
-                <div class="mt-12 grid gap-4 md:grid-cols-3">
-                    <div class="rounded-3xl border border-white/10 bg-white/5 p-5 backdrop-blur">
-                        <p class="text-[11px] font-semibold uppercase tracking-[0.24em] text-cyan-300">Bootstrap</p>
-                        <p class="mt-3 text-sm leading-7 text-slate-300">index.php starts the runtime, config.php owns environment setup, and submission.php loads shared logic.</p>
+                                <article class="selector-card rounded-2xl border-2 border-arcade-ink/10 bg-arcade-cream/60 p-3" data-selector-card="subtitle">
+                                    <div class="selector-head">
+                                        <p class="mb-2 font-mono text-xs font-semibold text-arcade-ink/80">.pixel-subtitle</p>
+                                        <span class="selector-meta" data-selector-meta="subtitle"></span>
+                                    </div>
+                                    <div class="drop-zone selector-zone" data-drop-key="subtitle">
+                                        <div class="chip-list" data-property-list="subtitle"></div>
+                                    </div>
+                                </article>
+
+                                <article class="selector-card rounded-2xl border-2 border-arcade-ink/10 bg-arcade-cream/60 p-3 md:col-span-2" data-selector-card="cta">
+                                    <div class="selector-head">
+                                        <p class="mb-2 font-mono text-xs font-semibold text-arcade-ink/80">.pixel-cta</p>
+                                        <span class="selector-meta" data-selector-meta="cta"></span>
+                                    </div>
+                                    <div class="drop-zone selector-zone" data-drop-key="cta">
+                                        <div class="chip-list" data-property-list="cta"></div>
+                                    </div>
+                                </article>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="panel-card panel-card--properties rounded-[20px] border-2 border-arcade-ink/10 bg-white p-4">
+                        <h2 class="mb-2 font-arcade text-[10px] uppercase tracking-[0.22em] text-arcade-orange">3. Properties Panel</h2>
+                        <div class="property-controls mb-2">
+                            <div class="property-search-wrap">
+                                <input
+                                    id="property-search"
+                                    type="search"
+                                    autocomplete="off"
+                                    spellcheck="false"
+                                    placeholder="Search properties..."
+                                    class="w-full rounded-xl border-2 border-arcade-ink/10 bg-white px-3 py-2 text-sm text-arcade-ink outline-none transition focus:border-arcade-orange">
+                            </div>
+                            <button id="reset-layout-btn" type="button" class="rounded-xl border-2 border-arcade-ink/10 bg-arcade-peach/60 px-3 py-2 text-xs font-semibold text-arcade-ink transition hover:bg-arcade-yellow/70">
+                                Reset Placements
+                            </button>
+                        </div>
+                        <div class="drop-zone property-zone" data-drop-key="pool">
+                            <div class="chip-list chip-list--horizontal" data-property-list="pool"></div>
+                        </div>
+                    </section>
+                </section>
+
+                <div id="split-handle" class="split-handle" role="separator" aria-orientation="vertical" aria-label="Resize target panel"></div>
+
+                <section class="target-pane rounded-[26px] border-4 border-arcade-ink/10 bg-white/80 p-4 md:p-5" id="target-pane">
+                    <header class="mb-4 rounded-[18px] border-2 border-arcade-ink/10 bg-arcade-cream px-3 py-3">
+                        <p class="font-arcade text-[10px] uppercase tracking-[0.22em] text-arcade-orange">Target Design</p>
+                    </header>
+
+                    <div class="target-panel-body">
+                        <div class="target-frame rounded-[20px] border-2 border-dashed border-arcade-ink/15 bg-[#f7efe1] p-4">
+                            <div class="target-stage">
+                                <div class="target-scope">
+                                    <article class="pixel-card">
+                                        <span class="pixel-badge">Student Build</span>
+                                        <h3 class="pixel-title">Pixelwar</h3>
+                                        <p class="pixel-subtitle">Drag CSS properties to match the target design.</p>
+                                        <a class="pixel-cta" href="javascript:void(0)">Launch Run</a>
+                                    </article>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    <div class="rounded-3xl border border-white/10 bg-white/5 p-5 backdrop-blur">
-                        <p class="text-[11px] font-semibold uppercase tracking-[0.24em] text-cyan-300">Structure</p>
-                        <p class="mt-3 text-sm leading-7 text-slate-300">Pages, components, classes, and submissions are separated so each area keeps one clear responsibility.</p>
-                    </div>
-                    <div class="rounded-3xl border border-white/10 bg-white/5 p-5 backdrop-blur">
-                        <p class="text-[11px] font-semibold uppercase tracking-[0.24em] text-cyan-300">Priority</p>
-                        <p class="mt-3 text-sm leading-7 text-slate-300">The custom priority file defines how to keep the project simple, reusable, modern, and minimal.</p>
-                    </div>
-                </div>
+                </section>
             </div>
         </div>
-    </section>
-
-    <section id="guide-map" class="relative py-20">
-        <div class="container">
-            <div class="mx-auto max-w-3xl">
-                <span class="text-[11px] font-semibold uppercase tracking-[0.28em] text-cyan-300">Documentation</span>
-                <h2 class="mt-4 text-4xl font-semibold tracking-tight text-white md:text-5xl">Guide map</h2>
-                <p class="mt-4 text-base leading-8 text-slate-300">
-                    Open these files before changing structure, adding features, or defining stronger project rules.
-                </p>
-            </div>
-
-            <div class="mt-10 grid gap-5 lg:grid-cols-2">
-                <?php foreach ($guideFiles as $guideFile) : ?>
-                    <article class="rounded-[28px] border border-white/10 bg-slate-900/80 p-6 shadow-[0_22px_60px_rgba(2,6,23,0.28)] backdrop-blur">
-                        <p class="text-[11px] font-semibold uppercase tracking-[0.24em] text-cyan-300"><?= htmlspecialchars($guideFile['title'], ENT_QUOTES, 'UTF-8') ?></p>
-                        <p class="mt-4 text-base leading-8 text-slate-300"><?= htmlspecialchars($guideFile['description'], ENT_QUOTES, 'UTF-8') ?></p>
-                        <a class="mt-6 inline-flex rounded-2xl border border-cyan-400/30 px-4 py-3 text-sm font-semibold text-cyan-200 no-underline transition hover:border-cyan-300 hover:bg-cyan-400/10" href="<?= htmlspecialchars($guideFile['path'], ENT_QUOTES, 'UTF-8') ?>">
-                            Open <?= htmlspecialchars($guideFile['title'], ENT_QUOTES, 'UTF-8') ?>
-                        </a>
-                    </article>
-                <?php endforeach; ?>
-            </div>
-        </div>
-    </section>
-
-    <section id="working-rules" class="relative py-20">
-        <div class="container">
-            <div class="mx-auto max-w-3xl">
-                <span class="text-[11px] font-semibold uppercase tracking-[0.28em] text-cyan-300">Working Rules</span>
-                <h2 class="mt-4 text-4xl font-semibold tracking-tight text-white md:text-5xl">Core development flow</h2>
-                <p class="mt-4 text-base leading-8 text-slate-300">
-                    These are the practical rules that the current structure expects you to follow when you add or refactor code.
-                </p>
-            </div>
-
-            <div class="mt-10 grid gap-5 md:grid-cols-3">
-                <?php foreach ($workingRules as $workingRule) : ?>
-                    <article class="rounded-[28px] border border-white/10 bg-white/5 p-6 backdrop-blur">
-                        <p class="text-[11px] font-semibold uppercase tracking-[0.24em] text-cyan-300"><?= htmlspecialchars($workingRule['step'], ENT_QUOTES, 'UTF-8') ?></p>
-                        <h3 class="mt-4 text-2xl font-semibold text-white"><?= htmlspecialchars($workingRule['title'], ENT_QUOTES, 'UTF-8') ?></h3>
-                        <p class="mt-4 text-sm leading-7 text-slate-300"><?= htmlspecialchars($workingRule['description'], ENT_QUOTES, 'UTF-8') ?></p>
-                    </article>
-                <?php endforeach; ?>
-            </div>
-        </div>
-    </section>
-
-    <section id="quick-start" class="relative py-20">
-        <div class="container">
-            <div class="rounded-[32px] border border-cyan-400/15 bg-slate-900/80 p-8 shadow-[0_24px_70px_rgba(2,6,23,0.3)] backdrop-blur md:p-10">
-                <div class="max-w-3xl">
-                    <span class="text-[11px] font-semibold uppercase tracking-[0.28em] text-cyan-300">Quick Start</span>
-                    <h2 class="mt-4 text-4xl font-semibold tracking-tight text-white md:text-5xl">Suggested order for working on the project</h2>
-                    <p class="mt-4 text-base leading-8 text-slate-300">
-                        Keep the app lean. Start with the guide, configure only what is needed, and extend the runtime through the existing structure.
-                    </p>
-                </div>
-                <ol class="mt-8 space-y-4 pl-5 text-slate-200">
-                    <?php foreach ($quickStartSteps as $quickStartStep) : ?>
-                        <li class="pl-2 text-sm leading-7 text-slate-300"><?= htmlspecialchars($quickStartStep, ENT_QUOTES, 'UTF-8') ?></li>
-                    <?php endforeach; ?>
-                </ol>
-            </div>
-        </div>
-    </section>
 </section>
+
+<style id="preview-style"></style>
+<style id="target-style">
+.target-scope .pixel-card {
+    width: 320px;
+    min-height: 228px;
+    background: #fffdf6;
+    border: 4px solid #26190f;
+    border-radius: 24px;
+    padding: 24px;
+    text-align: center;
+    box-shadow: 0 12px 0 #26190f;
+}
+.target-scope .pixel-badge {
+    display: inline-block;
+    background: #ffd166;
+    color: #26190f;
+    border-radius: 999px;
+    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: 700;
+}
+.target-scope .pixel-title {
+    margin: 14px 0 8px;
+    font-size: 36px;
+    font-weight: 700;
+    color: #ff8c42;
+    line-height: 1.05;
+}
+.target-scope .pixel-subtitle {
+    margin-bottom: 16px;
+    font-size: 15px;
+    color: #26190f;
+}
+.target-scope .pixel-cta {
+    display: inline-block;
+    background: #4cc9f0;
+    color: #26190f;
+    border-radius: 12px;
+    padding: 10px 18px;
+    font-weight: 700;
+    text-decoration: none;
+}
+</style>
+
+<script>
+(() => {
+    const selectorDefinitions = [
+        { key: 'card', selector: '.pixel-card' },
+        { key: 'badge', selector: '.pixel-badge' },
+        { key: 'title', selector: '.pixel-title' },
+        { key: 'subtitle', selector: '.pixel-subtitle' },
+        { key: 'cta', selector: '.pixel-cta' },
+    ];
+
+    const propertyOccurrences = [
+        { rule: 'width: 320px;', target: 'card' },
+        { rule: 'background: #fffdf6;', target: 'card' },
+        { rule: 'border: 4px solid #26190f;', target: 'card' },
+        { rule: 'border-radius: 24px;', target: 'card' },
+        { rule: 'padding: 24px;', target: 'card' },
+        { rule: 'text-align: center;', target: 'card' },
+        { rule: 'box-shadow: 0 12px 0 #26190f;', target: 'card' },
+        { rule: 'display: inline-block;', target: 'badge' },
+        { rule: 'background: #ffd166;', target: 'badge' },
+        { rule: 'border-radius: 999px;', target: 'badge' },
+        { rule: 'padding: 6px 12px;', target: 'badge' },
+        { rule: 'font-size: 12px;', target: 'badge' },
+        { rule: 'font-weight: 700;', target: 'badge' },
+        { rule: 'font-size: 36px;', target: 'title' },
+        { rule: 'margin: 14px 0 8px;', target: 'title' },
+        { rule: 'color: #ff8c42;', target: 'title' },
+        { rule: 'line-height: 1.05;', target: 'title' },
+        { rule: 'margin-bottom: 16px;', target: 'subtitle' },
+        { rule: 'font-size: 15px;', target: 'subtitle' },
+        { rule: 'color: #26190f;', target: 'subtitle' },
+        { rule: 'display: inline-block;', target: 'cta' },
+        { rule: 'background: #4cc9f0;', target: 'cta' },
+        { rule: 'color: #26190f;', target: 'cta' },
+        { rule: 'border-radius: 12px;', target: 'cta' },
+        { rule: 'padding: 10px 18px;', target: 'cta' },
+        { rule: 'font-weight: 700;', target: 'cta' },
+        { rule: 'text-decoration: none;', target: 'cta' },
+    ];
+
+    const selectorKeys = selectorDefinitions.map((selector) => selector.key);
+    const placements = { pool: {} };
+    selectorKeys.forEach((key) => {
+        placements[key] = {};
+    });
+
+    const requiredBySelector = {};
+    selectorKeys.forEach((key) => {
+        requiredBySelector[key] = {};
+    });
+
+    const propertyCatalog = {};
+    const totalRequiredByProperty = {};
+    const keyByRule = new Map();
+    let propertyCounter = 1;
+
+    propertyOccurrences.forEach((occurrence) => {
+        if (!keyByRule.has(occurrence.rule)) {
+            const generatedKey = `p${propertyCounter}`;
+            propertyCounter += 1;
+            keyByRule.set(occurrence.rule, generatedKey);
+            propertyCatalog[generatedKey] = { rule: occurrence.rule };
+        }
+
+        const propertyKey = keyByRule.get(occurrence.rule);
+        requiredBySelector[occurrence.target][propertyKey] = (requiredBySelector[occurrence.target][propertyKey] || 0) + 1;
+        totalRequiredByProperty[propertyKey] = (totalRequiredByProperty[propertyKey] || 0) + 1;
+    });
+
+    Object.keys(totalRequiredByProperty).forEach((propertyKey) => {
+        placements.pool[propertyKey] = totalRequiredByProperty[propertyKey];
+    });
+
+    const poolOrder = Object.keys(propertyCatalog);
+    for (let index = poolOrder.length - 1; index > 0; index -= 1) {
+        const randomIndex = Math.floor(Math.random() * (index + 1));
+        const swap = poolOrder[index];
+        poolOrder[index] = poolOrder[randomIndex];
+        poolOrder[randomIndex] = swap;
+    }
+
+    const totalCount = propertyOccurrences.length;
+
+    const previewStyle = document.getElementById('preview-style');
+    const statusLabel = document.getElementById('game-status');
+    const progressBarFill = document.getElementById('progress-bar-fill');
+    const resetButton = document.getElementById('reset-layout-btn');
+    const propertySearchInput = document.getElementById('property-search');
+
+    const targetGrid = document.getElementById('challenge-grid');
+    const splitHandle = document.getElementById('split-handle');
+    const targetScope = document.querySelector('.target-scope');
+    const selectorCards = Array.from(document.querySelectorAll('[data-selector-card]'));
+    const identifiersScrollContainer = document.querySelector('.identifiers-scroll');
+    const selectorMetaLookup = {};
+    document.querySelectorAll('[data-selector-meta]').forEach((metaNode) => {
+        selectorMetaLookup[metaNode.dataset.selectorMeta] = metaNode;
+    });
+    const listNodes = {};
+    document.querySelectorAll('[data-property-list]').forEach((listNode) => {
+        listNodes[listNode.dataset.propertyList] = listNode;
+    });
+
+    let draggedPayload = null;
+    let isResizing = false;
+    let hoveredSelectorKey = null;
+    let pinnedSelectorKey = null;
+    let lastHighlightedSelectorKey = null;
+
+    const selectorLookup = Object.fromEntries(selectorDefinitions.map((selector) => [selector.key, selector.selector]));
+    const selectorCardLookup = Object.fromEntries(
+        selectorCards.map((card) => [card.dataset.selectorCard, card])
+    );
+    const selectorPriority = [
+        { className: 'pixel-cta', key: 'cta' },
+        { className: 'pixel-subtitle', key: 'subtitle' },
+        { className: 'pixel-title', key: 'title' },
+        { className: 'pixel-badge', key: 'badge' },
+        { className: 'pixel-card', key: 'card' },
+    ];
+    const extractColorPreview = (rule) => {
+        const hexMatch = rule.match(/#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})\b/);
+        if (hexMatch) {
+            return hexMatch[0];
+        }
+
+        const fnColorMatch = rule.match(/\b(?:rgb|rgba|hsl|hsla)\([^)]+\)/i);
+        if (fnColorMatch) {
+            return fnColorMatch[0];
+        }
+
+        return null;
+    };
+    const requiredTotalBySelector = {};
+    selectorKeys.forEach((selectorKey) => {
+        requiredTotalBySelector[selectorKey] = Object.values(requiredBySelector[selectorKey]).reduce(
+            (sum, value) => sum + value,
+            0
+        );
+    });
+
+    const getCount = (locationKey, propertyKey) => placements[locationKey][propertyKey] || 0;
+
+    const setCount = (locationKey, propertyKey, nextValue) => {
+        if (nextValue <= 0) {
+            delete placements[locationKey][propertyKey];
+            return;
+        }
+
+        placements[locationKey][propertyKey] = nextValue;
+    };
+
+    const moveOne = (propertyKey, sourceKey, destinationKey) => {
+        if (!(sourceKey in placements) || !(destinationKey in placements)) {
+            return false;
+        }
+
+        if (sourceKey === destinationKey) {
+            return false;
+        }
+
+        const sourceCount = getCount(sourceKey, propertyKey);
+        if (sourceCount <= 0) {
+            return false;
+        }
+
+        setCount(sourceKey, propertyKey, sourceCount - 1);
+        setCount(destinationKey, propertyKey, getCount(destinationKey, propertyKey) + 1);
+        return true;
+    };
+
+    const createChip = (propertyKey, sourceKey) => {
+        const count = getCount(sourceKey, propertyKey);
+        if (count <= 0) {
+            return null;
+        }
+
+        const rule = propertyCatalog[propertyKey].rule;
+        const chip = document.createElement('button');
+        chip.type = 'button';
+        chip.className = 'property-chip';
+        chip.draggable = true;
+        chip.dataset.propertyKey = propertyKey;
+        chip.dataset.sourceKey = sourceKey;
+
+        const label = document.createElement('span');
+        label.className = 'property-chip__label';
+        label.textContent = rule;
+
+        const colorPreviewValue = extractColorPreview(rule);
+        if (colorPreviewValue) {
+            const swatch = document.createElement('span');
+            swatch.className = 'property-chip__swatch';
+            swatch.style.backgroundColor = colorPreviewValue;
+            swatch.title = colorPreviewValue;
+            chip.append(swatch);
+        }
+
+        chip.append(label);
+
+        if (count > 1) {
+            const countBadge = document.createElement('span');
+            countBadge.className = 'property-chip__count';
+            countBadge.textContent = String(count);
+            chip.append(countBadge);
+        }
+
+        chip.addEventListener('dragstart', (event) => {
+            draggedPayload = { propertyKey, sourceKey };
+            event.dataTransfer.effectAllowed = 'move';
+            event.dataTransfer.setData('application/json', JSON.stringify(draggedPayload));
+            event.dataTransfer.setData('text/plain', `${sourceKey}|${propertyKey}`);
+        });
+
+        chip.addEventListener('dragend', () => {
+            draggedPayload = null;
+            document.querySelectorAll('.drop-zone').forEach((zone) => zone.classList.remove('is-over'));
+        });
+
+        chip.addEventListener('dblclick', () => {
+            if (sourceKey !== 'pool' && moveOne(propertyKey, sourceKey, 'pool')) {
+                render();
+            }
+        });
+
+        return chip;
+    };
+
+    const renderLocationList = (locationKey, searchQuery) => {
+        const listNode = listNodes[locationKey];
+        if (!listNode) {
+            return;
+        }
+
+        listNode.innerHTML = '';
+
+        let keysToRender = [];
+        if (locationKey === 'pool') {
+            keysToRender = poolOrder.filter((propertyKey) => {
+                if (getCount('pool', propertyKey) <= 0) {
+                    return false;
+                }
+
+                if (!searchQuery) {
+                    return true;
+                }
+
+                return propertyCatalog[propertyKey].rule.toLowerCase().includes(searchQuery);
+            });
+        } else {
+            keysToRender = Object.keys(placements[locationKey]).sort((leftKey, rightKey) => {
+                return propertyCatalog[leftKey].rule.localeCompare(propertyCatalog[rightKey].rule);
+            });
+        }
+
+        if (keysToRender.length === 0) {
+            const emptyState = document.createElement('p');
+            emptyState.className = 'empty-zone';
+            emptyState.textContent = locationKey === 'pool'
+                ? (searchQuery ? 'No properties match this search.' : 'Drag properties from here.')
+                : 'Drop properties here.';
+            listNode.appendChild(emptyState);
+            return;
+        }
+
+        keysToRender.forEach((propertyKey) => {
+            const chip = createChip(propertyKey, locationKey);
+            if (chip) {
+                listNode.appendChild(chip);
+            }
+        });
+    };
+
+    const renderLists = () => {
+        const searchQuery = (propertySearchInput?.value || '').trim().toLowerCase();
+        renderLocationList('pool', searchQuery);
+        selectorKeys.forEach((selectorKey) => renderLocationList(selectorKey, searchQuery));
+    };
+
+    const renderPreviewStyles = () => {
+        const cssChunks = selectorDefinitions.map((selectorDefinition) => {
+            const rules = Object.keys(placements[selectorDefinition.key])
+                .map((propertyKey) => {
+                    const count = getCount(selectorDefinition.key, propertyKey);
+                    return Array.from({ length: count }, () => propertyCatalog[propertyKey].rule).join(' ');
+                })
+                .join(' ');
+
+            return `.preview-scope ${selectorLookup[selectorDefinition.key]} { ${rules} }`;
+        });
+
+        previewStyle.textContent = cssChunks.join('\n');
+    };
+
+    const selectorState = (selectorKey) => {
+        const requiredMap = requiredBySelector[selectorKey];
+        const placedMap = placements[selectorKey];
+
+        let mismatch = false;
+        let missing = false;
+
+        Object.keys(placedMap).forEach((propertyKey) => {
+            const placedCount = getCount(selectorKey, propertyKey);
+            const requiredCount = requiredMap[propertyKey] || 0;
+            if (requiredCount === 0 || placedCount > requiredCount) {
+                mismatch = true;
+            }
+        });
+
+        Object.keys(requiredMap).forEach((propertyKey) => {
+            if (getCount(selectorKey, propertyKey) < requiredMap[propertyKey]) {
+                missing = true;
+            }
+        });
+
+        return {
+            mismatch,
+            complete: !mismatch && !missing,
+        };
+    };
+
+    const renderSelectorStates = () => {
+        selectorKeys.forEach((selectorKey) => {
+            const card = selectorCardLookup[selectorKey];
+            if (!card) {
+                return;
+            }
+
+            const state = selectorState(selectorKey);
+            const placedTotal = Object.values(placements[selectorKey]).reduce((sum, value) => sum + value, 0);
+            const requiredTotal = requiredTotalBySelector[selectorKey] || 0;
+            const metaNode = selectorMetaLookup[selectorKey];
+            card.classList.remove('is-target-danger', 'is-target-complete');
+
+            if (state.complete) {
+                card.classList.add('is-target-complete');
+            } else if (state.mismatch) {
+                card.classList.add('is-target-danger');
+            }
+
+            if (metaNode) {
+                metaNode.textContent = `${placedTotal}/${requiredTotal} props`;
+            }
+        });
+    };
+
+    const renderProgress = () => {
+        let correctCount = 0;
+        let hasMismatch = false;
+        let allComplete = true;
+
+        selectorKeys.forEach((selectorKey) => {
+            const requiredMap = requiredBySelector[selectorKey];
+            Object.keys(requiredMap).forEach((propertyKey) => {
+                correctCount += Math.min(getCount(selectorKey, propertyKey), requiredMap[propertyKey]);
+            });
+
+            const state = selectorState(selectorKey);
+            if (state.mismatch) {
+                hasMismatch = true;
+            }
+            if (!state.complete) {
+                allComplete = false;
+            }
+        });
+
+        const progressPercent = totalCount > 0 ? Math.round((correctCount / totalCount) * 100) : 0;
+        if (progressBarFill) {
+            progressBarFill.style.width = `${progressPercent}%`;
+        }
+
+        if (allComplete && correctCount === totalCount) {
+            statusLabel.textContent = 'Complete';
+            statusLabel.classList.add('is-success');
+        } else {
+            statusLabel.textContent = hasMismatch
+                ? 'Mismatch detected'
+                : 'In progress';
+            statusLabel.classList.remove('is-success');
+        }
+    };
+
+    const render = () => {
+        renderLists();
+        renderPreviewStyles();
+        renderSelectorStates();
+        renderProgress();
+    };
+
+    const clearSelectorCardHighlight = (resetTrackedKey = true) => {
+        selectorCards.forEach((card) => card.classList.remove('is-target-active'));
+        if (resetTrackedKey) {
+            lastHighlightedSelectorKey = null;
+        }
+    };
+
+    const scrollSelectorCardIntoView = (key) => {
+        if (!identifiersScrollContainer || !key || !selectorCardLookup[key]) {
+            return;
+        }
+
+        const card = selectorCardLookup[key];
+        const containerRect = identifiersScrollContainer.getBoundingClientRect();
+        const cardRect = card.getBoundingClientRect();
+        const cardIsOutsideView = cardRect.top < containerRect.top || cardRect.bottom > containerRect.bottom;
+
+        if (!cardIsOutsideView) {
+            return;
+        }
+
+        card.scrollIntoView({
+            behavior: 'smooth',
+            block: 'nearest',
+            inline: 'nearest',
+        });
+    };
+
+    const highlightSelectorCard = (key, shouldAutoScroll = false) => {
+        const previousKey = lastHighlightedSelectorKey;
+        clearSelectorCardHighlight(false);
+        if (!key || !selectorCardLookup[key]) {
+            lastHighlightedSelectorKey = null;
+            return;
+        }
+
+        selectorCardLookup[key].classList.add('is-target-active');
+
+        if (shouldAutoScroll && key !== previousKey) {
+            scrollSelectorCardIntoView(key);
+        }
+
+        lastHighlightedSelectorKey = key;
+    };
+
+    const resolveSelectorKeyFromTarget = (element) => {
+        if (!element) {
+            return null;
+        }
+
+        for (const entry of selectorPriority) {
+            if (element.closest(`.${entry.className}`)) {
+                return entry.key;
+            }
+        }
+
+        return null;
+    };
+
+    const attachDropHandlers = () => {
+        const dropZones = document.querySelectorAll('.drop-zone');
+
+        dropZones.forEach((zone) => {
+            zone.addEventListener('dragover', (event) => {
+                event.preventDefault();
+                zone.classList.add('is-over');
+            });
+
+            zone.addEventListener('dragleave', () => {
+                zone.classList.remove('is-over');
+            });
+
+            zone.addEventListener('drop', (event) => {
+                event.preventDefault();
+                zone.classList.remove('is-over');
+
+                const destination = zone.dataset.dropKey || 'pool';
+                const rawJson = event.dataTransfer.getData('application/json');
+                const rawText = event.dataTransfer.getData('text/plain');
+
+                let payload = null;
+                if (rawJson) {
+                    try {
+                        payload = JSON.parse(rawJson);
+                    } catch (err) {
+                        payload = null;
+                    }
+                }
+
+                if (!payload && rawText.includes('|')) {
+                    const [sourceKey, propertyKey] = rawText.split('|');
+                    payload = { sourceKey, propertyKey };
+                }
+
+                if (!payload) {
+                    payload = draggedPayload;
+                }
+
+                if (!payload || !payload.sourceKey || !payload.propertyKey) {
+                    return;
+                }
+
+                if (moveOne(payload.propertyKey, payload.sourceKey, destination)) {
+                    pinnedSelectorKey = null;
+                    hoveredSelectorKey = null;
+                    clearSelectorCardHighlight();
+                    render();
+                }
+            });
+        });
+    };
+
+    const attachTargetInspectorHandlers = () => {
+        if (!targetScope) {
+            return;
+        }
+
+        const interactiveNodes = targetScope.querySelectorAll('a,button,input,select,textarea,[role="button"]');
+        interactiveNodes.forEach((node) => {
+            node.setAttribute('tabindex', '-1');
+            node.setAttribute('aria-disabled', 'true');
+        });
+
+        targetScope.addEventListener('dragstart', (event) => {
+            event.preventDefault();
+        });
+
+        targetScope.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+            }
+        });
+
+        targetScope.addEventListener('click', (event) => {
+            const interactive = event.target.closest('a,button,input,select,textarea,[role="button"]');
+            if (interactive) {
+                event.preventDefault();
+            }
+
+            const key = resolveSelectorKeyFromTarget(event.target);
+            pinnedSelectorKey = key;
+            highlightSelectorCard(key, true);
+        });
+
+        targetScope.addEventListener('mousemove', (event) => {
+            if (pinnedSelectorKey !== null) {
+                return;
+            }
+
+            hoveredSelectorKey = resolveSelectorKeyFromTarget(event.target);
+            highlightSelectorCard(hoveredSelectorKey, true);
+        });
+
+        targetScope.addEventListener('mouseleave', () => {
+            hoveredSelectorKey = null;
+            if (pinnedSelectorKey === null) {
+                clearSelectorCardHighlight();
+            }
+        });
+
+        // Clear pinned selector when clicking outside target scope.
+        document.addEventListener('click', (event) => {
+            if (targetScope.contains(event.target)) {
+                return;
+            }
+
+            pinnedSelectorKey = null;
+            highlightSelectorCard(hoveredSelectorKey);
+        });
+    };
+
+    const clampTargetWidth = (value) => {
+        const gridRect = targetGrid.getBoundingClientRect();
+        const minTargetWidth = 360;
+        const maxTargetWidth = Math.max(420, gridRect.width - 520);
+        return Math.max(minTargetWidth, Math.min(maxTargetWidth, value));
+    };
+
+    const setTargetWidth = (value) => {
+        const width = clampTargetWidth(value);
+        targetGrid.style.setProperty('--target-width', `${width}px`);
+    };
+
+    const handleResizeMove = (clientX) => {
+        const gridRect = targetGrid.getBoundingClientRect();
+        const proposedWidth = gridRect.right - clientX;
+        setTargetWidth(proposedWidth);
+    };
+
+    splitHandle.addEventListener('mousedown', () => {
+        if (window.matchMedia('(max-width: 1220px)').matches) {
+            return;
+        }
+
+        isResizing = true;
+        document.body.classList.add('is-resizing-split');
+    });
+
+    window.addEventListener('mousemove', (event) => {
+        if (!isResizing) {
+            return;
+        }
+
+        handleResizeMove(event.clientX);
+    });
+
+    window.addEventListener('mouseup', () => {
+        if (!isResizing) {
+            return;
+        }
+
+        isResizing = false;
+        document.body.classList.remove('is-resizing-split');
+    });
+
+    window.addEventListener('resize', () => {
+        const current = parseInt(getComputedStyle(targetGrid).getPropertyValue('--target-width'), 10);
+        if (!Number.isNaN(current)) {
+            setTargetWidth(current);
+        }
+    });
+
+    resetButton.addEventListener('click', () => {
+        selectorKeys.forEach((selectorKey) => {
+            placements[selectorKey] = {};
+        });
+        placements.pool = { ...totalRequiredByProperty };
+        hoveredSelectorKey = null;
+        pinnedSelectorKey = null;
+        clearSelectorCardHighlight();
+
+        render();
+    });
+
+    propertySearchInput?.addEventListener('input', () => {
+        renderLists();
+    });
+
+    attachDropHandlers();
+    attachTargetInspectorHandlers();
+    render();
+})();
+</script>

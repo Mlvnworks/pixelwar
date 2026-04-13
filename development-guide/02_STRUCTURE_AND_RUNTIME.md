@@ -24,7 +24,7 @@ PHVN follows a plain PHP structure with three main runtime layers:
 | `pages/` | Route-like page templates loaded with `?c=<page>`. |
 | `submissions/` | Request handlers for POST forms, AJAX actions, and small action endpoints. |
 | `components/` | Shared UI pieces and fallback views. |
-| `styling/` | Global, page, and component CSS. |
+| `styling/` | Global CSS and small page-specific CSS that supplements Tailwind. |
 | `assets/` | Static assets such as icons and images. |
 
 ## Runtime Flow
@@ -46,25 +46,28 @@ PHVN follows a plain PHP structure with three main runtime layers:
 - New request action: `submissions/`
 - New shared helper: `classes/`
 - New reusable layout block: `components/`
+- New page styling: Tailwind classes first, then `styling/page/` only if necessary
 
 ### What Not To Mix
 
 - Do not put request-handling logic inside page templates
 - Do not put database boot logic inside page files
 - Do not put reusable helper logic inside components
+- Do not move core visual direction away from the retro arcade light theme unless the project priority file changes
 
 ## Example Use Case
 
-### Example: Add A New `about` Page
+### Example: Add A New `scoreboard` Page
 
-1. Create `pages/about.php`
-2. Create `styling/page/about.css` if needed
-3. Open `/?c=about`
+1. Create `pages/scoreboard.php`
+2. Build the page with Tailwind classes first
+3. Create `styling/page/scoreboard.css` only if a small CSS addition is still needed
+4. Open `/?c=scoreboard`
 
 The navigator will automatically allow the page because it builds its whitelist from `pages/*.php`.
 
-### Example: Add A Shared Hero Banner Component
+### Example: Add A Shared Game Banner Component
 
-1. Create `components/hero-banner.php`
+1. Create `components/game-banner.php`
 2. Include it from a page or from `navigator/navigator.php`
-3. Put any shared styles in `styling/component/`
+3. Keep the component in the same retro arcade light design language

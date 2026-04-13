@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This guide explains how to configure, run, and safely extend the PHVN starter.
+This guide explains how to configure, run, and safely extend the current PHVN codebase.
 
 ## Quick Setup
 
@@ -11,6 +11,13 @@ This guide explains how to configure, run, and safely extend the PHVN starter.
 3. If you need database access, set all `DB_*` values
 4. If you need mail sending, set all `MAIL_*` values
 5. Serve the project through XAMPP or Apache
+
+## Current App Direction
+
+- Website description: gamified CSS game for students
+- Visual direction: retro and arcade light theme
+- Styling direction: Tailwind first
+- UX direction: small, readable, student-friendly interactions
 
 ## Key Environment Variables
 
@@ -51,17 +58,19 @@ This guide explains how to configure, run, and safely extend the PHVN starter.
 
 - If you use DB features, provide all of `DB_HOST`, `DB_USER`, and `DB_NAME`
 - Partial DB config is treated as an error
-- If no DB config is provided, the starter stays in no-database mode
+- If no DB config is provided, the app stays in no-database mode
 
 ### Mail Rules
 
 - Use environment values only
 - Do not place SMTP credentials inside classes or page files
+- Prefer `APP_NAME` and mail sender values that match the current PHVN branding
 
 ### Documentation Rules
 
 - Keep new instructional content inside `development-guide/`
 - Name guide files by purpose, not by generic names
+- Keep guide wording aligned with the current game-oriented project direction
 
 ## Example Use Case
 
@@ -90,5 +99,5 @@ MAIL_ENCRYPTION=tls
 MAIL_USERNAME=your-account@example.com
 MAIL_PASSWORD=your-app-password
 MAIL_FROM_ADDRESS=your-account@example.com
-MAIL_FROM_NAME="PHVN Framework"
+MAIL_FROM_NAME="PHVN"
 ```
