@@ -1,6 +1,6 @@
-# PHVN
+# Pixelwar
 
-PHVN is a small PHP codebase for a retro arcade light website and a gamified CSS game for students.
+Pixelwar is a small PHP codebase for a retro arcade light website and a gamified CSS game for students.
 
 ## Start Here
 
@@ -16,7 +16,11 @@ Recommended reading order:
 
 ## Current Pages
 
-- `/?c=home` - `Pixelwar` interactive game test page
+- `/` - Landing page
+- `/?c=home` - Learner home page
+- `/?c=pixelwar` - `Pixelwar` interactive game test page
+- `/?c=login` - Login page placeholder
+- `/?c=signup` - Signup page placeholder
 
 ## Current Direction
 

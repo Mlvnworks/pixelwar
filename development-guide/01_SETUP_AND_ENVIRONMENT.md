@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This guide explains how to configure, run, and safely extend the current PHVN codebase.
+This guide explains how to configure, run, and safely extend the current Pixelwar codebase.
 
 ## Quick Setup
 
@@ -64,7 +64,7 @@ This guide explains how to configure, run, and safely extend the current PHVN co
 
 - Use environment values only
 - Do not place SMTP credentials inside classes or page files
-- Prefer `APP_NAME` and mail sender values that match the current PHVN branding
+- Prefer `APP_NAME` and mail sender values that match the current Pixelwar branding
 
 ### Documentation Rules
 
@@ -81,7 +81,7 @@ Update `.env` like this:
 ```env
 DB_HOST=127.0.0.1
 DB_PORT=3306
-DB_NAME=phvn_local
+DB_NAME=pixelwar_local
 DB_USER=root
 DB_PASS=
 ```
@@ -99,5 +99,5 @@ MAIL_ENCRYPTION=tls
 MAIL_USERNAME=your-account@example.com
 MAIL_PASSWORD=your-app-password
 MAIL_FROM_ADDRESS=your-account@example.com
-MAIL_FROM_NAME="PHVN"
+MAIL_FROM_NAME="Pixelwar"
 ```

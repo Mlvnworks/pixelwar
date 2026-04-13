@@ -64,7 +64,7 @@ class GameCopy
         return match ($page) {
             'home' => 'Learn through play',
             'scoreboard' => 'Scoreboard',
-            default => 'PHVN',
+            default => 'Pixelwar',
         };
     }
 }

@@ -1,7 +1,7 @@
 <?php
 $allowedPages = [];
 $pageFiles = glob(__DIR__ . '/../pages/*.php') ?: [];
-$normalizedContent = preg_match('/^[a-z0-9\-]+$/i', $content) === 1 ? $content : 'home';
+$normalizedContent = preg_match('/^[a-z0-9\-]+$/i', $content) === 1 ? $content : 'landing';
 
 $allowedPages = array_map(function ($file) {
     return basename($file, '.php');
@@ -11,6 +11,10 @@ $isAllowedPage = in_array($normalizedContent, $allowedPages, true);
 $pageStyleFile = __DIR__ . '/../styling/page/' . $normalizedContent . '.css';
 $appName = isset($pageMeta) ? $pageMeta->titleFor($normalizedContent) : APP_NAME;
 $appDescription = isset($pageMeta) ? $pageMeta->descriptionFor($normalizedContent) : 'Gamified CSS game for students';
+$headerlessPages = ['landing', 'pixelwar'];
+$footerlessPages = ['landing', 'login', 'signup', 'pixelwar'];
+$hidesHeader = in_array($normalizedContent, $headerlessPages, true);
+$hidesFooter = in_array($normalizedContent, $footerlessPages, true);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -70,13 +74,22 @@ $appDescription = isset($pageMeta) ? $pageMeta->descriptionFor($normalizedConten
 </head>
 
 <body class="bg-arcade-cream font-body text-arcade-ink antialiased">
+    <script>
+        try {
+            if (localStorage.getItem('pixelwarDarkMode') === 'on') {
+                document.body.classList.add('pixelwar-dark-mode');
+            }
+        } catch (error) {
+            document.body.classList.remove('pixelwar-dark-mode');
+        }
+    </script>
     <?php
     if ($isAllowedPage) {
-        if ($normalizedContent !== 'home') {
+        if (!$hidesHeader) {
             include __DIR__ . '/../components/navbar.php';
         }
         require __DIR__ . '/../pages/' . $normalizedContent . '.php';
-        if ($normalizedContent !== 'home') {
+        if (!$hidesFooter) {
             include __DIR__ . '/../components/footer.php';
         }
         $tools->alert();

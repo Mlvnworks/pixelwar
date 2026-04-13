@@ -6,7 +6,7 @@ This guide explains the current project structure and how a request moves throug
 
 ## Architecture Overview
 
-PHVN follows a plain PHP structure with three main runtime layers:
+Pixelwar follows a plain PHP structure with three main runtime layers:
 
 1. `index.php`
 2. `submission.php`
@@ -36,6 +36,8 @@ PHVN follows a plain PHP structure with three main runtime layers:
 5. `navigator/navigator.php` checks whether the page exists
 6. The selected page is rendered from `pages/`
 7. Shared components such as navbar, footer, and alerts are rendered around it
+
+The default route `/` resolves to `pages/landing.php`. The fullscreen `pages/pixelwar.php` game route skips the shared navbar and footer so the game can own the full viewport.
 
 ## Development Guide
 

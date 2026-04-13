@@ -22,7 +22,7 @@ if (session_status() !== PHP_SESSION_ACTIVE) {
 ob_start();
 
 try {
-    $content = isset($_GET['c']) ? trim((string) $_GET['c']) : 'home';
+    $content = isset($_GET['c']) ? trim((string) $_GET['c']) : 'landing';
 
     // Load classes and request handlers.
     require __DIR__ . '/submission.php';
@@ -30,8 +30,11 @@ try {
     // Render the HTML shell and page content.
     require __DIR__ . '/navigator/navigator.php';
 } catch (Throwable $err) {
-    error_log('PHVN Error: ' . $err->getMessage());
+    error_log('Pixelwar Error: ' . $err->getMessage());
     http_response_code(500);
+    if (ob_get_level() > 0) {
+        ob_clean();
+    }
     require __DIR__ . '/components/500.php';
     exit;
 }

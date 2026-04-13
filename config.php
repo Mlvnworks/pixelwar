@@ -12,7 +12,7 @@ if (!defined('APP_DEBUG')) {
 }
 
 if (!defined('APP_NAME')) {
-    define('APP_NAME', Env::get('APP_NAME', 'PHVN'));
+    define('APP_NAME', Env::get('APP_NAME', 'Pixelwar'));
 }
 
 if (!defined('APP_URL')) {
@@ -81,7 +81,7 @@ $hasAnyDatabaseConfig = DB_HOST !== null || DB_USER !== null || DB_NAME !== null
 $hasFullDatabaseConfig = DB_HOST !== null && DB_USER !== null && DB_NAME !== null;
 
 if ($hasAnyDatabaseConfig && !$hasFullDatabaseConfig) {
-    error_log('PHVN database configuration is incomplete. Set DB_HOST, DB_USER, and DB_NAME.');
+    error_log('Pixelwar database configuration is incomplete. Set DB_HOST, DB_USER, and DB_NAME.');
     http_response_code(500);
     require __DIR__ . '/components/500.php';
     exit;
@@ -98,7 +98,7 @@ try {
     $connection->set_charset('utf8mb4');
     $con = $connection;
 } catch (mysqli_sql_exception $err) {
-    error_log('PHVN database error: ' . $err->getMessage());
+    error_log('Pixelwar database error: ' . $err->getMessage());
     http_response_code(500);
     require __DIR__ . '/components/500.php';
     exit;

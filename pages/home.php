@@ -1,812 +1,314 @@
-<section id="game-test" class="p-0">
-        <div class="challenge-shell border-4 border-arcade-ink/10 bg-arcade-panel/80 p-2">
-            <aside class="floating-hud" aria-live="polite">
-                <span id="game-status" class="hud-pill">Waiting for your first move.</span>
-            </aside>
+<?php
+require_once __DIR__ . '/../classes/challenge-catalog.php';
 
-            <div class="challenge-grid" id="challenge-grid">
-                <section class="builder-pane rounded-[26px] border-4 border-arcade-ink/10 bg-white/70 p-4 md:p-5">
-                    <section class="panel-card panel-card--preview rounded-[20px] border-2 border-arcade-ink/10 bg-white p-4">
-                        <h2 class="mb-3 font-arcade text-[10px] uppercase tracking-[0.22em] text-arcade-orange">1. Live Preview</h2>
-                        <div class="preview-frame rounded-[20px] border-2 border-dashed border-arcade-ink/15 bg-[#f7efe1] p-4">
-                            <div class="preview-stage">
-                                <div class="preview-scope">
-                                    <article class="pixel-card">
-                                        <span class="pixel-badge">Student Build</span>
-                                        <h3 class="pixel-title">Pixelwar</h3>
-                                        <p class="pixel-subtitle">Drag CSS properties to match the target design.</p>
-                                        <a class="pixel-cta" href="javascript:void(0)">Launch Run</a>
-                                    </article>
+$username = $_SESSION['username'] ?? 'Pixel Rookie';
+$currentYear = (int) date('Y');
+$yearStart = new DateTimeImmutable($currentYear . '-01-01');
+$today = new DateTimeImmutable('today');
+$currentSeason = 'Season 01: Arcade Dawn';
+$seasonEndsAt = new DateTimeImmutable($currentYear . '-06-30');
+$seasonDaysLeft = max(0, (int) $today->diff($seasonEndsAt)->format('%r%a'));
+$currentRankPoints = 340;
+$rankRequirementPoints = 500;
+$rankProgressPercent = min(100, (int) round(($currentRankPoints / $rankRequirementPoints) * 100));
+$solvePattern = [0, 1, 0, 2, 3, 0, 1, 4, 2, 0, 0, 1, 3, 4, 1, 0, 2, 2, 5, 1, 0, 3, 4, 0, 1, 2, 5, 3, 0, 1, 4, 2, 0, 3, 5];
+$challengeNames = ['Button Border Basics', 'Card Shadow Match', 'Hero Text Alignment', 'Badge Color Tune', 'Spacing Sprint', 'Selector Stack', 'CTA Polish', 'Panel Radius Run'];
+$activityDays = [];
+$solvedChallengeRows = [];
+
+for ($dayIndex = 0; $dayIndex < 235; $dayIndex++) {
+    $date = $yearStart->modify('+' . $dayIndex . ' days');
+    $solves = $solvePattern[$dayIndex % count($solvePattern)];
+    $activityDays[] = [
+        'date' => $date,
+        'solves' => $solves,
+        'level' => min($solves, 5),
+    ];
+
+    for ($solveIndex = 0; $solveIndex < $solves; $solveIndex++) {
+        $challengeName = $challengeNames[($dayIndex + $solveIndex) % count($challengeNames)];
+        $solvedChallengeRows[] = [
+            'date' => $date,
+            'title' => $challengeName,
+            'result' => 'Completed',
+            'points' => 20 + (($dayIndex + $solveIndex) % 5) * 10,
+        ];
+    }
+}
+
+$recommendedChallenges = ChallengeCatalog::all();
+?>
+
+<main class="home-dashboard relative overflow-hidden bg-arcade-cream px-4 py-8 text-arcade-ink md:py-10">
+    <div class="absolute inset-0 bg-[radial-gradient(circle_at_12%_14%,rgba(255,209,102,0.28),transparent_22%),radial-gradient(circle_at_88%_18%,rgba(76,201,240,0.2),transparent_24%),linear-gradient(135deg,rgba(249,115,115,0.12),transparent_36%)]"></div>
+    <div class="home-dashboard__grid absolute inset-0"></div>
+
+    <section class="container relative">
+        <div class="mb-5 rounded-[24px] border-4 border-arcade-ink bg-arcade-panel p-4 shadow-[7px_7px_0_#26190f] md:p-5">
+            <p class="font-arcade text-[10px] uppercase tracking-[0.28em] text-arcade-orange">Player Dashboard</p>
+            <div class="mt-3 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+                <div>
+                    <h1 class="text-3xl font-bold leading-tight md:text-5xl">
+                        Welcome <?= htmlspecialchars($username, ENT_QUOTES, 'UTF-8') ?>,
+                    </h1>
+                    <p class="mt-2 max-w-2xl text-sm leading-7 text-arcade-ink/70">
+                        Keep your streak alive, climb the ranks, and clear recommended CSS challenges one design at a time.
+                    </p>
+                </div>
+                <div class="flex flex-nowrap items-center gap-2 py-1">
+                    <a href="./?c=pixelwar&intro=1" class="inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-xl border-2 border-arcade-ink bg-arcade-yellow px-3 py-2 text-xs font-bold text-arcade-ink no-underline shadow-[0_4px_0_#26190f] transition hover:-translate-y-0.5 hover:bg-arcade-orange hover:text-white sm:px-4 sm:text-sm">
+                        <svg class="h-4 w-4" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+                            <path fill="currentColor" d="M4 2.5v11l9-5.5-9-5.5Z" />
+                        </svg>
+                        <span>Start Challenge</span>
+                    </a>
+                    <a href="./?c=pixelwar&intro=1&mode=1v1" class="inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-xl border-2 border-arcade-ink bg-arcade-cyan px-3 py-2 text-xs font-bold text-arcade-ink no-underline shadow-[0_4px_0_#26190f] transition hover:-translate-y-0.5 hover:bg-arcade-orange hover:text-white sm:px-4 sm:text-sm">
+                        <svg class="h-4 w-4" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+                            <path fill="currentColor" d="M5 7a2 2 0 1 0 0-4 2 2 0 0 0 0 4Zm6 0a2 2 0 1 0 0-4 2 2 0 0 0 0 4ZM2 13c0-2.2 1.4-4 3-4s3 1.8 3 4H2Zm6 0c0-2.2 1.4-4 3-4s3 1.8 3 4H8Z" />
+                        </svg>
+                        <span>1v1</span>
+                    </a>
+                    <a href="./?c=pixelwar&intro=1&mode=room" class="inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-xl border-2 border-arcade-ink bg-white px-3 py-2 text-xs font-bold text-arcade-ink no-underline shadow-[0_4px_0_#26190f] transition hover:-translate-y-0.5 hover:bg-arcade-yellow sm:px-4 sm:text-sm">
+                        <svg class="h-4 w-4" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+                            <path fill="currentColor" d="M2 3h12v10H2V3Zm2 2v2h2V5H4Zm3 0v2h2V5H7Zm3 0v2h2V5h-2ZM4 9v2h2V9H4Zm3 0v2h2V9H7Zm3 0v2h2V9h-2Z" />
+                        </svg>
+                        <span>Join Room</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid gap-5 xl:grid-cols-[0.82fr_1.18fr]">
+            <section class="grid gap-5">
+                <article class="ranking-card rounded-[24px] border-4 border-arcade-ink bg-white/90 p-4 shadow-[7px_7px_0_#26190f] md:p-5">
+                    <div class="rank-highlight rounded-[20px] border-2 border-arcade-ink/10 bg-arcade-yellow/20 p-3">
+                    <div class="flex items-start justify-between gap-4">
+                        <div>
+                            <p class="font-arcade text-[10px] uppercase tracking-[0.24em] text-arcade-cyan">Ranking</p>
+                            <h2 class="mt-3 text-3xl font-bold text-arcade-orange">Beginner</h2>
+                            <p class="mt-1 text-sm leading-6 text-arcade-ink/65">Current rank</p>
+                        </div>
+                        <div class="rank-badge grid h-24 w-24 place-items-center rounded-[24px] border-4 border-arcade-ink bg-arcade-yellow shadow-[7px_7px_0_#26190f]" aria-label="Beginner rank badge">
+                            <span class="font-arcade text-2xl text-arcade-orange">B</span>
+                        </div>
+                    </div>
+                    </div>
+
+                    <div class="mt-4 grid gap-2 sm:grid-cols-2">
+                        <div class="season-badge rounded-2xl border-4 border-arcade-ink bg-arcade-yellow p-3 shadow-[5px_5px_0_#26190f]">
+                            <p class="text-xs font-bold uppercase tracking-[0.18em] text-arcade-ink/60">Current Season</p>
+                            <p class="mt-1 text-base font-extrabold"><?= htmlspecialchars($currentSeason, ENT_QUOTES, 'UTF-8') ?></p>
+                        </div>
+                        <div class="season-badge rounded-2xl border-4 border-arcade-ink bg-arcade-cyan p-3 shadow-[5px_5px_0_#26190f]">
+                            <p class="text-xs font-bold uppercase tracking-[0.18em] text-arcade-ink/60">Season Ends</p>
+                            <p class="mt-1 text-base font-extrabold"><?= (int) $seasonDaysLeft ?> days left</p>
+                        </div>
+                    </div>
+
+                    <div class="mt-4 rounded-2xl border-4 border-arcade-ink bg-arcade-cream p-3 shadow-[4px_4px_0_rgba(38,25,15,0.22)]">
+                        <div class="flex flex-wrap items-center justify-between gap-2">
+                            <p class="text-xs font-extrabold uppercase tracking-[0.18em] text-arcade-orange">Rank Progress</p>
+                            <p class="text-sm font-extrabold text-arcade-ink"><?= (int) $currentRankPoints ?> / <?= (int) $rankRequirementPoints ?> points</p>
+                        </div>
+                        <div class="mt-2 h-4 overflow-hidden rounded-full border-2 border-arcade-ink bg-white">
+                            <span class="block h-full rounded-full bg-gradient-to-r from-arcade-orange via-arcade-yellow to-arcade-cyan" style="width: <?= (int) $rankProgressPercent ?>%;"></span>
+                        </div>
+                        <div class="mt-3 flex flex-wrap gap-2">
+                            <a href="./?c=player-analytics" class="rounded-xl border-2 border-arcade-ink bg-white px-3 py-1.5 text-xs font-bold text-arcade-ink no-underline shadow-[0_3px_0_rgba(38,25,15,0.35)] transition hover:-translate-y-0.5 hover:bg-arcade-yellow">Rank Details</a>
+                            <a href="./?c=player-analytics&view=leaderboard" class="rounded-xl border-2 border-arcade-ink bg-arcade-orange px-3 py-1.5 text-xs font-bold text-white no-underline shadow-[0_3px_0_rgba(38,25,15,0.35)] transition hover:-translate-y-0.5 hover:bg-arcade-cyan hover:text-arcade-ink">Leaderboard</a>
+                        </div>
+                    </div>
+
+                    <div class="mt-4 grid gap-2 sm:grid-cols-3">
+                        <div class="ranking-stat-card rounded-xl border-2 border-arcade-ink/10 bg-arcade-cream p-3">
+                            <div class="flex items-center gap-2">
+                                <span class="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-arcade-yellow text-arcade-ink" aria-hidden="true">
+                                    <svg class="h-4 w-4" viewBox="0 0 16 16" focusable="false">
+                                        <path fill="currentColor" d="M3 2h10v2h-1v1.5A4 4 0 0 1 8.8 9.4V12H11v2H5v-2h2.2V9.4A4 4 0 0 1 4 5.5V4H3V2Zm3 2v1.5a2 2 0 0 0 4 0V4H6Z" />
+                                    </svg>
+                                </span>
+                                <div>
+                                    <p class="text-[10px] font-bold uppercase tracking-[0.18em] text-arcade-ink/55">Leaderboard</p>
+                                    <p class="mt-0.5 text-xl font-bold">#128</p>
                                 </div>
                             </div>
                         </div>
-                    </section>
-
-                    <section class="panel-card panel-card--identifiers rounded-[20px] border-2 border-arcade-ink/10 bg-white p-4">
-                        <div class="identifiers-header mb-3">
-                            <h2 class="font-arcade text-[10px] uppercase tracking-[0.22em] text-arcade-orange">2. Identifier Containers</h2>
-                            <div class="progress-inline" aria-label="Challenge progress">
-                                <span class="progress-inline__track">
-                                    <span id="progress-bar-fill" class="progress-inline__fill"></span>
+                        <div class="ranking-stat-card rounded-xl border-2 border-arcade-ink/10 bg-arcade-cream p-3">
+                            <div class="flex items-center gap-2">
+                                <span class="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-arcade-cyan text-arcade-ink" aria-hidden="true">
+                                    <svg class="h-4 w-4" viewBox="0 0 16 16" focusable="false">
+                                        <path fill="currentColor" d="M6.5 11.2 3.7 8.4l1.1-1.1 1.7 1.7 4.7-4.7 1.1 1.1-5.8 5.8ZM2 2h12v12H2V2Zm2 2v8h8V4H4Z" />
+                                    </svg>
                                 </span>
+                                <div>
+                                    <p class="text-[10px] font-bold uppercase tracking-[0.18em] text-arcade-ink/55">Solved</p>
+                                    <p class="mt-0.5 text-xl font-bold">34</p>
+                                </div>
                             </div>
                         </div>
-                        <div class="identifiers-scroll">
-                            <div class="grid gap-3 md:grid-cols-2">
-                                <article class="selector-card rounded-2xl border-2 border-arcade-ink/10 bg-arcade-cream/60 p-3" data-selector-card="card">
-                                    <div class="selector-head">
-                                        <p class="mb-2 font-mono text-xs font-semibold text-arcade-ink/80">.pixel-card</p>
-                                        <span class="selector-meta" data-selector-meta="card"></span>
-                                    </div>
-                                    <div class="drop-zone selector-zone" data-drop-key="card">
-                                        <div class="chip-list" data-property-list="card"></div>
-                                    </div>
-                                </article>
-
-                                <article class="selector-card rounded-2xl border-2 border-arcade-ink/10 bg-arcade-cream/60 p-3" data-selector-card="badge">
-                                    <div class="selector-head">
-                                        <p class="mb-2 font-mono text-xs font-semibold text-arcade-ink/80">.pixel-badge</p>
-                                        <span class="selector-meta" data-selector-meta="badge"></span>
-                                    </div>
-                                    <div class="drop-zone selector-zone" data-drop-key="badge">
-                                        <div class="chip-list" data-property-list="badge"></div>
-                                    </div>
-                                </article>
-
-                                <article class="selector-card rounded-2xl border-2 border-arcade-ink/10 bg-arcade-cream/60 p-3" data-selector-card="title">
-                                    <div class="selector-head">
-                                        <p class="mb-2 font-mono text-xs font-semibold text-arcade-ink/80">.pixel-title</p>
-                                        <span class="selector-meta" data-selector-meta="title"></span>
-                                    </div>
-                                    <div class="drop-zone selector-zone" data-drop-key="title">
-                                        <div class="chip-list" data-property-list="title"></div>
-                                    </div>
-                                </article>
-
-                                <article class="selector-card rounded-2xl border-2 border-arcade-ink/10 bg-arcade-cream/60 p-3" data-selector-card="subtitle">
-                                    <div class="selector-head">
-                                        <p class="mb-2 font-mono text-xs font-semibold text-arcade-ink/80">.pixel-subtitle</p>
-                                        <span class="selector-meta" data-selector-meta="subtitle"></span>
-                                    </div>
-                                    <div class="drop-zone selector-zone" data-drop-key="subtitle">
-                                        <div class="chip-list" data-property-list="subtitle"></div>
-                                    </div>
-                                </article>
-
-                                <article class="selector-card rounded-2xl border-2 border-arcade-ink/10 bg-arcade-cream/60 p-3 md:col-span-2" data-selector-card="cta">
-                                    <div class="selector-head">
-                                        <p class="mb-2 font-mono text-xs font-semibold text-arcade-ink/80">.pixel-cta</p>
-                                        <span class="selector-meta" data-selector-meta="cta"></span>
-                                    </div>
-                                    <div class="drop-zone selector-zone" data-drop-key="cta">
-                                        <div class="chip-list" data-property-list="cta"></div>
-                                    </div>
-                                </article>
-                            </div>
-                        </div>
-                    </section>
-
-                    <section class="panel-card panel-card--properties rounded-[20px] border-2 border-arcade-ink/10 bg-white p-4">
-                        <h2 class="mb-2 font-arcade text-[10px] uppercase tracking-[0.22em] text-arcade-orange">3. Properties Panel</h2>
-                        <div class="property-controls mb-2">
-                            <div class="property-search-wrap">
-                                <input
-                                    id="property-search"
-                                    type="search"
-                                    autocomplete="off"
-                                    spellcheck="false"
-                                    placeholder="Search properties..."
-                                    class="w-full rounded-xl border-2 border-arcade-ink/10 bg-white px-3 py-2 text-sm text-arcade-ink outline-none transition focus:border-arcade-orange">
-                            </div>
-                            <button id="reset-layout-btn" type="button" class="rounded-xl border-2 border-arcade-ink/10 bg-arcade-peach/60 px-3 py-2 text-xs font-semibold text-arcade-ink transition hover:bg-arcade-yellow/70">
-                                Reset Placements
-                            </button>
-                        </div>
-                        <div class="drop-zone property-zone" data-drop-key="pool">
-                            <div class="chip-list chip-list--horizontal" data-property-list="pool"></div>
-                        </div>
-                    </section>
-                </section>
-
-                <div id="split-handle" class="split-handle" role="separator" aria-orientation="vertical" aria-label="Resize target panel"></div>
-
-                <section class="target-pane rounded-[26px] border-4 border-arcade-ink/10 bg-white/80 p-4 md:p-5" id="target-pane">
-                    <header class="mb-4 rounded-[18px] border-2 border-arcade-ink/10 bg-arcade-cream px-3 py-3">
-                        <p class="font-arcade text-[10px] uppercase tracking-[0.22em] text-arcade-orange">Target Design</p>
-                    </header>
-
-                    <div class="target-panel-body">
-                        <div class="target-frame rounded-[20px] border-2 border-dashed border-arcade-ink/15 bg-[#f7efe1] p-4">
-                            <div class="target-stage">
-                                <div class="target-scope">
-                                    <article class="pixel-card">
-                                        <span class="pixel-badge">Student Build</span>
-                                        <h3 class="pixel-title">Pixelwar</h3>
-                                        <p class="pixel-subtitle">Drag CSS properties to match the target design.</p>
-                                        <a class="pixel-cta" href="javascript:void(0)">Launch Run</a>
-                                    </article>
+                        <div class="ranking-stat-card rounded-xl border-2 border-arcade-ink/10 bg-arcade-cream p-3">
+                            <div class="flex items-center gap-2">
+                                <span class="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-arcade-orange text-white" aria-hidden="true">
+                                    <svg class="h-4 w-4" viewBox="0 0 16 16" focusable="false">
+                                        <path fill="currentColor" d="M8.8 1.5c.3 2.1 1.4 3 2.3 3.9.9.9 1.6 1.9 1.6 3.6A4.7 4.7 0 0 1 8 13.8 4.7 4.7 0 0 1 3.3 9c0-2 1.1-3.4 2.3-4.7.7-.8 1.5-1.6 1.8-2.8h1.4ZM8 11.9A2.8 2.8 0 0 0 10.8 9c0-.9-.4-1.5-1-2.2-.5-.5-1.1-1.1-1.6-2.1-.4.7-.9 1.3-1.4 1.8C6 7.4 5.2 8.2 5.2 9A2.8 2.8 0 0 0 8 11.9Z" />
+                                    </svg>
+                                </span>
+                                <div>
+                                    <p class="text-[10px] font-bold uppercase tracking-[0.18em] text-arcade-ink/55">Streak</p>
+                                    <p class="mt-0.5 text-xl font-bold">7d</p>
                                 </div>
                             </div>
                         </div>
                     </div>
-                </section>
-            </div>
-        </div>
-</section>
+                </article>
 
-<style id="preview-style"></style>
-<style id="target-style">
-.target-scope .pixel-card {
-    width: 320px;
-    min-height: 228px;
-    background: #fffdf6;
-    border: 4px solid #26190f;
-    border-radius: 24px;
-    padding: 24px;
-    text-align: center;
-    box-shadow: 0 12px 0 #26190f;
-}
-.target-scope .pixel-badge {
-    display: inline-block;
-    background: #ffd166;
-    color: #26190f;
-    border-radius: 999px;
-    padding: 6px 12px;
-    font-size: 12px;
-    font-weight: 700;
-}
-.target-scope .pixel-title {
-    margin: 14px 0 8px;
-    font-size: 36px;
-    font-weight: 700;
-    color: #ff8c42;
-    line-height: 1.05;
-}
-.target-scope .pixel-subtitle {
-    margin-bottom: 16px;
-    font-size: 15px;
-    color: #26190f;
-}
-.target-scope .pixel-cta {
-    display: inline-block;
-    background: #4cc9f0;
-    color: #26190f;
-    border-radius: 12px;
-    padding: 10px 18px;
-    font-weight: 700;
-    text-decoration: none;
-}
-</style>
+                <article class="rounded-[24px] border-4 border-arcade-ink/10 bg-white/85 p-4 shadow-arcade md:p-5">
+                    <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                        <div>
+                            <p class="font-arcade text-[10px] uppercase tracking-[0.24em] text-arcade-orange">Player Analytics</p>
+                            <h2 class="mt-3 text-xl font-bold">Challenge Solving</h2>
+                        </div>
+                        <div class="flex flex-wrap items-center gap-2">
+                            <p class="text-sm font-bold text-arcade-ink/60"><?= (int) $currentYear ?> Activity</p>
+                            <a href="./?c=player-analytics" class="rounded-xl border-2 border-arcade-ink/10 bg-white px-3 py-1.5 text-xs font-bold text-arcade-ink no-underline transition hover:bg-arcade-yellow/50">Open Analytics</a>
+                        </div>
+                    </div>
+
+                    <div class="mt-4 overflow-x-auto pb-2">
+                        <div class="home-activity-grid" aria-label="<?= (int) $currentYear ?> challenge solving chart with 235 days">
+                            <?php foreach ($activityDays as $activityDay) : ?>
+                                <span
+                                    class="home-activity-cell home-activity-cell--<?= (int) $activityDay['level'] ?>"
+                                    title="<?= htmlspecialchars($activityDay['date']->format('M j, Y'), ENT_QUOTES, 'UTF-8') ?>: <?= (int) $activityDay['solves'] ?> solved"></span>
+                            <?php endforeach; ?>
+                        </div>
+                    </div>
+
+                    <div class="mt-3 flex flex-wrap items-center gap-2 text-xs font-bold text-arcade-ink/55">
+                        <span>Less</span>
+                        <span class="home-activity-cell home-activity-cell--0"></span>
+                        <span class="home-activity-cell home-activity-cell--1"></span>
+                        <span class="home-activity-cell home-activity-cell--3"></span>
+                        <span class="home-activity-cell home-activity-cell--5"></span>
+                        <span>More</span>
+                    </div>
+
+                    <div class="mt-5 border-t-2 border-arcade-ink/10 pt-4">
+                        <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                            <h3 class="text-lg font-bold">Solved Challenges</h3>
+                            <div class="flex flex-wrap items-center gap-2">
+                                <p class="text-xs font-bold uppercase tracking-[0.18em] text-arcade-ink/55">20 per page</p>
+                                <a href="./?c=player-analytics&status=completed" class="rounded-xl border-2 border-arcade-ink/10 bg-white px-3 py-1.5 text-xs font-bold text-arcade-ink no-underline transition hover:bg-arcade-yellow/50">Review All</a>
+                            </div>
+                        </div>
+
+                        <div class="mt-3 overflow-hidden rounded-2xl border-2 border-arcade-ink/10 bg-arcade-cream/70">
+                            <?php foreach ($solvedChallengeRows as $rowIndex => $solvedChallenge) : ?>
+                                <article class="solved-row flex flex-col gap-1 border-b border-arcade-ink/10 px-3 py-2 last:border-b-0 sm:flex-row sm:items-center sm:justify-between" data-solved-row data-row-index="<?= (int) $rowIndex ?>">
+                                    <div>
+                                        <p class="text-sm font-bold"><?= htmlspecialchars($solvedChallenge['title'], ENT_QUOTES, 'UTF-8') ?></p>
+                                        <p class="text-xs font-semibold text-arcade-ink/55"><?= htmlspecialchars($solvedChallenge['date']->format('M j, Y'), ENT_QUOTES, 'UTF-8') ?> - <?= htmlspecialchars($solvedChallenge['result'], ENT_QUOTES, 'UTF-8') ?></p>
+                                    </div>
+                                    <span class="text-xs font-bold text-arcade-orange">+<?= (int) $solvedChallenge['points'] ?> pts</span>
+                                </article>
+                            <?php endforeach; ?>
+                        </div>
+
+                        <div class="mt-3 flex items-center justify-between gap-3">
+                            <button id="solved-prev" type="button" class="rounded-xl border-2 border-arcade-ink/10 bg-white px-3 py-1.5 text-xs font-bold transition hover:bg-arcade-yellow/50">Prev</button>
+                            <span id="solved-page-status" class="text-xs font-bold text-arcade-ink/60"></span>
+                            <button id="solved-next" type="button" class="rounded-xl border-2 border-arcade-ink/10 bg-white px-3 py-1.5 text-xs font-bold transition hover:bg-arcade-yellow/50">Next</button>
+                        </div>
+                    </div>
+                </article>
+            </section>
+
+            <section class="self-start rounded-[24px] border-4 border-arcade-ink bg-arcade-panel p-4 shadow-[7px_7px_0_#26190f] md:p-5">
+                <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+                    <div>
+                        <h2 class="text-2xl font-bold">Recommended Challenges</h2>
+                        <p class="mt-1 text-sm leading-6 text-arcade-ink/65">Pick a CSS challenge and keep building your design-matching streak.</p>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-2">
+                        <a href="./?c=challenges" class="inline-flex items-center justify-center gap-2 rounded-xl border-2 border-arcade-ink bg-arcade-yellow px-3 py-1.5 text-sm font-bold text-arcade-ink no-underline shadow-[0_3px_0_#26190f] transition hover:-translate-y-0.5 hover:bg-arcade-orange hover:text-white">
+                            <svg class="h-4 w-4" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+                                <path fill="currentColor" d="M3 2h10v12H3V2Zm2 2v2h6V4H5Zm0 4v2h3V8H5Zm5 0v2h1V8h-1Zm-5 4h6v-1H5v1Z" />
+                            </svg>
+                            <span>Challenges</span>
+                        </a>
+                    </div>
+                </div>
+
+                <div class="mt-4 grid gap-3">
+                    <?php foreach ($recommendedChallenges as $challenge) : ?>
+                        <article class="challenge-card rounded-[18px] border-2 border-arcade-ink/12 bg-white p-4 transition hover:-translate-y-1 hover:border-arcade-orange hover:shadow-[0_6px_0_rgba(38,25,15,0.18)]">
+                            <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                                <div>
+                                    <div class="flex flex-wrap items-center gap-2">
+                                        <span class="challenge-difficulty <?= htmlspecialchars($challenge['levelClass'], ENT_QUOTES, 'UTF-8') ?> rounded-full px-3 py-1 text-xs font-bold"><?= htmlspecialchars($challenge['level'], ENT_QUOTES, 'UTF-8') ?></span>
+                                        <span class="rounded-full bg-arcade-cyan/30 px-3 py-1 text-xs font-bold"><?= htmlspecialchars($challenge['estimate'], ENT_QUOTES, 'UTF-8') ?></span>
+                                        <span class="rounded-full bg-arcade-coral/20 px-3 py-1 text-xs font-bold"><?= htmlspecialchars($challenge['reward'], ENT_QUOTES, 'UTF-8') ?></span>
+                                    </div>
+                                    <h3 class="mt-3 text-xl font-bold"><?= htmlspecialchars($challenge['title'], ENT_QUOTES, 'UTF-8') ?></h3>
+                                    <div class="mt-2 flex flex-wrap items-center gap-2 text-xs font-bold text-arcade-ink/55">
+                                        <span>By <?= htmlspecialchars($challenge['author'], ENT_QUOTES, 'UTF-8') ?></span>
+                                    </div>
+                                    <p class="mt-1.5 text-sm leading-6 text-arcade-ink/68"><?= htmlspecialchars($challenge['description'], ENT_QUOTES, 'UTF-8') ?></p>
+                                    <p class="mt-2 font-mono text-xs font-bold text-arcade-ink/55">Focus: <?= htmlspecialchars($challenge['focus'], ENT_QUOTES, 'UTF-8') ?></p>
+                                </div>
+                                <a href="./?c=challenge&slug=<?= urlencode($challenge['slug']) ?>" class="inline-flex shrink-0 justify-center rounded-xl border-2 border-arcade-ink bg-arcade-orange px-4 py-2 text-sm font-bold text-white no-underline shadow-[0_3px_0_#26190f] transition hover:-translate-y-0.5 hover:bg-arcade-yellow hover:text-arcade-ink">
+                                    Train
+                                </a>
+                            </div>
+                        </article>
+                    <?php endforeach; ?>
+                </div>
+            </section>
+        </div>
+    </section>
+</main>
 
 <script>
 (() => {
-    const selectorDefinitions = [
-        { key: 'card', selector: '.pixel-card' },
-        { key: 'badge', selector: '.pixel-badge' },
-        { key: 'title', selector: '.pixel-title' },
-        { key: 'subtitle', selector: '.pixel-subtitle' },
-        { key: 'cta', selector: '.pixel-cta' },
-    ];
+    const rows = Array.from(document.querySelectorAll('[data-solved-row]'));
+    const previousButton = document.getElementById('solved-prev');
+    const nextButton = document.getElementById('solved-next');
+    const pageStatus = document.getElementById('solved-page-status');
+    const pageSize = 20;
+    let currentPage = 1;
+    const totalPages = Math.max(1, Math.ceil(rows.length / pageSize));
 
-    const propertyOccurrences = [
-        { rule: 'width: 320px;', target: 'card' },
-        { rule: 'background: #fffdf6;', target: 'card' },
-        { rule: 'border: 4px solid #26190f;', target: 'card' },
-        { rule: 'border-radius: 24px;', target: 'card' },
-        { rule: 'padding: 24px;', target: 'card' },
-        { rule: 'text-align: center;', target: 'card' },
-        { rule: 'box-shadow: 0 12px 0 #26190f;', target: 'card' },
-        { rule: 'display: inline-block;', target: 'badge' },
-        { rule: 'background: #ffd166;', target: 'badge' },
-        { rule: 'border-radius: 999px;', target: 'badge' },
-        { rule: 'padding: 6px 12px;', target: 'badge' },
-        { rule: 'font-size: 12px;', target: 'badge' },
-        { rule: 'font-weight: 700;', target: 'badge' },
-        { rule: 'font-size: 36px;', target: 'title' },
-        { rule: 'margin: 14px 0 8px;', target: 'title' },
-        { rule: 'color: #ff8c42;', target: 'title' },
-        { rule: 'line-height: 1.05;', target: 'title' },
-        { rule: 'margin-bottom: 16px;', target: 'subtitle' },
-        { rule: 'font-size: 15px;', target: 'subtitle' },
-        { rule: 'color: #26190f;', target: 'subtitle' },
-        { rule: 'display: inline-block;', target: 'cta' },
-        { rule: 'background: #4cc9f0;', target: 'cta' },
-        { rule: 'color: #26190f;', target: 'cta' },
-        { rule: 'border-radius: 12px;', target: 'cta' },
-        { rule: 'padding: 10px 18px;', target: 'cta' },
-        { rule: 'font-weight: 700;', target: 'cta' },
-        { rule: 'text-decoration: none;', target: 'cta' },
-    ];
+    const renderSolvedPage = () => {
+        const start = (currentPage - 1) * pageSize;
+        const end = start + pageSize;
 
-    const selectorKeys = selectorDefinitions.map((selector) => selector.key);
-    const placements = { pool: {} };
-    selectorKeys.forEach((key) => {
-        placements[key] = {};
+        rows.forEach((row, index) => {
+            row.hidden = index < start || index >= end;
+        });
+
+        if (pageStatus) {
+            pageStatus.textContent = `Page ${currentPage} of ${totalPages}`;
+        }
+
+        if (previousButton) {
+            previousButton.disabled = currentPage === 1;
+        }
+
+        if (nextButton) {
+            nextButton.disabled = currentPage === totalPages;
+        }
+    };
+
+    previousButton?.addEventListener('click', () => {
+        currentPage = Math.max(1, currentPage - 1);
+        renderSolvedPage();
     });
 
-    const requiredBySelector = {};
-    selectorKeys.forEach((key) => {
-        requiredBySelector[key] = {};
+    nextButton?.addEventListener('click', () => {
+        currentPage = Math.min(totalPages, currentPage + 1);
+        renderSolvedPage();
     });
 
-    const propertyCatalog = {};
-    const totalRequiredByProperty = {};
-    const keyByRule = new Map();
-    let propertyCounter = 1;
-
-    propertyOccurrences.forEach((occurrence) => {
-        if (!keyByRule.has(occurrence.rule)) {
-            const generatedKey = `p${propertyCounter}`;
-            propertyCounter += 1;
-            keyByRule.set(occurrence.rule, generatedKey);
-            propertyCatalog[generatedKey] = { rule: occurrence.rule };
-        }
-
-        const propertyKey = keyByRule.get(occurrence.rule);
-        requiredBySelector[occurrence.target][propertyKey] = (requiredBySelector[occurrence.target][propertyKey] || 0) + 1;
-        totalRequiredByProperty[propertyKey] = (totalRequiredByProperty[propertyKey] || 0) + 1;
-    });
-
-    Object.keys(totalRequiredByProperty).forEach((propertyKey) => {
-        placements.pool[propertyKey] = totalRequiredByProperty[propertyKey];
-    });
-
-    const poolOrder = Object.keys(propertyCatalog);
-    for (let index = poolOrder.length - 1; index > 0; index -= 1) {
-        const randomIndex = Math.floor(Math.random() * (index + 1));
-        const swap = poolOrder[index];
-        poolOrder[index] = poolOrder[randomIndex];
-        poolOrder[randomIndex] = swap;
-    }
-
-    const totalCount = propertyOccurrences.length;
-
-    const previewStyle = document.getElementById('preview-style');
-    const statusLabel = document.getElementById('game-status');
-    const progressBarFill = document.getElementById('progress-bar-fill');
-    const resetButton = document.getElementById('reset-layout-btn');
-    const propertySearchInput = document.getElementById('property-search');
-
-    const targetGrid = document.getElementById('challenge-grid');
-    const splitHandle = document.getElementById('split-handle');
-    const targetScope = document.querySelector('.target-scope');
-    const selectorCards = Array.from(document.querySelectorAll('[data-selector-card]'));
-    const identifiersScrollContainer = document.querySelector('.identifiers-scroll');
-    const selectorMetaLookup = {};
-    document.querySelectorAll('[data-selector-meta]').forEach((metaNode) => {
-        selectorMetaLookup[metaNode.dataset.selectorMeta] = metaNode;
-    });
-    const listNodes = {};
-    document.querySelectorAll('[data-property-list]').forEach((listNode) => {
-        listNodes[listNode.dataset.propertyList] = listNode;
-    });
-
-    let draggedPayload = null;
-    let isResizing = false;
-    let hoveredSelectorKey = null;
-    let pinnedSelectorKey = null;
-    let lastHighlightedSelectorKey = null;
-
-    const selectorLookup = Object.fromEntries(selectorDefinitions.map((selector) => [selector.key, selector.selector]));
-    const selectorCardLookup = Object.fromEntries(
-        selectorCards.map((card) => [card.dataset.selectorCard, card])
-    );
-    const selectorPriority = [
-        { className: 'pixel-cta', key: 'cta' },
-        { className: 'pixel-subtitle', key: 'subtitle' },
-        { className: 'pixel-title', key: 'title' },
-        { className: 'pixel-badge', key: 'badge' },
-        { className: 'pixel-card', key: 'card' },
-    ];
-    const extractColorPreview = (rule) => {
-        const hexMatch = rule.match(/#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})\b/);
-        if (hexMatch) {
-            return hexMatch[0];
-        }
-
-        const fnColorMatch = rule.match(/\b(?:rgb|rgba|hsl|hsla)\([^)]+\)/i);
-        if (fnColorMatch) {
-            return fnColorMatch[0];
-        }
-
-        return null;
-    };
-    const requiredTotalBySelector = {};
-    selectorKeys.forEach((selectorKey) => {
-        requiredTotalBySelector[selectorKey] = Object.values(requiredBySelector[selectorKey]).reduce(
-            (sum, value) => sum + value,
-            0
-        );
-    });
-
-    const getCount = (locationKey, propertyKey) => placements[locationKey][propertyKey] || 0;
-
-    const setCount = (locationKey, propertyKey, nextValue) => {
-        if (nextValue <= 0) {
-            delete placements[locationKey][propertyKey];
-            return;
-        }
-
-        placements[locationKey][propertyKey] = nextValue;
-    };
-
-    const moveOne = (propertyKey, sourceKey, destinationKey) => {
-        if (!(sourceKey in placements) || !(destinationKey in placements)) {
-            return false;
-        }
-
-        if (sourceKey === destinationKey) {
-            return false;
-        }
-
-        const sourceCount = getCount(sourceKey, propertyKey);
-        if (sourceCount <= 0) {
-            return false;
-        }
-
-        setCount(sourceKey, propertyKey, sourceCount - 1);
-        setCount(destinationKey, propertyKey, getCount(destinationKey, propertyKey) + 1);
-        return true;
-    };
-
-    const createChip = (propertyKey, sourceKey) => {
-        const count = getCount(sourceKey, propertyKey);
-        if (count <= 0) {
-            return null;
-        }
-
-        const rule = propertyCatalog[propertyKey].rule;
-        const chip = document.createElement('button');
-        chip.type = 'button';
-        chip.className = 'property-chip';
-        chip.draggable = true;
-        chip.dataset.propertyKey = propertyKey;
-        chip.dataset.sourceKey = sourceKey;
-
-        const label = document.createElement('span');
-        label.className = 'property-chip__label';
-        label.textContent = rule;
-
-        const colorPreviewValue = extractColorPreview(rule);
-        if (colorPreviewValue) {
-            const swatch = document.createElement('span');
-            swatch.className = 'property-chip__swatch';
-            swatch.style.backgroundColor = colorPreviewValue;
-            swatch.title = colorPreviewValue;
-            chip.append(swatch);
-        }
-
-        chip.append(label);
-
-        if (count > 1) {
-            const countBadge = document.createElement('span');
-            countBadge.className = 'property-chip__count';
-            countBadge.textContent = String(count);
-            chip.append(countBadge);
-        }
-
-        chip.addEventListener('dragstart', (event) => {
-            draggedPayload = { propertyKey, sourceKey };
-            event.dataTransfer.effectAllowed = 'move';
-            event.dataTransfer.setData('application/json', JSON.stringify(draggedPayload));
-            event.dataTransfer.setData('text/plain', `${sourceKey}|${propertyKey}`);
-        });
-
-        chip.addEventListener('dragend', () => {
-            draggedPayload = null;
-            document.querySelectorAll('.drop-zone').forEach((zone) => zone.classList.remove('is-over'));
-        });
-
-        chip.addEventListener('dblclick', () => {
-            if (sourceKey !== 'pool' && moveOne(propertyKey, sourceKey, 'pool')) {
-                render();
-            }
-        });
-
-        return chip;
-    };
-
-    const renderLocationList = (locationKey, searchQuery) => {
-        const listNode = listNodes[locationKey];
-        if (!listNode) {
-            return;
-        }
-
-        listNode.innerHTML = '';
-
-        let keysToRender = [];
-        if (locationKey === 'pool') {
-            keysToRender = poolOrder.filter((propertyKey) => {
-                if (getCount('pool', propertyKey) <= 0) {
-                    return false;
-                }
-
-                if (!searchQuery) {
-                    return true;
-                }
-
-                return propertyCatalog[propertyKey].rule.toLowerCase().includes(searchQuery);
-            });
-        } else {
-            keysToRender = Object.keys(placements[locationKey]).sort((leftKey, rightKey) => {
-                return propertyCatalog[leftKey].rule.localeCompare(propertyCatalog[rightKey].rule);
-            });
-        }
-
-        if (keysToRender.length === 0) {
-            const emptyState = document.createElement('p');
-            emptyState.className = 'empty-zone';
-            emptyState.textContent = locationKey === 'pool'
-                ? (searchQuery ? 'No properties match this search.' : 'Drag properties from here.')
-                : 'Drop properties here.';
-            listNode.appendChild(emptyState);
-            return;
-        }
-
-        keysToRender.forEach((propertyKey) => {
-            const chip = createChip(propertyKey, locationKey);
-            if (chip) {
-                listNode.appendChild(chip);
-            }
-        });
-    };
-
-    const renderLists = () => {
-        const searchQuery = (propertySearchInput?.value || '').trim().toLowerCase();
-        renderLocationList('pool', searchQuery);
-        selectorKeys.forEach((selectorKey) => renderLocationList(selectorKey, searchQuery));
-    };
-
-    const renderPreviewStyles = () => {
-        const cssChunks = selectorDefinitions.map((selectorDefinition) => {
-            const rules = Object.keys(placements[selectorDefinition.key])
-                .map((propertyKey) => {
-                    const count = getCount(selectorDefinition.key, propertyKey);
-                    return Array.from({ length: count }, () => propertyCatalog[propertyKey].rule).join(' ');
-                })
-                .join(' ');
-
-            return `.preview-scope ${selectorLookup[selectorDefinition.key]} { ${rules} }`;
-        });
-
-        previewStyle.textContent = cssChunks.join('\n');
-    };
-
-    const selectorState = (selectorKey) => {
-        const requiredMap = requiredBySelector[selectorKey];
-        const placedMap = placements[selectorKey];
-
-        let mismatch = false;
-        let missing = false;
-
-        Object.keys(placedMap).forEach((propertyKey) => {
-            const placedCount = getCount(selectorKey, propertyKey);
-            const requiredCount = requiredMap[propertyKey] || 0;
-            if (requiredCount === 0 || placedCount > requiredCount) {
-                mismatch = true;
-            }
-        });
-
-        Object.keys(requiredMap).forEach((propertyKey) => {
-            if (getCount(selectorKey, propertyKey) < requiredMap[propertyKey]) {
-                missing = true;
-            }
-        });
-
-        return {
-            mismatch,
-            complete: !mismatch && !missing,
-        };
-    };
-
-    const renderSelectorStates = () => {
-        selectorKeys.forEach((selectorKey) => {
-            const card = selectorCardLookup[selectorKey];
-            if (!card) {
-                return;
-            }
-
-            const state = selectorState(selectorKey);
-            const placedTotal = Object.values(placements[selectorKey]).reduce((sum, value) => sum + value, 0);
-            const requiredTotal = requiredTotalBySelector[selectorKey] || 0;
-            const metaNode = selectorMetaLookup[selectorKey];
-            card.classList.remove('is-target-danger', 'is-target-complete');
-
-            if (state.complete) {
-                card.classList.add('is-target-complete');
-            } else if (state.mismatch) {
-                card.classList.add('is-target-danger');
-            }
-
-            if (metaNode) {
-                metaNode.textContent = `${placedTotal}/${requiredTotal} props`;
-            }
-        });
-    };
-
-    const renderProgress = () => {
-        let correctCount = 0;
-        let hasMismatch = false;
-        let allComplete = true;
-
-        selectorKeys.forEach((selectorKey) => {
-            const requiredMap = requiredBySelector[selectorKey];
-            Object.keys(requiredMap).forEach((propertyKey) => {
-                correctCount += Math.min(getCount(selectorKey, propertyKey), requiredMap[propertyKey]);
-            });
-
-            const state = selectorState(selectorKey);
-            if (state.mismatch) {
-                hasMismatch = true;
-            }
-            if (!state.complete) {
-                allComplete = false;
-            }
-        });
-
-        const progressPercent = totalCount > 0 ? Math.round((correctCount / totalCount) * 100) : 0;
-        if (progressBarFill) {
-            progressBarFill.style.width = `${progressPercent}%`;
-        }
-
-        if (allComplete && correctCount === totalCount) {
-            statusLabel.textContent = 'Complete';
-            statusLabel.classList.add('is-success');
-        } else {
-            statusLabel.textContent = hasMismatch
-                ? 'Mismatch detected'
-                : 'In progress';
-            statusLabel.classList.remove('is-success');
-        }
-    };
-
-    const render = () => {
-        renderLists();
-        renderPreviewStyles();
-        renderSelectorStates();
-        renderProgress();
-    };
-
-    const clearSelectorCardHighlight = (resetTrackedKey = true) => {
-        selectorCards.forEach((card) => card.classList.remove('is-target-active'));
-        if (resetTrackedKey) {
-            lastHighlightedSelectorKey = null;
-        }
-    };
-
-    const scrollSelectorCardIntoView = (key) => {
-        if (!identifiersScrollContainer || !key || !selectorCardLookup[key]) {
-            return;
-        }
-
-        const card = selectorCardLookup[key];
-        const containerRect = identifiersScrollContainer.getBoundingClientRect();
-        const cardRect = card.getBoundingClientRect();
-        const cardIsOutsideView = cardRect.top < containerRect.top || cardRect.bottom > containerRect.bottom;
-
-        if (!cardIsOutsideView) {
-            return;
-        }
-
-        card.scrollIntoView({
-            behavior: 'smooth',
-            block: 'nearest',
-            inline: 'nearest',
-        });
-    };
-
-    const highlightSelectorCard = (key, shouldAutoScroll = false) => {
-        const previousKey = lastHighlightedSelectorKey;
-        clearSelectorCardHighlight(false);
-        if (!key || !selectorCardLookup[key]) {
-            lastHighlightedSelectorKey = null;
-            return;
-        }
-
-        selectorCardLookup[key].classList.add('is-target-active');
-
-        if (shouldAutoScroll && key !== previousKey) {
-            scrollSelectorCardIntoView(key);
-        }
-
-        lastHighlightedSelectorKey = key;
-    };
-
-    const resolveSelectorKeyFromTarget = (element) => {
-        if (!element) {
-            return null;
-        }
-
-        for (const entry of selectorPriority) {
-            if (element.closest(`.${entry.className}`)) {
-                return entry.key;
-            }
-        }
-
-        return null;
-    };
-
-    const attachDropHandlers = () => {
-        const dropZones = document.querySelectorAll('.drop-zone');
-
-        dropZones.forEach((zone) => {
-            zone.addEventListener('dragover', (event) => {
-                event.preventDefault();
-                zone.classList.add('is-over');
-            });
-
-            zone.addEventListener('dragleave', () => {
-                zone.classList.remove('is-over');
-            });
-
-            zone.addEventListener('drop', (event) => {
-                event.preventDefault();
-                zone.classList.remove('is-over');
-
-                const destination = zone.dataset.dropKey || 'pool';
-                const rawJson = event.dataTransfer.getData('application/json');
-                const rawText = event.dataTransfer.getData('text/plain');
-
-                let payload = null;
-                if (rawJson) {
-                    try {
-                        payload = JSON.parse(rawJson);
-                    } catch (err) {
-                        payload = null;
-                    }
-                }
-
-                if (!payload && rawText.includes('|')) {
-                    const [sourceKey, propertyKey] = rawText.split('|');
-                    payload = { sourceKey, propertyKey };
-                }
-
-                if (!payload) {
-                    payload = draggedPayload;
-                }
-
-                if (!payload || !payload.sourceKey || !payload.propertyKey) {
-                    return;
-                }
-
-                if (moveOne(payload.propertyKey, payload.sourceKey, destination)) {
-                    pinnedSelectorKey = null;
-                    hoveredSelectorKey = null;
-                    clearSelectorCardHighlight();
-                    render();
-                }
-            });
-        });
-    };
-
-    const attachTargetInspectorHandlers = () => {
-        if (!targetScope) {
-            return;
-        }
-
-        const interactiveNodes = targetScope.querySelectorAll('a,button,input,select,textarea,[role="button"]');
-        interactiveNodes.forEach((node) => {
-            node.setAttribute('tabindex', '-1');
-            node.setAttribute('aria-disabled', 'true');
-        });
-
-        targetScope.addEventListener('dragstart', (event) => {
-            event.preventDefault();
-        });
-
-        targetScope.addEventListener('keydown', (event) => {
-            if (event.key === 'Enter' || event.key === ' ') {
-                event.preventDefault();
-            }
-        });
-
-        targetScope.addEventListener('click', (event) => {
-            const interactive = event.target.closest('a,button,input,select,textarea,[role="button"]');
-            if (interactive) {
-                event.preventDefault();
-            }
-
-            const key = resolveSelectorKeyFromTarget(event.target);
-            pinnedSelectorKey = key;
-            highlightSelectorCard(key, true);
-        });
-
-        targetScope.addEventListener('mousemove', (event) => {
-            if (pinnedSelectorKey !== null) {
-                return;
-            }
-
-            hoveredSelectorKey = resolveSelectorKeyFromTarget(event.target);
-            highlightSelectorCard(hoveredSelectorKey, true);
-        });
-
-        targetScope.addEventListener('mouseleave', () => {
-            hoveredSelectorKey = null;
-            if (pinnedSelectorKey === null) {
-                clearSelectorCardHighlight();
-            }
-        });
-
-        // Clear pinned selector when clicking outside target scope.
-        document.addEventListener('click', (event) => {
-            if (targetScope.contains(event.target)) {
-                return;
-            }
-
-            pinnedSelectorKey = null;
-            highlightSelectorCard(hoveredSelectorKey);
-        });
-    };
-
-    const clampTargetWidth = (value) => {
-        const gridRect = targetGrid.getBoundingClientRect();
-        const minTargetWidth = 360;
-        const maxTargetWidth = Math.max(420, gridRect.width - 520);
-        return Math.max(minTargetWidth, Math.min(maxTargetWidth, value));
-    };
-
-    const setTargetWidth = (value) => {
-        const width = clampTargetWidth(value);
-        targetGrid.style.setProperty('--target-width', `${width}px`);
-    };
-
-    const handleResizeMove = (clientX) => {
-        const gridRect = targetGrid.getBoundingClientRect();
-        const proposedWidth = gridRect.right - clientX;
-        setTargetWidth(proposedWidth);
-    };
-
-    splitHandle.addEventListener('mousedown', () => {
-        if (window.matchMedia('(max-width: 1220px)').matches) {
-            return;
-        }
-
-        isResizing = true;
-        document.body.classList.add('is-resizing-split');
-    });
-
-    window.addEventListener('mousemove', (event) => {
-        if (!isResizing) {
-            return;
-        }
-
-        handleResizeMove(event.clientX);
-    });
-
-    window.addEventListener('mouseup', () => {
-        if (!isResizing) {
-            return;
-        }
-
-        isResizing = false;
-        document.body.classList.remove('is-resizing-split');
-    });
-
-    window.addEventListener('resize', () => {
-        const current = parseInt(getComputedStyle(targetGrid).getPropertyValue('--target-width'), 10);
-        if (!Number.isNaN(current)) {
-            setTargetWidth(current);
-        }
-    });
-
-    resetButton.addEventListener('click', () => {
-        selectorKeys.forEach((selectorKey) => {
-            placements[selectorKey] = {};
-        });
-        placements.pool = { ...totalRequiredByProperty };
-        hoveredSelectorKey = null;
-        pinnedSelectorKey = null;
-        clearSelectorCardHighlight();
-
-        render();
-    });
-
-    propertySearchInput?.addEventListener('input', () => {
-        renderLists();
-    });
-
-    attachDropHandlers();
-    attachTargetInspectorHandlers();
-    render();
+    renderSolvedPage();
 })();
 </script>

@@ -1,4 +1,4 @@
-# PHVN Development Guide
+# Pixelwar Development Guide
 
 All project instructions live in this folder and apply to the current gamified CSS game system for students.
 

@@ -1,0 +1,148 @@
+.settings-page {
+    min-height: calc(100vh - 4.25rem);
+}
+
+.settings-page__glow {
+    animation: settingsGlow 9s ease-in-out infinite alternate;
+}
+
+.settings-page__grid {
+    background-image: linear-gradient(rgba(38, 25, 15, 0.045) 1px, transparent 1px), linear-gradient(90deg, rgba(38, 25, 15, 0.045) 1px, transparent 1px);
+    background-size: 42px 42px;
+    mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.75), transparent 86%);
+}
+
+.settings-card,
+.settings-form {
+    animation: settingsCardIn 520ms ease both;
+}
+
+.settings-form {
+    animation-delay: 80ms;
+}
+
+.settings-avatar--yellow {
+    background: #ffd166;
+}
+
+.settings-avatar--cyan {
+    background: #4cc9f0;
+}
+
+.settings-avatar--orange {
+    background: #ff8c42;
+}
+
+.settings-avatar--mint {
+    background: #8bd3c7;
+}
+
+.settings-field {
+    display: grid;
+    gap: 0.4rem;
+}
+
+.settings-field span {
+    font-size: 0.78rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: rgba(38, 25, 15, 0.58);
+}
+
+.settings-field input,
+.settings-field select {
+    width: 100%;
+    border: 2px solid rgba(38, 25, 15, 0.16);
+    border-radius: 1rem;
+    background: #fff;
+    padding: 0.7rem 0.85rem;
+    color: #26190f;
+    font-weight: 800;
+    outline: none;
+    transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+}
+
+.settings-field input:focus,
+.settings-field select:focus {
+    border-color: #ff8c42;
+    box-shadow: 0 0 0 4px rgba(255, 140, 66, 0.16);
+}
+
+@keyframes settingsGlow {
+    from {
+        transform: scale(1);
+        filter: saturate(1);
+    }
+
+    to {
+        transform: scale(1.04);
+        filter: saturate(1.16);
+    }
+}
+
+@keyframes settingsCardIn {
+    from {
+        opacity: 0;
+        transform: translateY(14px) scale(0.985);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+body.pixelwar-dark-mode .settings-page {
+    background: #120d08;
+    color: #fff7e8;
+}
+
+body.pixelwar-dark-mode .settings-page__glow {
+    background: radial-gradient(circle at 14% 12%, rgba(255, 140, 66, 0.18), transparent 22%), radial-gradient(circle at 88% 20%, rgba(76, 201, 240, 0.16), transparent 24%), linear-gradient(135deg, rgba(255, 209, 102, 0.08), transparent 38%);
+}
+
+body.pixelwar-dark-mode .settings-page__grid {
+    background-image: linear-gradient(rgba(255, 247, 232, 0.07) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 247, 232, 0.07) 1px, transparent 1px);
+}
+
+body.pixelwar-dark-mode .settings-card,
+body.pixelwar-dark-mode .settings-form {
+    border-color: #fff7e8;
+    background: #1f160f;
+    box-shadow: 8px 8px 0 rgba(255, 140, 66, 0.42);
+}
+
+body.pixelwar-dark-mode .settings-field span,
+body.pixelwar-dark-mode .settings-card p,
+body.pixelwar-dark-mode .settings-form p {
+    color: rgba(255, 247, 232, 0.72);
+}
+
+body.pixelwar-dark-mode .settings-field input,
+body.pixelwar-dark-mode .settings-field select,
+body.pixelwar-dark-mode .settings-card .bg-white\/80 {
+    border-color: rgba(255, 247, 232, 0.18);
+    background: #2a1d13;
+    color: #fff7e8;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .settings-page__glow,
+    .settings-card,
+    .settings-form {
+        animation: none;
+    }
+}
+
+@media (max-width: 640px) {
+    .settings-page {
+        padding-top: 1.25rem;
+    }
+
+    .settings-card,
+    .settings-form {
+        border-radius: 1.35rem;
+        box-shadow: 6px 6px 0 #26190f;
+    }
+}

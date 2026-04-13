@@ -76,7 +76,7 @@ class Tools
         $mailUsername = Env::get('MAIL_USERNAME');
         $mailPassword = Env::get('MAIL_PASSWORD');
         $mailFromAddress = Env::get('MAIL_FROM_ADDRESS', $mailUsername);
-        $mailFromName = Env::get('MAIL_FROM_NAME', Env::get('APP_NAME', 'PHVN'));
+        $mailFromName = Env::get('MAIL_FROM_NAME', Env::get('APP_NAME', 'Pixelwar'));
 
         if ($mailHost === null || $mailUsername === null || $mailPassword === null || $mailFromAddress === null) {
             return [
