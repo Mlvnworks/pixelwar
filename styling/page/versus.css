@@ -1,0 +1,250 @@
+.versus-page {
+    min-height: calc(100vh - 4.25rem);
+}
+
+.versus-page__grid {
+    background-image: linear-gradient(rgba(38, 25, 15, 0.045) 1px, transparent 1px), linear-gradient(90deg, rgba(38, 25, 15, 0.045) 1px, transparent 1px);
+    background-size: 42px 42px;
+    mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.75), transparent 86%);
+}
+
+.versus-page article,
+.versus-page section,
+.versus-page div,
+.versus-page input {
+    min-width: 0;
+}
+
+.versus-page h1,
+.versus-page h2,
+.versus-page p,
+.versus-page a,
+.versus-page button,
+.versus-page span,
+.versus-page input {
+    overflow-wrap: break-word;
+}
+
+.versus-back-button {
+    width: fit-content;
+}
+
+.versus-player-card {
+    animation: versusCardIn 360ms ease both;
+    position: relative;
+    overflow: hidden;
+}
+
+.versus-player-card::before {
+    content: "";
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 0.42rem;
+    background: #ffd166;
+}
+
+.versus-player-card--cyan::before,
+.versus-player-card--cyan .versus-player-avatar {
+    background: #4cc9f0;
+}
+
+.versus-player-card--yellow::before,
+.versus-player-card--yellow .versus-player-avatar {
+    background: #ffd166;
+}
+
+.versus-player-card--orange::before,
+.versus-player-card--orange .versus-player-avatar {
+    background: #ff8c42;
+}
+
+.versus-player-card--mint::before,
+.versus-player-card--mint .versus-player-avatar {
+    background: #8bd3c7;
+}
+
+.versus-status {
+    border: 1px solid rgba(38, 25, 15, 0.18);
+    background: rgba(139, 211, 199, 0.42);
+    color: #163b34;
+}
+
+@keyframes versusCardIn {
+    from {
+        opacity: 0;
+        transform: translateY(12px) scale(0.985);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+body.pixelwar-dark-mode .versus-page {
+    background: #120d08;
+    color: #fff7e8;
+}
+
+body.pixelwar-dark-mode .versus-page__grid {
+    background-image: linear-gradient(rgba(255, 247, 232, 0.07) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 247, 232, 0.07) 1px, transparent 1px);
+}
+
+body.pixelwar-dark-mode .versus-player-card,
+body.pixelwar-dark-mode .versus-page .bg-arcade-panel {
+    border-color: #fff7e8;
+    background: #1f160f;
+    box-shadow: 8px 8px 0 rgba(255, 140, 66, 0.4);
+}
+
+body.pixelwar-dark-mode .versus-page input,
+body.pixelwar-dark-mode .versus-page .bg-white,
+body.pixelwar-dark-mode .versus-page .bg-white\/80,
+body.pixelwar-dark-mode .versus-page .bg-arcade-cream {
+    background: #2a1d13;
+    color: #fff7e8;
+}
+
+body.pixelwar-dark-mode .versus-page p,
+body.pixelwar-dark-mode .versus-page h1,
+body.pixelwar-dark-mode .versus-page h2,
+body.pixelwar-dark-mode .versus-page span {
+    color: inherit;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .versus-player-card {
+        animation: none;
+    }
+}
+
+@media (max-width: 768px) {
+    .versus-page {
+        overflow-x: clip;
+        padding: 1rem 0.75rem 2rem !important;
+    }
+
+    .versus-page .container {
+        max-width: 100%;
+        padding-left: 0;
+        padding-right: 0;
+    }
+
+    .versus-back-button {
+        max-width: 100%;
+        font-size: 0.8rem;
+        box-shadow: 0 3px 0 rgba(38, 25, 15, 0.24) !important;
+    }
+
+    .versus-hero,
+    .versus-player-card {
+        max-width: calc(100vw - 1.5rem);
+        border-width: 3px !important;
+        border-radius: 1.35rem !important;
+        box-shadow: 4px 4px 0 rgba(38, 25, 15, 0.22) !important;
+    }
+
+    .versus-hero {
+        margin-top: 1rem !important;
+        padding: 1rem !important;
+    }
+
+    .versus-hero h1 {
+        font-size: clamp(1.9rem, 10vw, 2.8rem) !important;
+        line-height: 1.05 !important;
+    }
+
+    .versus-page [class*="tracking-"] {
+        letter-spacing: 0.11em;
+    }
+
+    .versus-search-control > span {
+        font-size: 0.62rem;
+    }
+
+    .versus-search-control > div {
+        gap: 0.65rem;
+        border-radius: 1rem !important;
+        padding: 0.8rem 0.9rem !important;
+    }
+
+    #versus-search {
+        min-width: 0;
+        font-size: 0.82rem !important;
+    }
+
+    #versus-search::placeholder {
+        font-size: 0.78rem;
+    }
+
+    .versus-player-grid {
+        grid-template-columns: 1fr !important;
+        gap: 0.85rem !important;
+    }
+
+    .versus-player-card {
+        padding: 0.95rem !important;
+    }
+
+    .versus-player-card > .flex:first-child {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .versus-player-card > .flex:first-child > .flex {
+        width: 100%;
+    }
+
+    .versus-player-avatar {
+        width: 2.8rem !important;
+        height: 2.8rem !important;
+        border-width: 3px !important;
+        border-radius: 1rem !important;
+        font-size: 0.65rem !important;
+    }
+
+    .versus-player-card h2 {
+        font-size: 1rem !important;
+        white-space: normal !important;
+    }
+
+    .versus-status {
+        align-self: flex-start;
+        font-size: 0.58rem;
+        letter-spacing: 0.08em;
+    }
+
+    .versus-player-card .grid-cols-3 {
+        gap: 0.45rem !important;
+    }
+
+    .versus-player-card .grid-cols-3 > div {
+        border-radius: 0.85rem !important;
+        padding: 0.55rem 0.35rem !important;
+    }
+
+    .versus-player-card .grid-cols-3 p:first-child {
+        font-size: 0.52rem;
+        letter-spacing: 0.06em;
+    }
+
+    .versus-player-card .grid-cols-3 p:last-child {
+        font-size: 0.9rem;
+    }
+
+    .versus-player-card button {
+        padding: 0.75rem 1rem !important;
+        font-size: 0.82rem !important;
+    }
+}
+
+@media (max-width: 380px) {
+    .versus-hero h1 {
+        font-size: clamp(1.55rem, 9vw, 2.15rem) !important;
+    }
+
+    .versus-player-card .grid-cols-3 {
+        grid-template-columns: 1fr !important;
+    }
+}

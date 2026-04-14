@@ -17,7 +17,9 @@ class PageMeta
             'challenge' => APP_NAME . ' | Challenge Brief',
             'challenges' => APP_NAME . ' | Challenges',
             'player-analytics' => APP_NAME . ' | Player Analytics',
+            'room' => APP_NAME . ' | Room Lobby',
             'settings' => APP_NAME . ' | Settings',
+            'versus' => APP_NAME . ' | 1v1 Arena',
             'pixelwar' => APP_NAME . ' | Pixelwar Game Test',
             default => APP_NAME,
         };
@@ -33,7 +35,9 @@ class PageMeta
             'challenge' => 'Pixelwar challenge details, instructions, mechanics, and start page.',
             'challenges' => 'Search and filter Pixelwar CSS matching challenges.',
             'player-analytics' => 'Detailed Pixelwar player analytics page.',
+            'room' => 'Pixelwar room lobby with challenge details and joined players.',
             'settings' => 'Update Pixelwar player profile, avatar, and email settings.',
+            'versus' => 'Find online Pixelwar players and send a 1v1 duel invite.',
             'pixelwar' => 'Pixelwar game test for students built inside the PHP page routing system.',
             default => $this->siteDescription(),
         };

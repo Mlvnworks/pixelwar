@@ -15,7 +15,12 @@
             <div class="challenge-grid" id="challenge-grid">
                 <section class="builder-pane rounded-[26px] border-4 border-arcade-ink/10 bg-white/70 p-4 md:p-5">
                     <section class="panel-card panel-card--preview rounded-[20px] border-2 border-arcade-ink/10 bg-white p-4">
-                        <h2 class="mb-3 font-arcade text-[10px] uppercase tracking-[0.22em] text-arcade-orange">1. Live Preview</h2>
+                        <div class="preview-card-header mb-3">
+                            <h2 class="font-arcade text-[10px] uppercase tracking-[0.22em] text-arcade-orange">1. Live Preview</h2>
+                            <button type="button" class="mobile-preview-toggle rounded-xl border-2 border-arcade-ink bg-arcade-cyan px-3 py-1.5 text-[11px] font-bold text-arcade-ink shadow-[0_3px_0_#26190f] transition hover:-translate-y-0.5 hover:bg-arcade-yellow" data-bs-toggle="modal" data-bs-target="#mobile-preview-modal">
+                                View Target
+                            </button>
+                        </div>
                         <div class="preview-frame rounded-[20px] border-2 border-dashed border-arcade-ink/15 bg-[#f7efe1] p-4">
                             <div class="preview-stage">
                                 <div class="preview-scope">
@@ -142,6 +147,34 @@
         </div>
 </section>
 
+<div class="modal fade mobile-preview-modal" id="mobile-preview-modal" tabindex="-1" aria-labelledby="mobile-preview-modal-title" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-[24px] border-4 border-arcade-ink bg-arcade-panel p-0 text-arcade-ink shadow-[8px_8px_0_#26190f]">
+            <div class="modal-header border-0 px-4 pb-2 pt-4">
+                <div>
+                    <p class="font-arcade text-[10px] uppercase tracking-[0.22em] text-arcade-orange">Target Design</p>
+                    <h2 id="mobile-preview-modal-title" class="modal-title mt-2 text-xl font-bold">Reference preview</h2>
+                </div>
+                <button type="button" class="btn-close opacity-100" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body px-4 pb-4 pt-2">
+                <div class="mobile-preview-frame rounded-[20px] border-2 border-dashed border-arcade-ink/15 bg-[#f7efe1] p-4">
+                    <div class="mobile-preview-stage">
+                        <div class="target-scope">
+                            <article class="pixel-card">
+                                <span class="pixel-badge">Student Build</span>
+                                <h3 class="pixel-title">Pixelwar</h3>
+                                <p class="pixel-subtitle">Drag CSS properties to match the target design.</p>
+                                <a class="pixel-cta" href="#game-test">Launch Run</a>
+                            </article>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <style id="preview-style"></style>
 <style id="target-style">
 .target-scope .pixel-card {
@@ -187,6 +220,36 @@
 </style>
 
 <script>
+(() => {
+    const previewFrame = document.querySelector('.mobile-preview-frame');
+    const previewModal = document.getElementById('mobile-preview-modal');
+    const referenceWidth = 424;
+    const referenceHeight = 330;
+
+    const resizeMobileTargetPreview = () => {
+        if (!previewFrame) {
+            return;
+        }
+
+        const frameWidth = previewFrame.clientWidth;
+        if (frameWidth <= 0) {
+            return;
+        }
+
+        const scale = Math.min(1, frameWidth / referenceWidth);
+        previewFrame.style.setProperty('--mobile-target-scale', scale.toFixed(4));
+        previewFrame.style.height = `${Math.ceil(referenceHeight * scale)}px`;
+    };
+
+    if (previewFrame && 'ResizeObserver' in window) {
+        new ResizeObserver(resizeMobileTargetPreview).observe(previewFrame);
+    }
+
+    previewModal?.addEventListener('shown.bs.modal', () => requestAnimationFrame(resizeMobileTargetPreview));
+    window.addEventListener('resize', resizeMobileTargetPreview);
+    resizeMobileTargetPreview();
+})();
+
 (() => {
     const selectorDefinitions = [
         { key: 'card', selector: '.pixel-card' },

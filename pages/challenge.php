@@ -40,8 +40,8 @@ HTML;
             Back Home
         </a>
 
-        <article class="mt-5 rounded-[28px] border-4 border-arcade-ink bg-arcade-panel p-5 shadow-[8px_8px_0_#26190f] md:p-7">
-            <div class="grid gap-7 xl:grid-cols-[1.05fr_0.95fr]">
+        <article class="challenge-detail-card mt-5 rounded-[28px] border-4 border-arcade-ink bg-arcade-panel p-5 shadow-[8px_8px_0_#26190f] md:p-7">
+            <div class="challenge-detail-layout grid gap-7 xl:grid-cols-[1.05fr_0.95fr]">
                 <section>
                     <div class="flex flex-wrap items-center gap-2">
                         <span class="challenge-difficulty <?= htmlspecialchars($challenge['levelClass'], ENT_QUOTES, 'UTF-8') ?> rounded-full px-3 py-1 text-xs font-bold">
@@ -55,7 +55,7 @@ HTML;
                     <h1 class="mt-3 text-4xl font-bold leading-tight md:text-6xl"><?= htmlspecialchars($challenge['title'], ENT_QUOTES, 'UTF-8') ?></h1>
                     <p class="mt-4 max-w-3xl text-base leading-8 text-arcade-ink/70"><?= htmlspecialchars($challenge['objective'], ENT_QUOTES, 'UTF-8') ?></p>
 
-                    <div class="mt-6 grid gap-3 md:grid-cols-3">
+                    <div class="challenge-meta-grid mt-6 grid gap-3 md:grid-cols-3">
                         <div class="rounded-2xl border-2 border-arcade-ink/15 bg-white/75 p-4">
                             <p class="text-xs font-bold uppercase tracking-[0.18em] text-arcade-ink/55">Author</p>
                             <p class="mt-1 text-lg font-extrabold"><?= htmlspecialchars($challenge['author'], ENT_QUOTES, 'UTF-8') ?></p>
@@ -70,10 +70,13 @@ HTML;
                         </div>
                     </div>
 
-                    <div class="mt-6 flex flex-wrap gap-2 sm:flex-nowrap">
+                    <div class="challenge-actions mt-6 flex flex-wrap gap-2 sm:flex-nowrap">
+                        <button id="preview-toggle" type="button" class="challenge-preview-toggle inline-flex w-full justify-center rounded-xl border-2 border-arcade-ink bg-arcade-cyan px-4 py-3 text-sm font-bold text-arcade-ink shadow-[0_4px_0_#26190f] transition hover:-translate-y-0.5 hover:bg-arcade-yellow" data-bs-toggle="modal" data-bs-target="#challenge-preview-modal">
+                            <span>Preview</span>
+                        </button>
                         <button id="comments-toggle" type="button" class="relative inline-flex w-full justify-center rounded-xl border-2 border-arcade-ink bg-white px-4 py-3 text-sm font-bold text-arcade-ink shadow-[0_4px_0_#26190f] transition hover:-translate-y-0.5 hover:bg-arcade-yellow sm:w-auto sm:min-w-[8.5rem]" aria-expanded="false" aria-controls="challenge-comments-section">
-                            <span>Comments</span>
-                            <span class="absolute -right-2 -top-2 grid h-6 min-w-6 place-items-center rounded-full border-2 border-arcade-ink bg-arcade-yellow px-1 text-[10px] font-extrabold text-arcade-ink">
+                            <span data-comments-toggle-label>Comments</span>
+                            <span class="comments-count-badge absolute -right-2 -top-2 grid h-6 min-w-6 place-items-center rounded-full border-2 border-arcade-ink bg-arcade-yellow px-1 text-[10px] font-extrabold text-arcade-ink">
                                 <?= count($comments) ?>
                             </span>
                         </button>
@@ -83,21 +86,22 @@ HTML;
                     </div>
                 </section>
 
-                <section class="rounded-[24px] bg-white/75 p-4 shadow-[0_10px_30px_rgba(38,25,15,0.12)]">
+                <section id="challenge-preview-card" class="challenge-preview-card rounded-[24px] bg-white/75 p-4 shadow-[0_10px_30px_rgba(38,25,15,0.12)]">
                     <div class="flex flex-wrap items-center justify-between gap-3">
                         <p class="font-arcade text-[10px] uppercase tracking-[0.24em] text-arcade-cyan">Preview</p>
-                        <p class="text-xs font-bold uppercase tracking-[0.18em] text-arcade-ink/50">Isolated target</p>
                     </div>
-                    <iframe
-                        class="mt-4 h-[360px] w-full rounded-[20px] bg-transparent"
-                        title="Static isolated challenge preview"
-                        sandbox=""
-                        loading="lazy"
-                        srcdoc="<?= htmlspecialchars($previewSrcdoc, ENT_QUOTES, 'UTF-8') ?>"></iframe>
+                    <div class="challenge-preview-frame-shell mt-4">
+                        <iframe
+                            class="challenge-preview-frame h-[360px] w-full rounded-[20px] bg-transparent"
+                            title="Static isolated challenge preview"
+                            sandbox=""
+                            loading="lazy"
+                            srcdoc="<?= htmlspecialchars($previewSrcdoc, ENT_QUOTES, 'UTF-8') ?>"></iframe>
+                    </div>
                 </section>
             </div>
 
-            <section id="challenge-comments-section" class="mt-7 rounded-[24px] border-2 border-arcade-ink/15 bg-white/75 p-5 shadow-[0_10px_30px_rgba(38,25,15,0.12)]" hidden>
+            <section id="challenge-comments-section" class="mt-7 rounded-[24px] border-2 border-arcade-ink/15 bg-white/75 p-5 shadow-[0_10px_30px_rgba(38,25,15,0.12)]" tabindex="-1" hidden>
                 <div class="flex flex-wrap items-end justify-between gap-3">
                     <div>
                         <p class="font-arcade text-[10px] uppercase tracking-[0.24em] text-arcade-orange">Discussion</p>
@@ -134,7 +138,7 @@ HTML;
             </section>
         </article>
 
-        <section class="mt-6">
+        <section class="challenge-more-section mt-6">
             <div class="flex flex-wrap items-end justify-between gap-3">
                 <div>
                     <p class="font-arcade text-[10px] uppercase tracking-[0.24em] text-arcade-cyan">More Like This</p>
@@ -145,16 +149,16 @@ HTML;
 
             <div class="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                 <?php foreach ($moreChallenges as $moreChallenge) : ?>
-                    <article class="rounded-[22px] border-2 border-arcade-ink/15 bg-arcade-panel p-4 shadow-[5px_5px_0_rgba(38,25,15,0.18)]">
+                    <article class="challenge-more-card rounded-[22px] border-2 border-arcade-ink/15 bg-arcade-panel p-4 shadow-[5px_5px_0_rgba(38,25,15,0.18)]">
                         <div class="flex flex-wrap items-center gap-2">
                             <span class="challenge-difficulty <?= htmlspecialchars($moreChallenge['levelClass'], ENT_QUOTES, 'UTF-8') ?> rounded-full px-3 py-1 text-xs font-bold"><?= htmlspecialchars($moreChallenge['level'], ENT_QUOTES, 'UTF-8') ?></span>
                             <span class="rounded-full bg-arcade-cyan/30 px-3 py-1 text-xs font-bold"><?= htmlspecialchars($moreChallenge['estimate'], ENT_QUOTES, 'UTF-8') ?></span>
                         </div>
                         <h3 class="mt-3 text-xl font-bold"><?= htmlspecialchars($moreChallenge['title'], ENT_QUOTES, 'UTF-8') ?></h3>
                         <p class="mt-2 text-sm leading-6 text-arcade-ink/70"><?= htmlspecialchars($moreChallenge['description'], ENT_QUOTES, 'UTF-8') ?></p>
-                        <div class="mt-4 flex flex-wrap items-center justify-between gap-3">
+                        <div class="challenge-more-card__footer mt-4 flex flex-wrap items-center justify-between gap-3">
                             <p class="text-xs font-bold uppercase tracking-[0.16em] text-arcade-ink/50">By <?= htmlspecialchars($moreChallenge['author'], ENT_QUOTES, 'UTF-8') ?></p>
-                            <a href="./?c=challenge&slug=<?= urlencode($moreChallenge['slug']) ?>" class="rounded-xl border-2 border-arcade-ink bg-arcade-orange px-3 py-1.5 text-sm font-bold text-white no-underline shadow-[0_3px_0_#26190f] transition hover:-translate-y-0.5 hover:bg-arcade-yellow hover:text-arcade-ink">Open</a>
+                            <a href="./?c=challenge&slug=<?= urlencode($moreChallenge['slug']) ?>" class="challenge-more-card__action rounded-xl border-2 border-arcade-ink bg-arcade-orange px-3 py-1.5 text-sm font-bold text-white no-underline shadow-[0_3px_0_#26190f] transition hover:-translate-y-0.5 hover:bg-arcade-yellow hover:text-arcade-ink">Train</a>
                         </div>
                     </article>
                 <?php endforeach; ?>
@@ -163,6 +167,30 @@ HTML;
     </section>
 </main>
 
+<div class="modal fade challenge-preview-modal" id="challenge-preview-modal" tabindex="-1" aria-labelledby="challenge-preview-modal-title" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-[24px] border-4 border-arcade-ink bg-arcade-panel p-0 text-arcade-ink shadow-[8px_8px_0_#26190f]">
+            <div class="modal-header border-0 px-4 pb-2 pt-4">
+                <div>
+                    <p class="font-arcade text-[10px] uppercase tracking-[0.24em] text-arcade-cyan">Preview</p>
+                    <h2 id="challenge-preview-modal-title" class="modal-title mt-2 text-xl font-bold"><?= htmlspecialchars($challenge['title'], ENT_QUOTES, 'UTF-8') ?></h2>
+                </div>
+                <button type="button" class="btn-close opacity-100" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body px-4 pb-4 pt-2">
+                <div class="challenge-preview-frame-shell">
+                    <iframe
+                        class="challenge-preview-frame h-[360px] w-full rounded-[20px] bg-transparent"
+                        title="Static isolated challenge preview"
+                        sandbox=""
+                        loading="lazy"
+                        srcdoc="<?= htmlspecialchars($previewSrcdoc, ENT_QUOTES, 'UTF-8') ?>"></iframe>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
 (() => {
     const rows = Array.from(document.querySelectorAll('[data-comment-row]'));
@@ -170,10 +198,16 @@ HTML;
     const nextButton = document.getElementById('comments-next');
     const pageStatus = document.getElementById('comments-page-status');
     const commentsToggle = document.getElementById('comments-toggle');
+    const commentsToggleLabel = commentsToggle?.querySelector('[data-comments-toggle-label]');
     const commentsSection = document.getElementById('challenge-comments-section');
+    const previewShells = Array.from(document.querySelectorAll('.challenge-preview-frame-shell'));
+    const previewModal = document.getElementById('challenge-preview-modal');
+    const mobileQuery = window.matchMedia('(max-width: 768px)');
     const pageSize = 2;
     let currentPage = 1;
     const totalPages = Math.max(1, Math.ceil(rows.length / pageSize));
+    const previewWidth = 390;
+    const previewHeight = 360;
 
     const renderPage = () => {
         const start = (currentPage - 1) * pageSize;
@@ -214,9 +248,44 @@ HTML;
         const isOpening = commentsSection.hidden;
         commentsSection.hidden = !isOpening;
         commentsToggle.setAttribute('aria-expanded', isOpening ? 'true' : 'false');
-        commentsToggle.textContent = isOpening ? 'Hide Comments' : 'Comments';
+
+        if (commentsToggleLabel) {
+            commentsToggleLabel.textContent = isOpening ? 'Hide Comments' : 'Comments';
+        }
+
+        if (isOpening && mobileQuery.matches) {
+            requestAnimationFrame(() => {
+                commentsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                commentsSection.focus({ preventScroll: true });
+            });
+        }
     });
 
+    const resizePreview = () => {
+        if (previewShells.length === 0) {
+            return;
+        }
+
+        previewShells.forEach((previewShell) => {
+            const shellWidth = previewShell.clientWidth;
+            if (shellWidth <= 0) {
+                return;
+            }
+
+            const scale = Math.min(1, shellWidth / previewWidth);
+            previewShell.style.setProperty('--challenge-preview-scale', scale.toFixed(4));
+            previewShell.style.height = `${Math.ceil(previewHeight * scale)}px`;
+        });
+    };
+
+    if (previewShells.length > 0 && 'ResizeObserver' in window) {
+        const previewObserver = new ResizeObserver(resizePreview);
+        previewShells.forEach((previewShell) => previewObserver.observe(previewShell));
+    }
+
+    previewModal?.addEventListener('shown.bs.modal', () => requestAnimationFrame(resizePreview));
+    window.addEventListener('resize', resizePreview);
+    resizePreview();
     renderPage();
 })();
 </script>

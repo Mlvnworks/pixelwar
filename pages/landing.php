@@ -1,3 +1,10 @@
+<?php
+require_once __DIR__ . '/../classes/challenge-catalog.php';
+
+$landingFirstChallenge = ChallengeCatalog::first();
+$landingTryGameHref = './?c=challenge&slug=' . urlencode((string) $landingFirstChallenge['slug']);
+?>
+
 <main class="landing-page relative overflow-hidden bg-arcade-cream text-arcade-ink">
     <div class="landing-bg absolute inset-0 bg-[radial-gradient(circle_at_14%_18%,rgba(255,209,102,0.34),transparent_24%),radial-gradient(circle_at_84%_12%,rgba(76,201,240,0.22),transparent_25%),radial-gradient(circle_at_58%_92%,rgba(249,115,115,0.18),transparent_28%)]"></div>
     <div class="landing-grid absolute inset-0"></div>
@@ -16,8 +23,8 @@
                 <a href="./?c=signup" class="landing-button landing-button--primary inline-flex justify-center rounded-2xl border-2 border-arcade-ink bg-arcade-yellow px-7 py-4 text-sm font-bold text-arcade-ink no-underline shadow-[0_7px_0_#26190f] transition hover:-translate-y-0.5 hover:bg-arcade-orange hover:text-white">
                     Start Learning
                 </a>
-                <a href="./?c=pixelwar&intro=1" class="landing-button inline-flex justify-center rounded-2xl border-2 border-arcade-ink/15 bg-white/80 px-7 py-4 text-sm font-bold text-arcade-ink no-underline transition hover:bg-arcade-peach/80">
-                    Try Game Test
+                <a href="<?= htmlspecialchars($landingTryGameHref, ENT_QUOTES, 'UTF-8') ?>" class="landing-button inline-flex justify-center rounded-2xl border-2 border-arcade-ink/15 bg-white/80 px-7 py-4 text-sm font-bold text-arcade-ink no-underline transition hover:bg-arcade-peach/80">
+                    Try Game
                 </a>
             </div>
 

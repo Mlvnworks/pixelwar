@@ -21,6 +21,30 @@
     background: #fffdf6;
 }
 
+.challenges-page article,
+.challenges-page section,
+.challenges-page div,
+.challenges-page input {
+    min-width: 0;
+}
+
+.challenges-page h1,
+.challenges-page h2,
+.challenges-page p,
+.challenges-page a,
+.challenges-page button,
+.challenges-page input {
+    overflow-wrap: break-word;
+}
+
+.challenges-page input {
+    min-height: 3rem;
+}
+
+.challenges-back-button {
+    width: fit-content;
+}
+
 body.pixelwar-dark-mode .challenges-page {
     background: radial-gradient(circle at 14% 12%, rgba(255, 140, 66, 0.18), transparent 28%),
         radial-gradient(circle at 86% 18%, rgba(76, 201, 240, 0.16), transparent 26%),
@@ -31,4 +55,168 @@ body.pixelwar-dark-mode .challenges-page {
 body.pixelwar-dark-mode .challenges-page__grid {
     background-image: linear-gradient(rgba(255, 247, 232, 0.07) 1px, transparent 1px),
         linear-gradient(90deg, rgba(255, 247, 232, 0.07) 1px, transparent 1px);
+}
+
+@media (max-width: 768px) {
+    .challenges-page {
+        overflow-x: clip;
+        padding: 1rem 0.75rem 2rem !important;
+    }
+
+    .challenges-page .container {
+        max-width: 100%;
+        padding-left: 0;
+        padding-right: 0;
+    }
+
+    .challenges-back-button {
+        max-width: 100%;
+        font-size: 0.8rem;
+        box-shadow: 0 3px 0 rgba(38, 25, 15, 0.24) !important;
+    }
+
+    .challenges-hero,
+    .challenge-library-card {
+        max-width: calc(100vw - 1.5rem);
+        border-width: 3px !important;
+        border-radius: 1.35rem !important;
+        box-shadow: 4px 4px 0 rgba(38, 25, 15, 0.22) !important;
+    }
+
+    .challenges-hero {
+        margin-top: 1rem;
+        padding: 1rem !important;
+    }
+
+    .challenges-hero h1 {
+        font-size: clamp(2rem, 11vw, 3rem) !important;
+        line-height: 1.02 !important;
+    }
+
+    .challenges-page [class*="tracking-"] {
+        letter-spacing: 0.11em;
+    }
+
+    .challenges-controls {
+        grid-template-columns: 1fr !important;
+        gap: 0.9rem;
+    }
+
+    .challenges-controls label > span,
+    .challenges-controls > div > p {
+        font-size: 0.62rem;
+    }
+
+    #challenge-search {
+        border-radius: 1rem !important;
+        padding: 0.8rem 0.9rem !important;
+        font-size: 0.82rem !important;
+    }
+
+    #challenge-search::placeholder {
+        font-size: 0.78rem;
+    }
+
+    .challenges-filter-list {
+        display: grid !important;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.55rem !important;
+    }
+
+    .challenge-filter {
+        width: 100%;
+        min-width: 0;
+        padding: 0.65rem 0.5rem !important;
+        text-align: center;
+    }
+
+    .challenges-toolbar {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 0.35rem;
+    }
+
+    .challenges-toolbar p {
+        font-size: 0.75rem;
+        line-height: 1.35;
+    }
+
+    .challenges-toolbar p:last-child {
+        font-size: 0.62rem;
+        letter-spacing: 0.08em;
+    }
+
+    .challenges-results {
+        grid-template-columns: 1fr !important;
+        gap: 0.85rem !important;
+    }
+
+    .challenge-library-card {
+        padding: 1rem !important;
+    }
+
+    .challenge-library-card [class*="rounded-full"] {
+        max-width: 100%;
+        white-space: normal;
+    }
+
+    .challenge-library-card h2 {
+        font-size: 1.08rem !important;
+        line-height: 1.18 !important;
+    }
+
+    .challenge-library-card p {
+        line-height: 1.55 !important;
+    }
+
+    .challenge-library-card__footer {
+        align-items: stretch;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .challenge-library-card__action {
+        text-align: left !important;
+    }
+
+    .challenge-library-card__action a {
+        display: inline-flex;
+        width: 100%;
+        justify-content: center;
+        padding: 0.75rem 1rem !important;
+    }
+
+    #challenge-empty {
+        padding: 1rem !important;
+    }
+
+    .challenges-pagination {
+        border: 2px solid rgba(38, 25, 15, 0.12);
+        border-radius: 1rem;
+        background: rgba(255, 253, 246, 0.72);
+        padding: 0.55rem;
+    }
+
+    .challenges-pagination button {
+        min-width: 4rem;
+        border: 2px solid rgba(38, 25, 15, 0.12);
+        border-radius: 0.85rem !important;
+    }
+
+    #challenges-page-status {
+        flex: 1 1 auto;
+        text-align: center;
+        font-size: 0.68rem;
+        line-height: 1.25;
+    }
+}
+
+@media (max-width: 380px) {
+    .challenges-filter-list {
+        grid-template-columns: 1fr;
+    }
+
+    .challenges-hero h1 {
+        font-size: clamp(1.75rem, 10vw, 2.4rem) !important;
+    }
 }

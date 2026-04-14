@@ -15,21 +15,20 @@ $challengeCompletionCounts = [
     <div class="challenges-page__grid absolute inset-0"></div>
 
     <section class="container relative">
-        <a href="./?c=home" class="inline-flex items-center gap-2 rounded-xl bg-white px-3 py-2 text-sm font-bold text-arcade-ink no-underline transition hover:bg-arcade-yellow/60">
+        <a href="./?c=home" class="challenges-back-button mb-4 inline-flex items-center gap-2 rounded-xl border-2 border-arcade-ink bg-white px-3 py-2 text-sm font-bold text-arcade-ink no-underline shadow-[0_3px_0_#26190f] transition hover:-translate-y-0.5 hover:bg-arcade-yellow">
             <span aria-hidden="true">&larr;</span>
             Back Home
         </a>
 
-        <div class="rounded-[28px] border-4 border-arcade-ink bg-arcade-panel p-5 shadow-[8px_8px_0_#26190f] md:p-7">
+        <div class="challenges-hero rounded-[28px] border-4 border-arcade-ink bg-arcade-panel p-5 shadow-[8px_8px_0_#26190f] md:p-7">
             <div class="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
                 <div>
-                    <p class="font-arcade text-[10px] uppercase tracking-[0.28em] text-arcade-orange">Challenge Library</p>
-                    <h1 class="mt-3 text-4xl font-bold leading-tight md:text-6xl">Challenges</h1>
+                    <h1 class="text-4xl font-bold leading-tight md:text-6xl">Challenges</h1>
                     <p class="mt-3 max-w-2xl text-sm leading-7 text-arcade-ink/70">Search and filter CSS design-matching challenges before starting a run.</p>
                 </div>
             </div>
 
-            <div class="mt-6 grid gap-3 lg:grid-cols-[1fr_auto] lg:items-center">
+            <div class="challenges-controls mt-6 grid gap-3 lg:grid-cols-[1fr_auto] lg:items-center">
                 <label class="block">
                     <span class="text-xs font-bold uppercase tracking-[0.18em] text-arcade-ink/55">Search</span>
                     <input id="challenge-search" type="search" class="mt-2 w-full rounded-2xl border-2 border-arcade-ink/15 bg-white px-4 py-3 text-sm outline-none transition focus:border-arcade-orange" placeholder="Search by title, focus, author, or description">
@@ -37,7 +36,7 @@ $challengeCompletionCounts = [
 
                 <div>
                     <p class="text-xs font-bold uppercase tracking-[0.18em] text-arcade-ink/55">Difficulty</p>
-                    <div class="mt-2 flex flex-wrap gap-2" role="group" aria-label="Filter challenges by difficulty">
+                    <div class="challenges-filter-list mt-2 flex flex-wrap gap-2" role="group" aria-label="Filter challenges by difficulty">
                         <button type="button" class="challenge-filter is-active rounded-xl border-2 border-arcade-ink bg-arcade-yellow px-3 py-2 text-xs font-bold text-arcade-ink shadow-[0_3px_0_#26190f]" data-filter="all">All</button>
                         <?php foreach ($difficulties as $difficulty) : ?>
                             <button type="button" class="challenge-filter rounded-xl border-2 border-arcade-ink bg-white px-3 py-2 text-xs font-bold text-arcade-ink shadow-[0_3px_0_#26190f]" data-filter="<?= htmlspecialchars(strtolower($difficulty), ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars($difficulty, ENT_QUOTES, 'UTF-8') ?></button>
@@ -47,12 +46,12 @@ $challengeCompletionCounts = [
             </div>
         </div>
 
-        <div class="mt-5 flex flex-wrap items-center justify-between gap-3">
+        <div class="challenges-toolbar mt-5 flex flex-wrap items-center justify-between gap-3">
             <p id="challenge-count" class="text-sm font-bold text-arcade-ink/60"></p>
             <p class="text-xs font-bold uppercase tracking-[0.18em] text-arcade-ink/45">Open a card to view details before starting</p>
         </div>
 
-        <section class="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3" aria-label="Challenge results">
+        <section class="challenges-results mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3" aria-label="Challenge results">
             <?php foreach ($challenges as $challenge) : ?>
                 <?php
                 $completionCount = $challengeCompletionCounts[$challenge['slug']] ?? 0;
@@ -66,11 +65,11 @@ $challengeCompletionCounts = [
                     <h2 class="mt-3 text-xl font-bold"><?= htmlspecialchars($challenge['title'], ENT_QUOTES, 'UTF-8') ?></h2>
                     <p class="mt-2 text-sm leading-6 text-arcade-ink/70"><?= htmlspecialchars($challenge['description'], ENT_QUOTES, 'UTF-8') ?></p>
                     <p class="mt-3 font-mono text-xs font-bold text-arcade-ink/55">Focus: <?= htmlspecialchars($challenge['focus'], ENT_QUOTES, 'UTF-8') ?></p>
-                    <div class="mt-4 flex flex-wrap items-center justify-between gap-3">
+                    <div class="challenge-library-card__footer mt-4 flex flex-wrap items-center justify-between gap-3">
                         <p class="text-xs font-bold uppercase tracking-[0.16em] text-arcade-ink/50">By <?= htmlspecialchars($challenge['author'], ENT_QUOTES, 'UTF-8') ?></p>
-                        <div class="text-right">
+                        <div class="challenge-library-card__action text-right">
                             <p class="mb-2 text-[10px] font-bold uppercase tracking-[0.14em] text-arcade-ink/45"><?= (int) $completionCount ?> completed</p>
-                            <a href="./?c=challenge&slug=<?= urlencode($challenge['slug']) ?>" class="rounded-xl border-2 border-arcade-ink bg-arcade-orange px-4 py-2 text-sm font-bold text-white no-underline shadow-[0_3px_0_#26190f] transition hover:-translate-y-0.5 hover:bg-arcade-yellow hover:text-arcade-ink">Open</a>
+                            <a href="./?c=challenge&slug=<?= urlencode($challenge['slug']) ?>" class="rounded-xl border-2 border-arcade-ink bg-arcade-orange px-4 py-2 text-sm font-bold text-white no-underline shadow-[0_3px_0_#26190f] transition hover:-translate-y-0.5 hover:bg-arcade-yellow hover:text-arcade-ink">Train</a>
                         </div>
                     </div>
                 </article>
@@ -79,7 +78,7 @@ $challengeCompletionCounts = [
 
         <p id="challenge-empty" class="mt-5 hidden rounded-2xl border-2 border-arcade-ink/15 bg-white p-5 text-center text-sm font-bold text-arcade-ink/60">No challenges match your search.</p>
 
-        <div class="mt-5 flex items-center justify-between gap-3">
+        <div class="challenges-pagination mt-5 flex items-center justify-between gap-3">
             <button id="challenges-prev" type="button" class="rounded-xl bg-white px-3 py-1.5 text-xs font-bold transition hover:bg-arcade-yellow/50">Prev</button>
             <span id="challenges-page-status" class="text-xs font-bold text-arcade-ink/60"></span>
             <button id="challenges-next" type="button" class="rounded-xl bg-white px-3 py-1.5 text-xs font-bold transition hover:bg-arcade-yellow/50">Next</button>
@@ -97,6 +96,7 @@ $challengeCompletionCounts = [
     const previousButton = document.getElementById('challenges-prev');
     const nextButton = document.getElementById('challenges-next');
     const pageStatus = document.getElementById('challenges-page-status');
+    const mobileQuery = window.matchMedia('(max-width: 768px)');
     const pageSize = 25;
     let activeFilter = 'all';
     let currentPage = 1;
@@ -138,7 +138,7 @@ $challengeCompletionCounts = [
         }
 
         if (pageStatus) {
-            pageStatus.textContent = `Page ${currentPage} of ${totalPages} - 25 per page`;
+            pageStatus.textContent = mobileQuery.matches ? `Page ${currentPage}/${totalPages}` : `Page ${currentPage} of ${totalPages} - 25 per page`;
         }
 
         if (previousButton) {
@@ -173,6 +173,7 @@ $challengeCompletionCounts = [
         currentPage = 1;
         renderChallenges();
     });
+    mobileQuery.addEventListener('change', renderChallenges);
     renderFilterState();
     renderChallenges();
 })();

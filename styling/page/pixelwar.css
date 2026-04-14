@@ -122,6 +122,10 @@
     box-shadow: none !important;
 }
 
+.mobile-preview-toggle {
+    display: none !important;
+}
+
 .challenge-grid {
     --target-width: 560px;
     --frame-width: 400px;
@@ -160,6 +164,17 @@
     margin-bottom: 0.5rem !important;
 }
 
+.preview-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.6rem;
+}
+
+.preview-card-header h2 {
+    margin: 0 !important;
+}
+
 .preview-frame,
 .target-frame {
     height: 100%;
@@ -188,6 +203,11 @@
     place-items: center;
     padding: 0.9rem 0.9rem 1.2rem;
     overflow: visible;
+}
+
+.preview-scope,
+.target-scope {
+    transform-origin: center;
 }
 
 .target-scope * {
@@ -516,6 +536,19 @@ body.is-resizing-split * {
     background: rgba(139, 211, 199, 0.9);
 }
 
+body.pixelwar-dark-mode .mobile-preview-modal .modal-content {
+    border-color: rgba(255, 247, 232, 0.34) !important;
+    background: #1f160f !important;
+    color: #fff7e8 !important;
+    box-shadow: 8px 8px 0 rgba(0, 0, 0, 0.48) !important;
+}
+
+@media (min-width: 769px) {
+    .mobile-preview-modal {
+        display: none !important;
+    }
+}
+
 @media (max-width: 1220px) {
     #game-test {
         height: 100vh;
@@ -556,4 +589,317 @@ body.is-resizing-split * {
         width: min(260px, calc(100vw - 16px));
     }
 
+}
+
+@media (max-width: 768px) {
+    #game-test {
+        height: auto;
+        min-height: 100vh;
+        min-height: 100dvh;
+        max-height: none;
+        overflow-x: hidden;
+        overflow-y: auto;
+        padding-bottom: 3.8rem !important;
+    }
+
+    .challenge-shell {
+        min-height: 100dvh;
+        height: auto;
+        padding: 0.5rem !important;
+        overflow: visible;
+    }
+
+    .challenge-grid {
+        --frame-width: 360px;
+        --frame-height: 270px;
+        --game-frame-scale: 0.92;
+        display: flex;
+        flex-direction: column;
+        gap: 0.55rem;
+        height: auto;
+        min-height: 0;
+    }
+
+    .builder-pane,
+    .target-pane {
+        width: 100%;
+        min-height: 0;
+        border-width: 3px !important;
+        border-radius: 1.15rem !important;
+        padding: 0.5rem !important;
+    }
+
+    .builder-pane {
+        display: flex;
+        flex-direction: column;
+        gap: 0.55rem;
+        overflow: visible;
+    }
+
+    .target-pane {
+        display: none;
+        max-height: none;
+        overflow: visible;
+    }
+
+    .target-pane header {
+        margin-bottom: 0.45rem !important;
+        border-radius: 0.95rem !important;
+        padding: 0.65rem 0.75rem !important;
+    }
+
+    .panel-card {
+        border-radius: 1rem !important;
+        padding: 0.55rem !important;
+        overflow: visible;
+    }
+
+    .panel-card h2,
+    .target-pane header p {
+        font-size: 0.52rem !important;
+        letter-spacing: 0.12em !important;
+        line-height: 1.35;
+    }
+
+    .panel-card--preview {
+        order: 1;
+    }
+
+    .panel-card--identifiers {
+        order: 2;
+    }
+
+    .panel-card--properties {
+        order: 3;
+    }
+
+    .mobile-preview-toggle {
+        display: inline-flex !important;
+        flex: 0 0 auto;
+        justify-content: center;
+        white-space: nowrap;
+    }
+
+    .mobile-preview-modal .modal-dialog {
+        margin: 0.75rem;
+    }
+
+    .mobile-preview-modal .modal-content {
+        border-width: 3px !important;
+        border-radius: 1.35rem !important;
+    }
+
+    .mobile-preview-modal .modal-body,
+    .mobile-preview-modal .modal-header {
+        padding-left: 1rem !important;
+        padding-right: 1rem !important;
+    }
+
+    .mobile-preview-frame {
+        --mobile-target-scale: 1;
+        height: 16.5rem;
+        overflow: hidden;
+        position: relative;
+        border-radius: 1rem !important;
+        padding: 0 !important;
+    }
+
+    .mobile-preview-stage {
+        position: relative;
+        display: block;
+        height: 100%;
+        width: 100%;
+        overflow: hidden;
+    }
+
+    .mobile-preview-stage .target-scope {
+        --frame-width: 424px;
+        --frame-height: 330px;
+        position: absolute;
+        top: 0;
+        left: 50%;
+        transform: translateX(-50%) scale(var(--mobile-target-scale, 1));
+        transform-origin: top center;
+    }
+
+    .preview-frame,
+    .target-frame {
+        height: 16.5rem;
+        max-height: none;
+        overflow: hidden;
+        border-radius: 1rem !important;
+        padding: 0.45rem !important;
+    }
+
+    .preview-stage,
+    .target-stage {
+        height: 100%;
+        min-height: 0;
+        align-items: start;
+        justify-items: center;
+        overflow: hidden;
+    }
+
+    .preview-scope,
+    .target-scope {
+        transform: scale(var(--game-frame-scale));
+        transform-origin: top center;
+    }
+
+    .identifiers-header {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 0.45rem;
+    }
+
+    .identifiers-header h2,
+    .progress-inline {
+        width: 100%;
+    }
+
+    .progress-inline {
+        min-width: 0;
+    }
+
+    .identifiers-scroll {
+        max-height: min(42dvh, 22rem);
+        overflow-y: auto;
+        padding-right: 0.1rem;
+    }
+
+    .identifiers-scroll > .grid {
+        grid-template-columns: 1fr !important;
+        gap: 0.55rem !important;
+    }
+
+    .selector-card {
+        border-radius: 1rem !important;
+        padding: 0.65rem !important;
+    }
+
+    .selector-head {
+        gap: 0.4rem;
+    }
+
+    .selector-head p {
+        margin-bottom: 0.35rem !important;
+        font-size: 0.68rem !important;
+        overflow-wrap: anywhere;
+    }
+
+    .selector-meta {
+        font-size: 0.56rem;
+        padding: 0.22rem 0.34rem;
+    }
+
+    .selector-zone {
+        min-height: 4rem;
+        max-height: 7.5rem;
+    }
+
+    .property-controls {
+        align-items: stretch;
+        flex-direction: column;
+        gap: 0.45rem;
+    }
+
+    #property-search,
+    #reset-layout-btn {
+        width: 100%;
+        min-height: 2.45rem;
+        border-radius: 0.85rem !important;
+    }
+
+    .property-zone {
+        min-height: 4.6rem;
+        max-height: 6.5rem;
+        padding: 0.45rem;
+    }
+
+    .property-chip {
+        padding: 0.32rem 0.45rem;
+        font-size: 0.68rem;
+        white-space: nowrap;
+        touch-action: manipulation;
+    }
+
+    .property-chip__count {
+        width: 1rem;
+        height: 1rem;
+        font-size: 0.58rem;
+    }
+
+    .property-chip__swatch {
+        width: 0.8rem;
+        height: 0.8rem;
+    }
+
+    .target-panel-body {
+        height: auto;
+        min-height: 0;
+    }
+
+    .floating-hud {
+        bottom: 0.45rem;
+        left: 0.5rem;
+        right: 0.5rem;
+        width: auto;
+    }
+
+    .hud-pill {
+        border-radius: 0.8rem;
+        padding: 0.42rem 0.55rem;
+        font-size: 0.68rem;
+        box-shadow: 0 6px 14px rgba(38, 25, 15, 0.16);
+    }
+}
+
+@media (max-width: 430px) {
+    .challenge-grid {
+        --frame-width: 340px;
+        --frame-height: 255px;
+        --game-frame-scale: 0.84;
+    }
+
+    .challenge-shell {
+        padding: 0.35rem !important;
+    }
+
+    .builder-pane,
+    .target-pane {
+        padding: 0.38rem !important;
+    }
+
+    .panel-card {
+        padding: 0.48rem !important;
+    }
+
+    .preview-frame,
+    .target-frame {
+        height: 14.25rem;
+        padding: 0.35rem !important;
+    }
+
+    .mobile-preview-frame {
+        height: 14.25rem;
+    }
+
+    .identifiers-scroll {
+        max-height: min(38dvh, 19rem);
+    }
+}
+
+@media (max-width: 360px) {
+    .challenge-grid {
+        --game-frame-scale: 0.78;
+    }
+
+    .preview-frame,
+    .target-frame {
+        height: 13.25rem;
+    }
+
+    .mobile-preview-frame {
+        height: 13.25rem;
+    }
 }

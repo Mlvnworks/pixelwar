@@ -11,6 +11,27 @@ $headerAvatarClasses = [
     'mint' => 'bg-arcade-mint',
 ];
 $headerAvatarClass = $headerAvatarClasses[$headerAvatarColor] ?? $headerAvatarClasses['yellow'];
+$headerNotifications = $isLoggedIn ? [
+    [
+        'title' => 'Duel invite',
+        'body' => 'CSSRunner wants a 1v1 match.',
+        'time' => 'Now',
+        'unread' => true,
+    ],
+    [
+        'title' => 'Challenge cleared',
+        'body' => 'Button Border Basics added 20 points.',
+        'time' => '12m',
+        'unread' => true,
+    ],
+    [
+        'title' => 'Season update',
+        'body' => 'Arcade Dawn leaderboard refreshed.',
+        'time' => '1h',
+        'unread' => false,
+    ],
+] : [];
+$headerUnreadNotifications = count(array_filter($headerNotifications, static fn (array $notification): bool => (bool) $notification['unread']));
 ?>
 
 <header class="pixelwar-header <?= $isLoggedIn ? 'pixelwar-header--user' : 'pixelwar-header--guest' ?> relative z-50 w-full px-4 py-3">
@@ -18,6 +39,40 @@ $headerAvatarClass = $headerAvatarClasses[$headerAvatarColor] ?? $headerAvatarCl
         <a class="font-arcade text-sm uppercase tracking-[0.22em] text-arcade-orange no-underline transition hover:text-arcade-coral md:text-lg" href="./" aria-label="Go to Pixelwar landing page">
             <?= htmlspecialchars(APP_NAME, ENT_QUOTES, 'UTF-8') ?>
         </a>
+
+        <div class="flex items-center gap-2">
+        <?php if ($isLoggedIn) : ?>
+            <details class="pixelwar-notifications relative">
+                <summary class="pixelwar-notifications__summary relative grid h-11 w-11 list-none place-items-center rounded-2xl border-2 border-arcade-ink bg-white text-arcade-ink shadow-[0_4px_0_rgba(38,25,15,0.25)] transition hover:-translate-y-0.5 hover:bg-arcade-yellow" aria-label="Open notifications">
+                    <svg class="h-5 w-5" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+                        <path fill="currentColor" d="M8 1.5A4.5 4.5 0 0 0 3.5 6v2.4L2.3 11v1h11.4v-1l-1.2-2.6V6A4.5 4.5 0 0 0 8 1.5Zm0 13a2 2 0 0 0 1.9-1.4H6.1A2 2 0 0 0 8 14.5Z" />
+                    </svg>
+                    <?php if ($headerUnreadNotifications > 0) : ?>
+                        <span class="pixelwar-notifications__badge" aria-label="<?= (int) $headerUnreadNotifications ?> new notifications"><?= (int) $headerUnreadNotifications ?></span>
+                    <?php endif; ?>
+                </summary>
+
+                <div class="pixelwar-notifications__menu absolute right-0 mt-3 w-[19rem] rounded-[22px] border-4 border-arcade-ink bg-arcade-panel p-3 text-arcade-ink shadow-[8px_8px_0_rgba(38,25,15,0.28)]">
+                    <div class="mb-2 flex items-center justify-between gap-3 px-1">
+                        <p class="font-arcade text-[9px] uppercase tracking-[0.18em] text-arcade-orange">Notifications</p>
+                        <?php if ($headerUnreadNotifications > 0) : ?>
+                            <span class="rounded-full bg-arcade-coral px-2 py-1 text-[10px] font-black text-white"><?= (int) $headerUnreadNotifications ?> new</span>
+                        <?php endif; ?>
+                    </div>
+                    <div class="grid gap-2">
+                        <?php foreach ($headerNotifications as $notification) : ?>
+                            <article class="pixelwar-notification <?= $notification['unread'] ? 'pixelwar-notification--unread' : '' ?>">
+                                <div>
+                                    <p class="text-sm font-black"><?= htmlspecialchars($notification['title'], ENT_QUOTES, 'UTF-8') ?></p>
+                                    <p class="mt-1 text-xs font-bold leading-5 text-arcade-ink/60"><?= htmlspecialchars($notification['body'], ENT_QUOTES, 'UTF-8') ?></p>
+                                </div>
+                                <span class="text-[10px] font-black uppercase tracking-[0.12em] text-arcade-orange"><?= htmlspecialchars($notification['time'], ENT_QUOTES, 'UTF-8') ?></span>
+                            </article>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+            </details>
+        <?php endif; ?>
 
         <details class="pixelwar-profile relative">
             <summary class="pixelwar-profile__summary flex list-none items-center gap-2 rounded-2xl border-2 border-arcade-ink bg-white px-2 py-1 text-arcade-ink shadow-[0_4px_0_rgba(38,25,15,0.25)] transition hover:-translate-y-0.5 hover:bg-arcade-yellow">
@@ -87,6 +142,7 @@ $headerAvatarClass = $headerAvatarClasses[$headerAvatarColor] ?? $headerAvatarCl
                 <?php endif; ?>
             </div>
         </details>
+        </div>
     </div>
 </header>
 
@@ -95,11 +151,16 @@ $headerAvatarClass = $headerAvatarClasses[$headerAvatarColor] ?? $headerAvatarCl
     display: none;
 }
 
+.pixelwar-notifications > summary::-webkit-details-marker {
+    display: none;
+}
+
 .pixelwar-profile[open] .pixelwar-profile__summary svg {
     transform: rotate(180deg);
 }
 
-.pixelwar-profile__menu {
+.pixelwar-profile__menu,
+.pixelwar-notifications__menu {
     animation: pixelwarMenuIn 160ms ease both;
 }
 
@@ -136,6 +197,50 @@ $headerAvatarClass = $headerAvatarClasses[$headerAvatarColor] ?? $headerAvatarCl
 
 .pixelwar-profile__item--danger {
     color: #d94c3f;
+}
+
+.pixelwar-notifications__badge {
+    position: absolute;
+    right: -0.35rem;
+    top: -0.35rem;
+    display: grid;
+    min-width: 1.25rem;
+    height: 1.25rem;
+    place-items: center;
+    border: 2px solid #26190f;
+    border-radius: 999px;
+    background: #f97373;
+    color: #fff;
+    font-size: 0.62rem;
+    font-weight: 900;
+    line-height: 1;
+    box-shadow: 0 2px 0 rgba(38, 25, 15, 0.25);
+}
+
+.pixelwar-notification {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.75rem;
+    border-radius: 1rem;
+    padding: 0.75rem;
+    background: rgba(255, 247, 232, 0.72);
+}
+
+.pixelwar-notification--unread {
+    border: 2px solid rgba(249, 115, 115, 0.5);
+    background: rgba(255, 209, 102, 0.28);
+}
+
+.pixelwar-notification--unread::before {
+    content: "";
+    flex: 0 0 auto;
+    width: 0.55rem;
+    height: 0.55rem;
+    margin-top: 0.35rem;
+    border-radius: 999px;
+    background: #f97373;
+    box-shadow: 0 0 0 3px rgba(249, 115, 115, 0.18);
 }
 
 .pixelwar-toggle {
@@ -179,15 +284,26 @@ body.pixelwar-dark-mode .pixelwar-header {
     background: transparent;
 }
 
-body.pixelwar-dark-mode .pixelwar-profile__menu {
+body.pixelwar-dark-mode .pixelwar-profile__menu,
+body.pixelwar-dark-mode .pixelwar-notifications__menu {
     border-color: #fff7e8;
     background: #1f160f;
     color: #fff7e8;
 }
 
 body.pixelwar-dark-mode .pixelwar-profile__item,
-body.pixelwar-dark-mode .pixelwar-profile__menu p {
+body.pixelwar-dark-mode .pixelwar-profile__menu p,
+body.pixelwar-dark-mode .pixelwar-notifications__menu p {
     color: #fff7e8;
+}
+
+body.pixelwar-dark-mode .pixelwar-notification {
+    background: #2a1d13;
+}
+
+body.pixelwar-dark-mode .pixelwar-notification--unread {
+    border-color: rgba(255, 140, 66, 0.58);
+    background: rgba(255, 140, 66, 0.14);
 }
 
 @keyframes pixelwarMenuIn {
@@ -206,6 +322,7 @@ body.pixelwar-dark-mode .pixelwar-profile__menu p {
 <script>
 (() => {
     const profileMenu = document.querySelector('.pixelwar-profile');
+    const notificationMenu = document.querySelector('.pixelwar-notifications');
     const soundToggle = document.getElementById('pixelwar-sound-toggle');
     const darkToggle = document.getElementById('pixelwar-dark-toggle');
     let audioContext = null;
@@ -287,11 +404,13 @@ body.pixelwar-dark-mode .pixelwar-profile__menu p {
     }, { capture: true });
 
     document.addEventListener('click', (event) => {
-        if (!profileMenu || profileMenu.contains(event.target)) {
-            return;
+        if (profileMenu && !profileMenu.contains(event.target)) {
+            profileMenu.removeAttribute('open');
         }
 
-        profileMenu.removeAttribute('open');
+        if (notificationMenu && !notificationMenu.contains(event.target)) {
+            notificationMenu.removeAttribute('open');
+        }
     });
 })();
 </script>
