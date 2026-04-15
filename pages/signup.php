@@ -1,3 +1,8 @@
+<?php
+$signupErrors = $_SESSION['signup_errors'] ?? [];
+$signupOld = $_SESSION['signup_old'] ?? [];
+unset($_SESSION['signup_errors'], $_SESSION['signup_old']);
+?>
 <main class="auth-page relative min-h-[calc(100vh-4.25rem)] overflow-hidden bg-arcade-cream px-4 py-4 text-arcade-ink">
     <div class="auth-bg absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(76,201,240,0.2),transparent_24%),radial-gradient(circle_at_80%_80%,rgba(255,209,102,0.3),transparent_26%)]"></div>
     <div class="auth-grid absolute inset-0"></div>
@@ -6,25 +11,39 @@
     <div class="auth-token auth-token--three">{ }</div>
 
     <section class="container relative flex min-h-[calc(100vh-7.25rem)] items-center justify-center">
-        <form class="auth-card w-full max-w-[23rem] rounded-[24px] border-4 border-arcade-ink bg-arcade-panel p-3.5 shadow-[8px_8px_0_#26190f] md:p-4" action="./?c=home" method="post">
+        <form id="signup-form" class="auth-card w-full max-w-[23rem] rounded-[24px] border-4 border-arcade-ink bg-arcade-panel p-3.5 shadow-[8px_8px_0_#26190f] md:p-4" action="./?c=signup" method="post" novalidate>
+            <?= pixelwarCsrfField() ?>
             <p class="font-arcade text-[10px] uppercase tracking-[0.28em] text-arcade-orange">Sign Up</p>
             <h1 class="mt-2 text-[1.35rem] font-bold leading-tight">Create your player.</h1>
             <p class="mt-1 text-sm leading-5 text-arcade-ink/68">Make a Pixelwar account and start matching CSS designs.</p>
 
+            <?php if ($signupErrors !== []) : ?>
+                <div class="mt-3 rounded-2xl border-2 border-arcade-coral bg-arcade-coral/10 px-3 py-2 text-sm font-bold leading-5 text-arcade-ink" role="alert">
+                    <?php foreach ($signupErrors as $error) : ?>
+                        <p class="mb-1 last:mb-0"><?= htmlspecialchars((string) $error, ENT_QUOTES, 'UTF-8') ?></p>
+                    <?php endforeach; ?>
+                </div>
+            <?php endif; ?>
+
             <label class="mt-3 block text-sm font-bold" for="signup-username">Username</label>
-            <input id="signup-username" name="username" type="text" autocomplete="username" class="mt-1 w-full rounded-xl border-2 border-arcade-ink/15 bg-white px-3 py-2 outline-none transition focus:border-arcade-orange" placeholder="pixelrookie">
+            <input id="signup-username" name="username" type="text" autocomplete="username" required minlength="3" maxlength="32" pattern="[A-Za-z0-9_]{3,32}" value="<?= htmlspecialchars((string) ($signupOld['username'] ?? ''), ENT_QUOTES, 'UTF-8') ?>" class="signup-input mt-1 w-full rounded-xl border-2 border-arcade-ink/15 bg-white px-3 py-2 outline-none transition focus:border-arcade-orange" placeholder="pixelrookie">
+            <p id="signup-username-message" class="signup-field-message mt-1 text-xs font-bold" aria-live="polite"></p>
 
             <label class="mt-2.5 block text-sm font-bold" for="signup-email">Email</label>
-            <input id="signup-email" name="email" type="email" autocomplete="email" class="mt-1 w-full rounded-xl border-2 border-arcade-ink/15 bg-white px-3 py-2 outline-none transition focus:border-arcade-orange" placeholder="player@example.com">
+            <input id="signup-email" name="email" type="email" autocomplete="email" required value="<?= htmlspecialchars((string) ($signupOld['email'] ?? ''), ENT_QUOTES, 'UTF-8') ?>" class="signup-input mt-1 w-full rounded-xl border-2 border-arcade-ink/15 bg-white px-3 py-2 outline-none transition focus:border-arcade-orange" placeholder="player@example.com">
+            <p id="signup-email-message" class="signup-field-message mt-1 text-xs font-bold" aria-live="polite"></p>
 
             <label class="mt-2.5 block text-sm font-bold" for="signup-password">Password</label>
-            <input id="signup-password" name="password" type="password" autocomplete="new-password" class="mt-1 w-full rounded-xl border-2 border-arcade-ink/15 bg-white px-3 py-2 outline-none transition focus:border-arcade-orange" placeholder="********">
+            <input id="signup-password" name="password" type="password" autocomplete="new-password" required minlength="8" class="signup-input mt-1 w-full rounded-xl border-2 border-arcade-ink/15 bg-white px-3 py-2 outline-none transition focus:border-arcade-orange" placeholder="********">
+            <p id="signup-password-message" class="signup-field-message mt-1 text-xs font-bold" aria-live="polite"></p>
 
             <label class="mt-2.5 block text-sm font-bold" for="signup-confirm-password">Confirm Password</label>
-            <input id="signup-confirm-password" name="confirm_password" type="password" autocomplete="new-password" class="mt-1 w-full rounded-xl border-2 border-arcade-ink/15 bg-white px-3 py-2 outline-none transition focus:border-arcade-orange" placeholder="********">
+            <input id="signup-confirm-password" name="confirm_password" type="password" autocomplete="new-password" required minlength="8" class="signup-input mt-1 w-full rounded-xl border-2 border-arcade-ink/15 bg-white px-3 py-2 outline-none transition focus:border-arcade-orange" placeholder="********">
+            <p id="signup-confirm-password-message" class="signup-field-message mt-1 text-xs font-bold" aria-live="polite"></p>
 
-            <button type="submit" class="mt-3.5 w-full rounded-xl border-2 border-arcade-ink bg-arcade-yellow px-6 py-2 text-sm font-bold shadow-[0_4px_0_#26190f] transition hover:-translate-y-0.5 hover:bg-arcade-orange hover:text-white">
-                Create Account
+            <button id="signup-submit-button" type="submit" class="auth-submit-button mt-3.5 inline-flex w-full items-center justify-center gap-3 rounded-xl border-2 border-arcade-ink bg-arcade-yellow px-6 py-2 text-sm font-bold shadow-[0_4px_0_#26190f] transition hover:-translate-y-0.5 hover:bg-arcade-orange hover:text-white">
+                <span class="auth-submit-spinner hidden h-4 w-4 rounded-full border-2 border-arcade-ink/40 border-t-arcade-ink" aria-hidden="true"></span>
+                <span id="signup-submit-label">Create Account</span>
             </button>
 
             <div class="my-2.5 flex items-center gap-3 text-xs font-bold uppercase tracking-[0.2em] text-arcade-ink/45">
@@ -82,8 +101,44 @@
     box-shadow: 0 0 0 4px rgba(255, 140, 66, 0.16);
 }
 
+.signup-input.is-invalid {
+    border-color: #f97373;
+    background: rgba(249, 115, 115, 0.08);
+}
+
+.signup-input.is-valid {
+    border-color: #8bd3c7;
+    background: rgba(139, 211, 199, 0.14);
+}
+
+.signup-field-message {
+    min-height: 1rem;
+    color: #f97373;
+}
+
+.signup-field-message.is-valid {
+    color: #247c6c;
+}
+
 .auth-google-button:hover {
     box-shadow: 0 6px 0 rgba(38, 25, 15, 0.16);
+}
+
+.auth-submit-button.is-loading {
+    pointer-events: none;
+    transform: translateY(1px);
+    opacity: 0.88;
+}
+
+.auth-submit-button.is-loading .auth-submit-spinner {
+    display: inline-block;
+    animation: authSubmitSpin 800ms linear infinite;
+}
+
+@keyframes authSubmitSpin {
+    to {
+        transform: rotate(360deg);
+    }
 }
 
 .auth-token {
@@ -236,3 +291,171 @@
     }
 }
 </style>
+
+<script>
+(() => {
+    const form = document.querySelector('#signup-form');
+
+    if (!form) {
+        return;
+    }
+
+    const fields = {
+        username: document.querySelector('#signup-username'),
+        email: document.querySelector('#signup-email'),
+        password: document.querySelector('#signup-password'),
+        confirmPassword: document.querySelector('#signup-confirm-password'),
+    };
+    const messages = {
+        username: document.querySelector('#signup-username-message'),
+        email: document.querySelector('#signup-email-message'),
+        password: document.querySelector('#signup-password-message'),
+        confirmPassword: document.querySelector('#signup-confirm-password-message'),
+    };
+    const availability = {
+        username: null,
+        email: null,
+    };
+    const submitButton = document.querySelector('#signup-submit-button');
+    const submitLabel = document.querySelector('#signup-submit-label');
+    let allowSubmit = false;
+
+    const setLoading = (isLoading) => {
+        if (!submitButton || !submitLabel) {
+            return;
+        }
+
+        submitButton.disabled = isLoading;
+        submitButton.classList.toggle('is-loading', isLoading);
+        submitLabel.textContent = isLoading ? 'Creating account...' : 'Create Account';
+    };
+
+    const debounce = (callback, delay = 350) => {
+        let timeoutId;
+
+        return (...args) => {
+            window.clearTimeout(timeoutId);
+            timeoutId = window.setTimeout(() => callback(...args), delay);
+        };
+    };
+
+    const setFieldState = (field, message, isValid = false) => {
+        const input = fields[field];
+        const messageBox = messages[field];
+
+        if (!input || !messageBox) {
+            return;
+        }
+
+        input.classList.toggle('is-invalid', message !== '' && !isValid);
+        input.classList.toggle('is-valid', message !== '' && isValid);
+        messageBox.textContent = message;
+        messageBox.classList.toggle('is-valid', isValid);
+    };
+
+    const validatePassword = () => {
+        const password = fields.password.value;
+        const confirmPassword = fields.confirmPassword.value;
+        let isValid = true;
+
+        if (password !== '' && password.length < 8) {
+            setFieldState('password', 'Password must be at least 8 characters.');
+            isValid = false;
+        } else {
+            setFieldState('password', password === '' ? '' : 'Password length looks good.', password !== '');
+        }
+
+        if (confirmPassword !== '' && password !== confirmPassword) {
+            setFieldState('confirmPassword', 'Password confirmation does not match.');
+            isValid = false;
+        } else {
+            setFieldState('confirmPassword', confirmPassword === '' ? '' : 'Passwords match.', confirmPassword !== '');
+        }
+
+        return isValid;
+    };
+
+    const validateFormat = (field) => {
+        const input = fields[field];
+
+        if (!input.value.trim()) {
+            setFieldState(field, '');
+            availability[field] = null;
+            return false;
+        }
+
+        if (field === 'username' && !/^[A-Za-z0-9_]{3,32}$/.test(input.value.trim())) {
+            setFieldState(field, 'Username must be 3-32 characters and only use letters, numbers, or underscores.');
+            availability[field] = false;
+            return false;
+        }
+
+        if (field === 'email' && !input.validity.valid) {
+            setFieldState(field, 'Enter a valid email address.');
+            availability[field] = false;
+            return false;
+        }
+
+        return true;
+    };
+
+    const checkAvailability = async (field) => {
+        if (!validateFormat(field)) {
+            return false;
+        }
+
+        const input = fields[field];
+        const value = input.value.trim();
+        const requestUrl = `./?c=signup&check_signup=1&field=${encodeURIComponent(field)}&value=${encodeURIComponent(value)}`;
+
+        setFieldState(field, 'Checking availability...', true);
+
+        try {
+            const response = await fetch(requestUrl, {
+                headers: {
+                    Accept: 'application/json',
+                },
+            });
+            const result = await response.json();
+
+            availability[field] = Boolean(result.available);
+            setFieldState(
+                field,
+                result.available ? `${field === 'username' ? 'Username' : 'Email'} is available.` : result.message,
+                result.available
+            );
+
+            return result.available;
+        } catch (error) {
+            availability[field] = false;
+            setFieldState(field, 'Unable to check availability right now.');
+            return false;
+        }
+    };
+
+    fields.password.addEventListener('input', validatePassword);
+    fields.confirmPassword.addEventListener('input', validatePassword);
+    fields.username.addEventListener('input', debounce(() => checkAvailability('username')));
+    fields.email.addEventListener('input', debounce(() => checkAvailability('email')));
+    fields.username.addEventListener('blur', () => checkAvailability('username'));
+    fields.email.addEventListener('blur', () => checkAvailability('email'));
+
+    form.addEventListener('submit', async (event) => {
+        if (allowSubmit) {
+            return;
+        }
+
+        event.preventDefault();
+
+        const passwordIsValid = validatePassword();
+        const usernameIsAvailable = await checkAvailability('username');
+        const emailIsAvailable = await checkAvailability('email');
+
+        if (passwordIsValid && usernameIsAvailable && emailIsAvailable) {
+            allowSubmit = true;
+            setLoading(true);
+            form.submit();
+        }
+    });
+})();
+</script>

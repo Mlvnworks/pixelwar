@@ -1,0 +1,301 @@
+.teacher-shell {
+    min-height: calc(100vh - 9rem);
+    background: #fff7e8;
+}
+
+.teacher-bg {
+    background: radial-gradient(circle at 10% 14%, rgba(255, 209, 102, 0.32), transparent 24%),
+        radial-gradient(circle at 88% 16%, rgba(76, 201, 240, 0.24), transparent 26%),
+        linear-gradient(135deg, rgba(249, 115, 115, 0.11), transparent 38%);
+    pointer-events: none;
+}
+
+.teacher-bg::after {
+    position: absolute;
+    inset: 0;
+    content: "";
+    background-image: linear-gradient(rgba(38, 25, 15, 0.055) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(38, 25, 15, 0.055) 1px, transparent 1px);
+    background-size: 26px 26px;
+    mask-image: linear-gradient(to bottom, #000, transparent 88%);
+}
+
+.teacher-nav__link,
+.teacher-button,
+.teacher-link-button,
+.teacher-small-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    white-space: nowrap;
+    text-decoration: none;
+    transition: transform 160ms ease, background-color 160ms ease, color 160ms ease, box-shadow 160ms ease;
+}
+
+.teacher-nav {
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: visible;
+    padding: 0.25rem 0.2rem 0.55rem;
+    scrollbar-width: thin;
+}
+
+.teacher-nav__link {
+    border: 2px solid rgba(38, 25, 15, 0.12);
+    border-radius: 0.9rem;
+    background: rgba(255, 255, 255, 0.78);
+    padding: 0.55rem 0.85rem;
+    color: #26190f;
+    font-size: 0.82rem;
+    font-weight: 900;
+}
+
+.teacher-nav__link:hover,
+.teacher-nav__link--active {
+    border-color: #26190f;
+    background: #ffd166;
+    color: #26190f;
+    box-shadow: 0 3px 0 #26190f;
+    transform: translateY(-0.08rem);
+}
+
+.teacher-button {
+    min-height: 2.65rem;
+    border: 2px solid #26190f;
+    border-radius: 0.95rem;
+    padding: 0.7rem 1rem;
+    font-size: 0.88rem;
+    font-weight: 900;
+    box-shadow: 0 4px 0 #26190f;
+}
+
+.teacher-button:hover,
+.teacher-link-button:hover,
+.teacher-small-button:hover {
+    transform: translateY(-2px);
+}
+
+.teacher-button--primary {
+    background: #ffd166;
+    color: #26190f;
+}
+
+.teacher-button--primary:hover {
+    background: #ff8c42;
+    color: #fff;
+}
+
+.teacher-button--light {
+    background: #fff;
+    color: #26190f;
+}
+
+.teacher-link-button,
+.teacher-small-button {
+    border: 2px solid #26190f;
+    border-radius: 0.82rem;
+    background: #ffd166;
+    color: #26190f;
+    font-size: 0.78rem;
+    font-weight: 900;
+    box-shadow: 0 3px 0 #26190f;
+}
+
+.teacher-link-button {
+    padding: 0.55rem 0.8rem;
+}
+
+.teacher-small-button {
+    padding: 0.48rem 0.7rem;
+}
+
+.teacher-small-button--light {
+    background: #fff;
+}
+
+.teacher-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid rgba(38, 25, 15, 0.16);
+    border-radius: 999px;
+    padding: 0.35rem 0.62rem;
+    color: #26190f;
+    font-size: 0.72rem;
+    font-weight: 900;
+}
+
+.teacher-search {
+    display: flex;
+    gap: 0.5rem;
+    width: min(100%, 26rem);
+}
+
+.teacher-search input {
+    min-width: 0;
+    flex: 1;
+    border: 2px solid rgba(38, 25, 15, 0.18);
+    border-radius: 0.95rem;
+    background: #fff;
+    padding: 0.72rem 0.85rem;
+    color: #26190f;
+    font-weight: 800;
+    outline: none;
+}
+
+.teacher-search button {
+    border: 2px solid #26190f;
+    border-radius: 0.95rem;
+    background: #4cc9f0;
+    padding: 0.72rem 0.9rem;
+    color: #26190f;
+    font-weight: 900;
+    box-shadow: 0 3px 0 #26190f;
+}
+
+.teacher-profile > summary::-webkit-details-marker {
+    display: none;
+}
+
+.teacher-profile__menu {
+    animation: teacherMenuIn 160ms ease both;
+}
+
+.teacher-profile__item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    width: 100%;
+    border: 0;
+    border-radius: 0.9rem;
+    background: transparent;
+    padding: 0.7rem 0.75rem;
+    color: #26190f;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 0.88rem;
+    font-weight: 900;
+    text-align: left;
+}
+
+.teacher-profile__item:hover {
+    background: rgba(255, 209, 102, 0.42);
+}
+
+.teacher-profile__item--danger {
+    color: #d94c3f;
+}
+
+.pixelwar-toggle {
+    position: relative;
+    width: 2.35rem;
+    height: 1.25rem;
+    appearance: none;
+    border: 2px solid #26190f;
+    border-radius: 999px;
+    background: #fff7e8;
+}
+
+.pixelwar-toggle::after {
+    position: absolute;
+    top: 0.12rem;
+    left: 0.12rem;
+    width: 0.75rem;
+    height: 0.75rem;
+    content: "";
+    border-radius: 999px;
+    background: #26190f;
+    transition: transform 160ms ease;
+}
+
+.pixelwar-toggle:checked {
+    background: #ffd166;
+}
+
+.pixelwar-toggle:checked::after {
+    transform: translateX(1.08rem);
+}
+
+body.pixelwar-dark-mode .teacher-shell {
+    background: #120d08 !important;
+    color: #fff7e8 !important;
+}
+
+body.pixelwar-dark-mode .teacher-bg {
+    opacity: 0.62;
+    filter: saturate(1.2);
+}
+
+body.pixelwar-dark-mode .teacher-header .container,
+body.pixelwar-dark-mode .teacher-hero,
+body.pixelwar-dark-mode .teacher-panel,
+body.pixelwar-dark-mode .teacher-page-card,
+body.pixelwar-dark-mode .teacher-profile__menu {
+    border-color: rgba(255, 247, 232, 0.72) !important;
+    background: linear-gradient(145deg, #24170d 0%, #1a1310 100%) !important;
+    color: #fff7e8 !important;
+    box-shadow: 8px 8px 0 rgba(0, 0, 0, 0.42) !important;
+}
+
+body.pixelwar-dark-mode .teacher-stat-card,
+body.pixelwar-dark-mode .teacher-list-card,
+body.pixelwar-dark-mode .teacher-activity-card,
+body.pixelwar-dark-mode .teacher-student-card,
+body.pixelwar-dark-mode .teacher-challenge-card,
+body.pixelwar-dark-mode .teacher-settings-card,
+body.pixelwar-dark-mode .teacher-nav__link,
+body.pixelwar-dark-mode .teacher-profile__summary,
+body.pixelwar-dark-mode .teacher-search input {
+    border-color: rgba(255, 247, 232, 0.28) !important;
+    background: #1f160f !important;
+    color: #fff7e8 !important;
+}
+
+body.pixelwar-dark-mode .teacher-nav__link--active,
+body.pixelwar-dark-mode .teacher-nav__link:hover,
+body.pixelwar-dark-mode .teacher-button--primary,
+body.pixelwar-dark-mode .teacher-link-button,
+body.pixelwar-dark-mode .teacher-small-button {
+    background: #ffd166 !important;
+    color: #26190f !important;
+}
+
+body.pixelwar-dark-mode .teacher-pill {
+    border-color: rgba(255, 247, 232, 0.28);
+}
+
+body.pixelwar-dark-mode .teacher-profile__item,
+body.pixelwar-dark-mode .teacher-profile__menu p {
+    color: #fff7e8;
+}
+
+@keyframes teacherMenuIn {
+    from {
+        opacity: 0;
+        transform: translateY(-0.35rem) scale(0.98);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+@media (max-width: 640px) {
+    .teacher-shell {
+        padding-inline: 0.75rem;
+    }
+
+    .teacher-header {
+        padding-inline: 0.75rem;
+    }
+
+    .teacher-search {
+        flex-direction: column;
+    }
+
+    .teacher-button {
+        width: 100%;
+    }
+}

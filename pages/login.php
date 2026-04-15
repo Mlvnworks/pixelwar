@@ -1,3 +1,8 @@
+<?php
+$loginErrors = $_SESSION['login_errors'] ?? [];
+$loginOld = $_SESSION['login_old'] ?? [];
+unset($_SESSION['login_errors'], $_SESSION['login_old']);
+?>
 <main class="login-page relative min-h-[calc(100vh-4.25rem)] overflow-hidden bg-arcade-cream px-4 py-4 text-arcade-ink">
     <div class="login-bg absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(76,201,240,0.2),transparent_24%),radial-gradient(circle_at_80%_80%,rgba(255,209,102,0.3),transparent_26%)]"></div>
     <div class="login-grid absolute inset-0"></div>
@@ -6,19 +11,32 @@
     <div class="login-token login-token--three">{ }</div>
 
     <section class="container relative flex min-h-[calc(100vh-7.25rem)] items-center justify-center">
-        <form class="login-card w-full max-w-[23.5rem] rounded-[24px] border-4 border-arcade-ink bg-arcade-panel p-4 shadow-[8px_8px_0_#26190f] md:p-5" action="./?c=home" method="post">
+        <form id="login-form" class="login-card w-full max-w-[23.5rem] rounded-[24px] border-4 border-arcade-ink bg-arcade-panel p-4 shadow-[8px_8px_0_#26190f] md:p-5" action="./?c=login" method="post" novalidate>
+            <?= pixelwarCsrfField() ?>
             <p class="font-arcade text-[10px] uppercase tracking-[0.28em] text-arcade-orange">Login</p>
             <h1 class="mt-2 text-[1.35rem] font-bold leading-tight">Back to the arena.</h1>
             <p class="mt-1.5 text-sm leading-5 text-arcade-ink/68">Jump back in with your Pixelwar account or continue with Google.</p>
 
+            <?php if ($loginErrors !== []) : ?>
+                <div class="mt-3 rounded-2xl border-2 border-arcade-coral bg-arcade-coral/10 px-3 py-2 text-sm font-bold leading-5 text-arcade-ink" role="alert">
+                    <?php foreach ($loginErrors as $error) : ?>
+                        <p class="mb-1 last:mb-0"><?= htmlspecialchars((string) $error, ENT_QUOTES, 'UTF-8') ?></p>
+                    <?php endforeach; ?>
+                </div>
+            <?php endif; ?>
+
             <label class="mt-4 block text-sm font-bold" for="login-identity">Username or Email</label>
-            <input id="login-identity" name="identity" type="text" autocomplete="username" class="mt-1 w-full rounded-xl border-2 border-arcade-ink/15 bg-white px-3 py-2 outline-none transition focus:border-arcade-orange" placeholder="pixelrookie or player@example.com">
+            <input id="login-identity" name="identity" type="text" autocomplete="username" required value="<?= htmlspecialchars((string) ($loginOld['identity'] ?? ''), ENT_QUOTES, 'UTF-8') ?>" class="mt-1 w-full rounded-xl border-2 border-arcade-ink/15 bg-white px-3 py-2 outline-none transition focus:border-arcade-orange" placeholder="pixelrookie or player@example.com">
 
             <label class="mt-3 block text-sm font-bold" for="login-password">Password</label>
-            <input id="login-password" name="password" type="password" autocomplete="current-password" class="mt-1 w-full rounded-xl border-2 border-arcade-ink/15 bg-white px-3 py-2 outline-none transition focus:border-arcade-orange" placeholder="********">
+            <input id="login-password" name="password" type="password" autocomplete="current-password" required class="mt-1 w-full rounded-xl border-2 border-arcade-ink/15 bg-white px-3 py-2 outline-none transition focus:border-arcade-orange" placeholder="********">
+            <div class="mt-2 text-right">
+                <a href="./?c=forgot-password" class="text-xs font-bold text-arcade-orange no-underline hover:text-arcade-coral">Forgot password?</a>
+            </div>
 
-            <button type="submit" class="mt-4 w-full rounded-xl border-2 border-arcade-ink bg-arcade-yellow px-6 py-2 text-sm font-bold shadow-[0_4px_0_#26190f] transition hover:-translate-y-0.5 hover:bg-arcade-orange hover:text-white">
-                Login
+            <button id="login-submit-button" type="submit" class="auth-submit-button mt-4 inline-flex w-full items-center justify-center gap-3 rounded-xl border-2 border-arcade-ink bg-arcade-yellow px-6 py-2 text-sm font-bold shadow-[0_4px_0_#26190f] transition hover:-translate-y-0.5 hover:bg-arcade-orange hover:text-white">
+                <span class="auth-submit-spinner hidden h-4 w-4 rounded-full border-2 border-arcade-ink/40 border-t-arcade-ink" aria-hidden="true"></span>
+                <span class="auth-submit-label">Login</span>
             </button>
 
             <div class="my-3 flex items-center gap-3 text-xs font-bold uppercase tracking-[0.2em] text-arcade-ink/45">
@@ -80,6 +98,23 @@
 
 .login-google-button:hover {
     box-shadow: 0 6px 0 rgba(38, 25, 15, 0.16);
+}
+
+.auth-submit-button.is-loading {
+    pointer-events: none;
+    transform: translateY(1px);
+    opacity: 0.88;
+}
+
+.auth-submit-button.is-loading .auth-submit-spinner {
+    display: inline-block;
+    animation: authSubmitSpin 800ms linear infinite;
+}
+
+@keyframes authSubmitSpin {
+    to {
+        transform: rotate(360deg);
+    }
 }
 
 .login-token {
@@ -234,3 +269,21 @@
     }
 }
 </style>
+
+<script>
+(() => {
+    const form = document.querySelector('#login-form');
+    const button = document.querySelector('#login-submit-button');
+    const label = button ? button.querySelector('.auth-submit-label') : null;
+
+    if (!form || !button || !label) {
+        return;
+    }
+
+    form.addEventListener('submit', () => {
+        button.disabled = true;
+        button.classList.add('is-loading');
+        label.textContent = 'Logging in...';
+    });
+})();
+</script>

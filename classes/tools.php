@@ -69,6 +69,13 @@ class Tools
     // --------------  SEND EMAIL ----------------//
     public function sendEmail($content, $to, $subject)
     {
+        if (!class_exists(PHPMailer::class)) {
+            return [
+                'success' => false,
+                'err' => new RuntimeException('PHPMailer is not installed. Run composer install to enable email sending.')
+            ];
+        }
+
         $mail = new PHPMailer(true);
         $mailHost = Env::get('MAIL_HOST');
         $mailPort = Env::getInt('MAIL_PORT', 587);
@@ -111,7 +118,7 @@ class Tools
                 'success' => true,
                 'err' => null
             ];
-        } catch (Exception $e) {
+        } catch (Throwable $e) {
             return [
                 'success' => false,
                 'err' => $e

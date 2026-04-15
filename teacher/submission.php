@@ -1,15 +1,17 @@
 <?php
-if (file_exists(__DIR__ . '/vendor/autoload.php')) {
-    require_once __DIR__ . '/vendor/autoload.php';
+$rootPath = dirname(__DIR__);
+
+if (file_exists($rootPath . '/vendor/autoload.php')) {
+    require_once $rootPath . '/vendor/autoload.php';
 }
 
-require_once __DIR__ . '/classes/page-meta.php';
-require_once __DIR__ . '/classes/tools.php';
-require_once __DIR__ . '/classes/user-repository.php';
-require_once __DIR__ . '/classes/verification-repository.php';
-require_once __DIR__ . '/classes/user-account-service.php';
+require_once $rootPath . '/classes/page-meta.php';
+require_once $rootPath . '/classes/tools.php';
+require_once $rootPath . '/classes/challenge-catalog.php';
+require_once $rootPath . '/classes/user-repository.php';
+require_once $rootPath . '/classes/verification-repository.php';
+require_once $rootPath . '/classes/user-account-service.php';
 
-// ==================== INITIALIZATION ====================
 $pageMeta = new PageMeta();
 $tools = new Tools($connection);
 $userRepository = $connection instanceof mysqli ? new UserRepository($connection) : null;
@@ -18,7 +20,6 @@ $userAccountService = $connection instanceof mysqli && $userRepository instanceo
     ? new UserAccountService($connection, $userRepository, $verificationRepository)
     : null;
 
-// ==================== SUBMISSION HANDLERS ====================
 $submissionFiles = glob(__DIR__ . '/submissions/*.php') ?: [];
 sort($submissionFiles);
 

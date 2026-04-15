@@ -1,20 +1,21 @@
 <?php
-$allowedPages = [];
-$pageFiles = glob(__DIR__ . '/../pages/*.php') ?: [];
-$normalizedContent = preg_match('/^[a-z0-9\-]+$/i', $content) === 1 ? $content : 'landing';
-
-$allowedPages = array_map(function ($file) {
+$teacherBasePath = dirname(__DIR__);
+$rootPath = dirname($teacherBasePath);
+$pageFiles = glob($teacherBasePath . '/pages/*.php') ?: [];
+$normalizedContent = preg_match('/^[a-z0-9\-]+$/i', $content) === 1 ? $content : 'dashboard';
+$allowedPages = array_map(static function (string $file): string {
     return basename($file, '.php');
 }, $pageFiles);
-
 $isAllowedPage = in_array($normalizedContent, $allowedPages, true);
-$pageStyleFile = __DIR__ . '/../styling/page/' . $normalizedContent . '.css';
-$appName = isset($pageMeta) ? $pageMeta->titleFor($normalizedContent) : APP_NAME;
-$appDescription = isset($pageMeta) ? $pageMeta->descriptionFor($normalizedContent) : 'Gamified CSS game for students';
-$headerlessPages = ['landing', 'pixelwar'];
-$footerlessPages = ['landing', 'login', 'forgot-password', 'signup', 'email-verification', 'profile-setup', 'pixelwar'];
-$hidesHeader = in_array($normalizedContent, $headerlessPages, true);
-$hidesFooter = in_array($normalizedContent, $footerlessPages, true);
+$pageStyleFile = $teacherBasePath . '/styling/page/' . $normalizedContent . '.css';
+$teacherTitles = [
+    'dashboard' => 'Teacher Dashboard | ' . APP_NAME,
+    'challenges' => 'Teacher Challenges | ' . APP_NAME,
+    'students' => 'Teacher Students | ' . APP_NAME,
+    'settings' => 'Teacher Settings | ' . APP_NAME,
+];
+$appName = $teacherTitles[$normalizedContent] ?? ('Teacher Panel | ' . APP_NAME);
+$appDescription = 'Teacher workspace for managing Pixelwar classes, challenges, and student progress.';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -63,13 +64,14 @@ $hidesFooter = in_array($normalizedContent, $footerlessPages, true);
         };
     </script>
 
+    <link rel="stylesheet" href="../styling/style.css">
     <link rel="stylesheet" href="./styling/style.css">
 
     <?php if ($isAllowedPage && is_file($pageStyleFile)) : ?>
         <link rel="stylesheet" href="./styling/page/<?= htmlspecialchars($normalizedContent, ENT_QUOTES, 'UTF-8') ?>.css">
     <?php endif; ?>
 
-    <link rel="shortcut icon" href="./assets/img/icon.png" type="image/x-icon">
+    <link rel="shortcut icon" href="../assets/img/icon.png" type="image/x-icon">
     <title><?= htmlspecialchars($appName, ENT_QUOTES, 'UTF-8') ?></title>
 </head>
 
@@ -85,17 +87,13 @@ $hidesFooter = in_array($normalizedContent, $footerlessPages, true);
     </script>
     <?php
     if ($isAllowedPage) {
-        if (!$hidesHeader) {
-            include __DIR__ . '/../components/navbar.php';
-        }
-        require __DIR__ . '/../pages/' . $normalizedContent . '.php';
-        if (!$hidesFooter) {
-            include __DIR__ . '/../components/footer.php';
-        }
+        include $teacherBasePath . '/components/navbar.php';
+        require $teacherBasePath . '/pages/' . $normalizedContent . '.php';
+        include $teacherBasePath . '/components/footer.php';
         $tools->alert();
     } else {
         http_response_code(404);
-        require __DIR__ . '/../components/404.php';
+        require $rootPath . '/components/404.php';
     }
     ?>
 </body>

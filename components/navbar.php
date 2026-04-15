@@ -1,5 +1,8 @@
 <?php
-$isLoggedIn = isset($_SESSION['username']) && trim((string) $_SESSION['username']) !== '';
+$navbarLockedPages = ['email-verification', 'profile-setup'];
+$navbarCurrentPage = isset($normalizedContent) ? (string) $normalizedContent : '';
+$isNavbarLocked = in_array($navbarCurrentPage, $navbarLockedPages, true);
+$isLoggedIn = !$isNavbarLocked && isset($_SESSION['username']) && trim((string) $_SESSION['username']) !== '';
 $headerUsername = $isLoggedIn ? (string) $_SESSION['username'] : 'Options';
 $headerInitials = strtoupper(substr(preg_replace('/[^a-z0-9]+/i', '', (string) ($_SESSION['avatar_initials'] ?? $headerUsername)) ?: 'PR', 0, 2));
 $headerAvatarColor = (string) ($_SESSION['avatar_color'] ?? 'yellow');
@@ -40,6 +43,7 @@ $headerUnreadNotifications = count(array_filter($headerNotifications, static fn 
             <?= htmlspecialchars(APP_NAME, ENT_QUOTES, 'UTF-8') ?>
         </a>
 
+        <?php if (!$isNavbarLocked) : ?>
         <div class="flex items-center gap-2">
         <?php if ($isLoggedIn) : ?>
             <details class="pixelwar-notifications relative">
@@ -130,19 +134,23 @@ $headerUnreadNotifications = count(array_filter($headerNotifications, static fn 
                         <span aria-hidden="true">&rsaquo;</span>
                     </a>
 
-                    <a class="pixelwar-profile__item pixelwar-profile__item--danger no-underline" href="./?c=login&logout=1">
-                        <span class="inline-flex items-center gap-2">
-                            <svg class="h-4 w-4" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
-                                <path fill="currentColor" d="M2 2h6v2H4v8h4v2H2V2Zm9.3 3.3L14 8l-2.7 2.7-.9-.9L11.6 8H6V6.7h5.6l-1.2-1.2.9-.9Z" />
-                            </svg>
-                            Logout
-                        </span>
-                        <span aria-hidden="true">&rsaquo;</span>
-                    </a>
+                    <form action="./?c=logout" method="post">
+                        <?= pixelwarCsrfField() ?>
+                        <button class="pixelwar-profile__item pixelwar-profile__item--danger" type="submit">
+                            <span class="inline-flex items-center gap-2">
+                                <svg class="h-4 w-4" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+                                    <path fill="currentColor" d="M2 2h6v2H4v8h4v2H2V2Zm9.3 3.3L14 8l-2.7 2.7-.9-.9L11.6 8H6V6.7h5.6l-1.2-1.2.9-.9Z" />
+                                </svg>
+                                Logout
+                            </span>
+                            <span aria-hidden="true">&rsaquo;</span>
+                        </button>
+                    </form>
                 <?php endif; ?>
             </div>
         </details>
         </div>
+        <?php endif; ?>
     </div>
 </header>
 
@@ -182,11 +190,16 @@ $headerUnreadNotifications = count(array_filter($headerNotifications, static fn 
     justify-content: space-between;
     gap: 0.75rem;
     width: 100%;
+    border: 0;
     border-radius: 0.9rem;
+    background: transparent;
     padding: 0.7rem 0.75rem;
     color: #26190f;
+    cursor: pointer;
+    font-family: inherit;
     font-size: 0.88rem;
     font-weight: 800;
+    text-align: left;
     transition: transform 160ms ease, background-color 160ms ease, color 160ms ease;
 }
 

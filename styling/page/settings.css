@@ -21,6 +21,7 @@
     animation-delay: 80ms;
 }
 
+.settings-avatar,
 .settings-avatar--yellow {
     background: #ffd166;
 }
@@ -42,12 +43,62 @@
     gap: 0.4rem;
 }
 
+.settings-upload {
+    display: block;
+    cursor: pointer;
+}
+
+.settings-upload__eyebrow,
 .settings-field span {
     font-size: 0.78rem;
     font-weight: 900;
     text-transform: uppercase;
     letter-spacing: 0.14em;
     color: rgba(38, 25, 15, 0.58);
+}
+
+.settings-upload__body {
+    display: flex;
+    align-items: center;
+    gap: 0.9rem;
+    margin-top: 0.45rem;
+    border: 2px dashed rgba(38, 25, 15, 0.22);
+    border-radius: 1.25rem;
+    background: rgba(255, 255, 255, 0.72);
+    padding: 0.8rem;
+    transition: border-color 160ms ease, background-color 160ms ease, transform 160ms ease;
+}
+
+.settings-upload:hover .settings-upload__body {
+    border-color: #ff8c42;
+    background: rgba(255, 209, 102, 0.2);
+    transform: translateY(-1px);
+}
+
+.settings-upload__preview {
+    display: grid;
+    width: 4.4rem;
+    height: 4.4rem;
+    flex: 0 0 auto;
+    place-items: center;
+    overflow: hidden;
+    border: 3px solid #26190f;
+    border-radius: 1.15rem;
+    background: #ffd166;
+    color: #26190f;
+    box-shadow: 4px 4px 0 rgba(38, 25, 15, 0.18);
+}
+
+.settings-upload__button {
+    flex: 0 0 auto;
+    border: 2px solid #26190f;
+    border-radius: 0.9rem;
+    background: #ffd166;
+    padding: 0.62rem 0.8rem;
+    color: #26190f;
+    font-size: 0.78rem;
+    font-weight: 900;
+    box-shadow: 0 3px 0 #26190f;
 }
 
 .settings-field input,
@@ -67,6 +118,27 @@
 .settings-field select:focus {
     border-color: #ff8c42;
     box-shadow: 0 0 0 4px rgba(255, 140, 66, 0.16);
+}
+
+.settings-field input.is-invalid {
+    border-color: #f97373;
+    background: rgba(249, 115, 115, 0.08);
+}
+
+.settings-field input.is-valid {
+    border-color: #8bd3c7;
+    background: rgba(139, 211, 199, 0.14);
+}
+
+.settings-field-message {
+    min-height: 1rem;
+    color: #f97373;
+    font-size: 0.76rem;
+    font-weight: 900;
+}
+
+.settings-field-message.is-valid {
+    color: #247c6c;
 }
 
 @keyframes settingsGlow {
@@ -114,9 +186,19 @@ body.pixelwar-dark-mode .settings-form {
 }
 
 body.pixelwar-dark-mode .settings-field span,
+body.pixelwar-dark-mode .settings-upload__eyebrow,
 body.pixelwar-dark-mode .settings-card p,
 body.pixelwar-dark-mode .settings-form p {
     color: rgba(255, 247, 232, 0.72);
+}
+
+body.pixelwar-dark-mode .settings-upload__body {
+    border-color: rgba(255, 247, 232, 0.22);
+    background: rgba(255, 247, 232, 0.08);
+}
+
+body.pixelwar-dark-mode .settings-upload__body p {
+    color: #fff7e8;
 }
 
 body.pixelwar-dark-mode .settings-field input,

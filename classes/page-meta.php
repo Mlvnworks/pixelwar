@@ -12,7 +12,10 @@ class PageMeta
         return match ($page) {
             'landing' => APP_NAME . ' | Learn CSS Through Play',
             'login' => APP_NAME . ' | Login',
+            'forgot-password' => APP_NAME . ' | Forgot Password',
             'signup' => APP_NAME . ' | Sign Up',
+            'email-verification' => APP_NAME . ' | Verify Email',
+            'profile-setup' => APP_NAME . ' | Player Setup',
             'home' => APP_NAME . ' | Home',
             'challenge' => APP_NAME . ' | Challenge Brief',
             'challenges' => APP_NAME . ' | Challenges',
@@ -30,7 +33,10 @@ class PageMeta
         return match ($page) {
             'landing' => 'Pixelwar landing page for a gamified CSS learning experience.',
             'login' => 'Login page for Pixelwar learners.',
+            'forgot-password' => 'Find a Pixelwar account by username or email.',
             'signup' => 'Signup page for Pixelwar learners.',
+            'email-verification' => 'Verify a Pixelwar account email with an OTP code.',
+            'profile-setup' => 'Complete Pixelwar player profile details after registration.',
             'home' => 'Pixelwar learner home page.',
             'challenge' => 'Pixelwar challenge details, instructions, mechanics, and start page.',
             'challenges' => 'Search and filter Pixelwar CSS matching challenges.',

@@ -1,5 +1,7 @@
 <?php
 require_once __DIR__ . '/classes/env.php';
+require_once __DIR__ . '/classes/database-initializer.php';
+require_once __DIR__ . '/classes/supabase-storage.php';
 
 Env::load(__DIR__ . '/.env');
 
@@ -71,6 +73,22 @@ if (!defined('MAIL_FROM_NAME')) {
     define('MAIL_FROM_NAME', Env::get('MAIL_FROM_NAME', APP_NAME));
 }
 
+if (!defined('SUPABASE_URL')) {
+    define('SUPABASE_URL', Env::get('SUPABASE_URL'));
+}
+
+if (!defined('SUPABASE_SERVICE_ROLE_KEY')) {
+    define('SUPABASE_SERVICE_ROLE_KEY', Env::get('SUPABASE_SERVICE_ROLE_KEY'));
+}
+
+if (!defined('SUPABASE_STORAGE_BUCKET')) {
+    define('SUPABASE_STORAGE_BUCKET', Env::get('SUPABASE_STORAGE_BUCKET', 'pixelwar'));
+}
+
+if (!defined('SUPABASE_STORAGE_AVATAR_FOLDER')) {
+    define('SUPABASE_STORAGE_AVATAR_FOLDER', Env::get('SUPABASE_STORAGE_AVATAR_FOLDER', 'avatars'));
+}
+
 ini_set('display_errors', APP_DEBUG ? '1' : '0');
 error_reporting(APP_DEBUG ? E_ALL : 0);
 
@@ -94,10 +112,10 @@ if (!$hasFullDatabaseConfig) {
 mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 
 try {
-    $connection = new mysqli(DB_HOST, DB_USER, DB_PASS, DB_NAME, DB_PORT);
-    $connection->set_charset('utf8mb4');
+    $databaseInitializer = new DatabaseInitializer(DB_HOST, DB_USER, DB_PASS, DB_NAME, DB_PORT);
+    $connection = $databaseInitializer->initialize();
     $con = $connection;
-} catch (mysqli_sql_exception $err) {
+} catch (Throwable $err) {
     error_log('Pixelwar database error: ' . $err->getMessage());
     http_response_code(500);
     require __DIR__ . '/components/500.php';
