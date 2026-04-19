@@ -44,6 +44,7 @@ if ($requestMethod === 'POST' && $requestedPage === 'signup') {
         }
 
         $token = (string) random_int(100000, 999999);
+
         $userId = $accounts->createStudentWithVerification(
             $username,
             $email,
@@ -54,8 +55,10 @@ if ($requestMethod === 'POST' && $requestedPage === 'signup') {
         unset($_SESSION['signup_old'], $_SESSION['signup_errors']);
         $_SESSION['pending_verification_user_id'] = $userId;
         $_SESSION['pending_verification_email'] = $email;
-        $_SESSION['pending_verification_token'] = $token;
         $_SESSION['pending_verification_mail_sent'] = pixelwarSendVerificationToken($tools, $email, $username, $token);
+        if (empty($_SESSION['pending_verification_mail_sent'])) {
+            $_SESSION['verification_errors'] = ['We could not send the verification email. Please check your email address or request another code.'];
+        }
         pixelwarResetVerificationAttempts($userId);
 
         pixelwarRedirect('email-verification');

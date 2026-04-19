@@ -12,7 +12,7 @@ $teacherChallenges = ChallengeCatalog::all();
                     <h1 class="mt-3 text-3xl font-black md:text-4xl">Teacher Challenge Library</h1>
                     <p class="mt-2 max-w-2xl text-sm font-bold leading-7 text-arcade-ink/62">Use existing Pixelwar challenges as classroom material while the custom challenge builder is prepared.</p>
                 </div>
-                <button type="button" class="teacher-button teacher-button--primary">New Challenge</button>
+                <a href="./?c=create-challenge" class="teacher-button teacher-button--primary">New Challenge</a>
             </div>
 
             <div class="mt-5 grid gap-3 lg:grid-cols-3">

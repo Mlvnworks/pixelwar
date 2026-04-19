@@ -40,6 +40,10 @@ if ($requestMethod === 'POST' && $requestedPage === 'login') {
         $_SESSION['username'] = (string) $user['username'];
         $_SESSION['email'] = (string) $user['email'];
 
+        if ((int) ($user['role_id'] ?? 0) !== pixelwarStudentRoleId()) {
+            pixelwarRedirectToRoleHome($user);
+        }
+
         if ((int) $user['is_verified'] !== 1) {
             pixelwarPrepareAccountVerification(pixelwarRequireVerificationRepository($verificationRepository), $tools, (int) $user['user_id'], (string) $user['email'], (string) $user['username']);
             pixelwarRedirect('email-verification');
@@ -49,7 +53,7 @@ if ($requestMethod === 'POST' && $requestedPage === 'login') {
             pixelwarRedirect('profile-setup');
         }
 
-        pixelwarRedirect('home');
+        pixelwarRedirectToRoleHome($user);
     } catch (Throwable $err) {
         error_log('Pixelwar login error: ' . $err->getMessage());
         $_SESSION['login_errors'] = ['Login failed. Please try again.'];

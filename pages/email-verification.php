@@ -3,8 +3,6 @@ $verificationErrors = $_SESSION['verification_errors'] ?? [];
 $verificationNotices = $_SESSION['verification_notices'] ?? [];
 $pendingEmail = (string) ($_SESSION['pending_verification_email'] ?? '');
 $mailWasSent = !empty($_SESSION['pending_verification_mail_sent']);
-$devToken = (string) ($_SESSION['pending_verification_token'] ?? '');
-$canShowDevToken = !$mailWasSent && $devToken !== '' && APP_ENV !== 'production' && APP_DEBUG;
 $maskedEmail = $pendingEmail !== '' && isset($tools) ? $tools->maskEmail($pendingEmail) : $pendingEmail;
 unset($_SESSION['verification_errors'], $_SESSION['verification_notices']);
 ?>
@@ -21,18 +19,14 @@ unset($_SESSION['verification_errors'], $_SESSION['verification_notices']);
             <p class="font-arcade text-[10px] uppercase tracking-[0.28em] text-arcade-orange">Verify Email</p>
             <h1 class="mt-2 text-[1.35rem] font-bold leading-tight">Enter your code.</h1>
             <p class="mt-1 text-sm leading-5 text-arcade-ink/68">
-                <?php if ($pendingEmail !== '') : ?>
+                <?php if ($pendingEmail !== '' && $mailWasSent) : ?>
                     We sent a six-digit code to <strong><?= htmlspecialchars((string) $maskedEmail, ENT_QUOTES, 'UTF-8') ?></strong>.
+                <?php elseif ($pendingEmail !== '') : ?>
+                    We could not send a code yet. Check your email address, then request another code for <strong><?= htmlspecialchars((string) $maskedEmail, ENT_QUOTES, 'UTF-8') ?></strong>.
                 <?php else : ?>
                     Start by creating your player account first.
                 <?php endif; ?>
             </p>
-
-            <?php if ($canShowDevToken) : ?>
-                <div class="mt-3 rounded-2xl border-2 border-arcade-yellow bg-arcade-yellow/20 px-3 py-2 text-sm font-bold leading-5 text-arcade-ink">
-                    Dev code: <span class="font-arcade text-[11px] tracking-[0.2em]"><?= htmlspecialchars($devToken, ENT_QUOTES, 'UTF-8') ?></span>
-                </div>
-            <?php endif; ?>
 
             <?php if ($verificationErrors !== []) : ?>
                 <div class="mt-3 rounded-2xl border-2 border-arcade-coral bg-arcade-coral/10 px-3 py-2 text-sm font-bold leading-5 text-arcade-ink" role="alert">

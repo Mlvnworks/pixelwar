@@ -1,0 +1,470 @@
+.create-challenge-shell {
+    min-height: calc(100vh - 9rem);
+}
+
+.create-stepper-card,
+.create-example-card,
+.create-info-summary,
+.create-confirm-card {
+    position: relative;
+    overflow: hidden;
+}
+
+.create-stepper-card::before,
+.create-example-card::before,
+.create-info-summary::before,
+.create-confirm-card::before {
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 0.45rem;
+    content: "";
+    background: linear-gradient(180deg, #4cc9f0, #ffd166, #ff8c42);
+}
+
+.create-stepper-card > *,
+.create-example-card > *,
+.create-info-summary > *,
+.create-confirm-card > * {
+    position: relative;
+    z-index: 1;
+}
+
+.create-progress-shell {
+    width: min(100%, 24rem);
+    height: 1rem;
+    overflow: hidden;
+    border: 2px solid #26190f;
+    border-radius: 999px;
+    background: rgba(38, 25, 15, 0.08);
+}
+
+.create-progress-shell span {
+    display: block;
+    width: 0;
+    height: 100%;
+    border-right: 2px solid #26190f;
+    background: linear-gradient(90deg, #4cc9f0, #ffd166, #ff8c42);
+    transition: width 240ms ease;
+}
+
+.create-step-list {
+    display: grid;
+    gap: 0.75rem;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.create-step-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.55rem;
+    min-height: 3rem;
+    border: 2px solid rgba(38, 25, 15, 0.14);
+    border-radius: 1rem;
+    background: rgba(255, 255, 255, 0.7);
+    color: rgba(38, 25, 15, 0.55);
+    font-weight: 900;
+    transition: transform 160ms ease, background-color 160ms ease, border-color 160ms ease;
+}
+
+.create-step-pill span {
+    display: grid;
+    width: 1.55rem;
+    height: 1.55rem;
+    place-items: center;
+    border: 2px solid currentColor;
+    border-radius: 999px;
+    font-family: "Press Start 2P", cursive;
+    font-size: 0.55rem;
+}
+
+.create-step-pill.is-active,
+.create-step-pill.is-complete {
+    border-color: #26190f;
+    background: #ffd166;
+    color: #26190f;
+    box-shadow: 0 3px 0 rgba(38, 25, 15, 0.18);
+}
+
+.create-step-pill.is-active {
+    transform: translateY(-1px);
+}
+
+.create-step-pill:disabled {
+    cursor: not-allowed;
+}
+
+.create-field {
+    display: grid;
+    gap: 0.5rem;
+}
+
+.create-field span {
+    color: rgba(38, 25, 15, 0.72);
+    font-size: 0.82rem;
+    font-weight: 900;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.create-field input,
+.create-field textarea,
+.create-field select {
+    width: 100%;
+    border: 2px solid rgba(38, 25, 15, 0.18);
+    border-radius: 1rem;
+    background: #fff;
+    padding: 0.85rem 1rem;
+    color: #26190f;
+    font: inherit;
+    font-weight: 800;
+    outline: none;
+    transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.create-field textarea {
+    resize: vertical;
+}
+
+.create-field input:focus,
+.create-field textarea:focus,
+.create-field select:focus {
+    border-color: #26190f;
+    box-shadow: 0 0 0 3px rgba(255, 209, 102, 0.45);
+}
+
+.create-example-meta span,
+.create-confirm-list div {
+    display: grid;
+    gap: 0.25rem;
+    border: 2px solid rgba(38, 25, 15, 0.12);
+    border-radius: 1rem;
+    background: rgba(255, 209, 102, 0.24);
+    padding: 0.75rem;
+    color: rgba(38, 25, 15, 0.72);
+    font-size: 0.78rem;
+    font-weight: 900;
+}
+
+.create-example-meta strong,
+.create-confirm-list strong {
+    color: #26190f;
+    font-size: 0.68rem;
+    font-style: normal;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.create-example-meta em,
+.create-confirm-list span {
+    color: rgba(38, 25, 15, 0.72);
+    font-style: normal;
+}
+
+.create-difficulty-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid #26190f;
+    border-radius: 999px;
+    padding: 0.65rem 0.85rem;
+    color: #26190f;
+    font-size: 0.78rem;
+    font-weight: 900;
+    text-transform: uppercase;
+}
+
+.create-difficulty-badge--easy {
+    background: #8bd3c7;
+}
+
+.create-difficulty-badge--medium {
+    background: #ffd166;
+}
+
+.create-difficulty-badge--hard {
+    background: #f97373;
+    color: #fff;
+}
+
+.create-difficulty-badge--unset {
+    background: #fff7e8;
+}
+
+.create-file-drop {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    min-height: 2.35rem;
+    border: 2px dashed rgba(38, 25, 15, 0.28);
+    border-radius: 0.95rem;
+    background: rgba(255, 209, 102, 0.28);
+    padding: 0.55rem 0.8rem;
+    color: #26190f;
+    cursor: pointer;
+    font-size: 0.82rem;
+    font-weight: 900;
+    transition: transform 160ms ease, background-color 160ms ease, border-color 160ms ease;
+}
+
+.create-file-drop:hover {
+    border-color: #26190f;
+    background: #ffd166;
+    transform: translateY(-1px);
+}
+
+.create-file-drop input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+}
+
+.create-editor-wrap {
+    display: grid;
+    grid-template-columns: 3rem minmax(0, 1fr);
+    min-height: 22rem;
+    overflow: hidden;
+    border: 3px solid #26190f;
+    border-radius: 1.25rem;
+    background: #fffdf6;
+    box-shadow: inset 0 0 0 2px rgba(38, 25, 15, 0.06);
+}
+
+.create-editor-gutter,
+.create-code-editor {
+    min-height: 22rem;
+    max-height: 32rem;
+    overflow: auto;
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    font-size: 0.86rem;
+    line-height: 1.62;
+}
+
+.create-editor-gutter {
+    user-select: none;
+    border-right: 2px solid rgba(38, 25, 15, 0.12);
+    background: #fff7e8;
+    padding: 1rem 0.7rem;
+    color: rgba(38, 25, 15, 0.42);
+    text-align: right;
+    white-space: pre;
+    scrollbar-width: none;
+}
+
+.create-editor-gutter::-webkit-scrollbar {
+    display: none;
+}
+
+.create-code-editor {
+    width: 100%;
+    resize: vertical;
+    border: 0;
+    background: transparent;
+    padding: 1rem;
+    color: #26190f;
+    outline: none;
+    tab-size: 2;
+    white-space: pre;
+}
+
+.create-code-editor::selection {
+    background: rgba(255, 209, 102, 0.52);
+}
+
+.create-feedback {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    border: 2px solid rgba(38, 25, 15, 0.12);
+    border-radius: 0.95rem;
+    padding: 0.65rem 0.75rem;
+    font-size: 0.83rem;
+    font-weight: 900;
+    line-height: 1.45;
+}
+
+.create-feedback p {
+    margin: 0;
+}
+
+.create-feedback--ok {
+    background: rgba(139, 211, 199, 0.28);
+    color: #1d5b50;
+}
+
+.create-feedback--warn {
+    background: rgba(249, 115, 115, 0.18);
+    color: #9b2c24;
+}
+
+.create-preview-card {
+    max-height: calc(100vh - 2rem);
+    overflow: auto;
+}
+
+.create-preview-frame {
+    overflow: hidden;
+    min-height: 28rem;
+    border: 3px solid #26190f;
+    border-radius: 1.35rem;
+    background: #fff7e8;
+    box-shadow: inset 0 0 0 2px rgba(38, 25, 15, 0.06);
+}
+
+.create-preview-frame iframe {
+    display: block;
+    width: 100%;
+    height: 28rem;
+    border: 0;
+    background: #fff7e8;
+}
+
+.create-status-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid #26190f;
+    border-radius: 999px;
+    padding: 0.4rem 0.65rem;
+    font-size: 0.72rem;
+    font-weight: 900;
+    text-transform: uppercase;
+}
+
+.create-status-pill--ok {
+    background: #8bd3c7;
+    color: #26190f;
+}
+
+.create-status-pill--warn {
+    background: #f97373;
+    color: #fff;
+}
+
+.create-rules code {
+    border-radius: 0.35rem;
+    background: rgba(38, 25, 15, 0.08);
+    padding: 0.08rem 0.24rem;
+    color: #26190f;
+    font-weight: 900;
+}
+
+body.pixelwar-dark-mode .create-file-drop,
+body.pixelwar-dark-mode .create-field input,
+body.pixelwar-dark-mode .create-field textarea,
+body.pixelwar-dark-mode .create-field select {
+    border-color: rgba(255, 247, 232, 0.3);
+    background: #1f160f;
+    color: #fff7e8;
+}
+
+body.pixelwar-dark-mode .create-step-pill {
+    border-color: rgba(255, 247, 232, 0.18);
+    background: rgba(255, 247, 232, 0.08);
+    color: rgba(255, 247, 232, 0.58);
+}
+
+body.pixelwar-dark-mode .create-step-pill.is-active,
+body.pixelwar-dark-mode .create-step-pill.is-complete {
+    border-color: rgba(255, 247, 232, 0.52);
+    background: #ffd166;
+    color: #26190f;
+}
+
+body.pixelwar-dark-mode .create-editor-wrap {
+    border-color: rgba(255, 247, 232, 0.42);
+    background: #1f160f;
+    box-shadow: inset 0 0 0 2px rgba(255, 247, 232, 0.08);
+}
+
+body.pixelwar-dark-mode .create-editor-gutter {
+    border-right-color: rgba(255, 247, 232, 0.12);
+    background: #160f0a;
+    color: rgba(255, 247, 232, 0.42);
+}
+
+body.pixelwar-dark-mode .create-code-editor {
+    color: #fff7e8;
+}
+
+body.pixelwar-dark-mode .create-code-editor::selection {
+    background: rgba(255, 209, 102, 0.32);
+}
+
+body.pixelwar-dark-mode .create-example-meta span,
+body.pixelwar-dark-mode .create-confirm-list div {
+    border-color: rgba(255, 247, 232, 0.24);
+    background: rgba(255, 209, 102, 0.12);
+    color: rgba(255, 247, 232, 0.72);
+}
+
+body.pixelwar-dark-mode .create-field span,
+body.pixelwar-dark-mode .create-example-meta strong,
+body.pixelwar-dark-mode .create-confirm-list strong {
+    color: #ffd166;
+}
+
+body.pixelwar-dark-mode .create-example-meta em,
+body.pixelwar-dark-mode .create-confirm-list span {
+    color: rgba(255, 247, 232, 0.78);
+}
+
+body.pixelwar-dark-mode .create-feedback--ok {
+    border-color: rgba(139, 211, 199, 0.45);
+    background: rgba(139, 211, 199, 0.16);
+    color: #b7fff5;
+}
+
+body.pixelwar-dark-mode .create-feedback--warn {
+    border-color: rgba(249, 115, 115, 0.45);
+    background: rgba(249, 115, 115, 0.14);
+    color: #ffb7ad;
+}
+
+body.pixelwar-dark-mode .create-rules,
+body.pixelwar-dark-mode .create-preview-frame {
+    border-color: rgba(255, 247, 232, 0.28);
+    background: #1f160f;
+}
+
+body.pixelwar-dark-mode .create-rules code {
+    background: rgba(255, 247, 232, 0.1);
+    color: #ffd166;
+}
+
+@media (max-width: 768px) {
+    .create-step-list {
+        grid-template-columns: 1fr;
+    }
+
+    .create-progress-shell {
+        width: 100%;
+    }
+}
+
+@media (max-width: 640px) {
+    .create-editor-wrap {
+        grid-template-columns: 2.35rem minmax(0, 1fr);
+        min-height: 18rem;
+    }
+
+    .create-editor-gutter,
+    .create-code-editor {
+        min-height: 18rem;
+        font-size: 0.78rem;
+    }
+
+    .create-preview-card {
+        position: static;
+        max-height: none;
+    }
+
+    .create-preview-frame,
+    .create-preview-frame iframe {
+        min-height: 22rem;
+        height: 22rem;
+    }
+}

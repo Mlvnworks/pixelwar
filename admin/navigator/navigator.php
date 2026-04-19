@@ -1,22 +1,20 @@
 <?php
-$teacherBasePath = dirname(__DIR__);
-$rootPath = dirname($teacherBasePath);
-$pageFiles = glob($teacherBasePath . '/pages/*.php') ?: [];
+$adminBasePath = dirname(__DIR__);
+$rootPath = dirname($adminBasePath);
+$pageFiles = glob($adminBasePath . '/pages/*.php') ?: [];
 $normalizedContent = preg_match('/^[a-z0-9\-]+$/i', $content) === 1 ? $content : 'dashboard';
 $allowedPages = array_map(static function (string $file): string {
     return basename($file, '.php');
 }, $pageFiles);
 $isAllowedPage = in_array($normalizedContent, $allowedPages, true);
-$pageStyleFile = $teacherBasePath . '/styling/page/' . $normalizedContent . '.css';
-$teacherTitles = [
-    'create-challenge' => 'Create Challenge | ' . APP_NAME,
-    'dashboard' => 'Teacher Dashboard | ' . APP_NAME,
-    'challenges' => 'Teacher Challenges | ' . APP_NAME,
-    'students' => 'Teacher Students | ' . APP_NAME,
-    'settings' => 'Teacher Settings | ' . APP_NAME,
+$pageStyleFile = $adminBasePath . '/styling/page/' . $normalizedContent . '.css';
+$adminTitles = [
+    'dashboard' => 'Admin Dashboard | ' . APP_NAME,
+    'teachers' => 'Teacher Management | ' . APP_NAME,
+    'settings' => 'Admin Settings | ' . APP_NAME,
 ];
-$appName = $teacherTitles[$normalizedContent] ?? ('Teacher Panel | ' . APP_NAME);
-$appDescription = 'Teacher workspace for managing Pixelwar classes, challenges, and student progress.';
+$appName = $adminTitles[$normalizedContent] ?? ('Admin Panel | ' . APP_NAME);
+$appDescription = 'Admin workspace for managing Pixelwar teachers and platform controls.';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -57,9 +55,6 @@ $appDescription = 'Teacher workspace for managing Pixelwar classes, challenges, 
                     fontFamily: {
                         arcade: ['"Press Start 2P"', 'cursive'],
                         body: ['"Space Grotesk"', 'sans-serif']
-                    },
-                    boxShadow: {
-                        arcade: '0 24px 60px rgba(38, 25, 15, 0.14)'
                     }
                 }
             }
@@ -89,9 +84,9 @@ $appDescription = 'Teacher workspace for managing Pixelwar classes, challenges, 
     </script>
     <?php
     if ($isAllowedPage) {
-        include $teacherBasePath . '/components/navbar.php';
-        require $teacherBasePath . '/pages/' . $normalizedContent . '.php';
-        include $teacherBasePath . '/components/footer.php';
+        include $adminBasePath . '/components/navbar.php';
+        require $adminBasePath . '/pages/' . $normalizedContent . '.php';
+        include $adminBasePath . '/components/footer.php';
         $tools->alert();
     } else {
         http_response_code(404);

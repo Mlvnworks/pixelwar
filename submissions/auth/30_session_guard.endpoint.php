@@ -33,7 +33,7 @@ if (
     )
 ) {
     pixelwarPrepareAccountVerification(
-        pixelwarRequireUserRepository($userRepository),
+        pixelwarRequireVerificationRepository($verificationRepository),
         $tools,
         (int) $sessionUser['user_id'],
         (string) $sessionUser['email'],
@@ -43,6 +43,16 @@ if (
 
 if ($requestMethod === 'GET' && $sessionUser !== null && in_array($currentPage, $guestOnlyPages, true)) {
     pixelwarRedirectAfterAuthState(pixelwarRequireUserRepository($userRepository), $sessionUser);
+}
+
+if (
+    $requestMethod === 'GET'
+    && $sessionUser !== null
+    && (int) ($sessionUser['role_id'] ?? 0) !== pixelwarStudentRoleId()
+    && !$isPublicPage
+    && !$isOnboardingPage
+) {
+    pixelwarRedirectToRoleHome($sessionUser);
 }
 
 if ($requestMethod === 'GET' && $currentPage === 'email-verification' && $sessionUser === null && empty($_SESSION['pending_verification_user_id'])) {
@@ -65,12 +75,18 @@ if ($sessionUser === null && !$isPublicPage && !$isOnboardingPage) {
     pixelwarRedirect('login');
 }
 
-if ($sessionUser !== null && (int) $sessionUser['is_verified'] !== 1 && $currentPage !== 'email-verification') {
+if (
+    $sessionUser !== null
+    && (int) ($sessionUser['role_id'] ?? 0) === pixelwarStudentRoleId()
+    && (int) $sessionUser['is_verified'] !== 1
+    && $currentPage !== 'email-verification'
+) {
     pixelwarRedirect('email-verification');
 }
 
 if (
     $sessionUser !== null
+    && (int) ($sessionUser['role_id'] ?? 0) === pixelwarStudentRoleId()
     && (int) $sessionUser['is_verified'] === 1
     && !pixelwarUserDetailsExist(pixelwarRequireUserRepository($userRepository), (int) $sessionUser['user_id'])
     && $currentPage !== 'profile-setup'
@@ -81,6 +97,7 @@ if (
 if (
     $requestMethod === 'GET'
     && $sessionUser !== null
+    && (int) ($sessionUser['role_id'] ?? 0) === pixelwarStudentRoleId()
     && (int) $sessionUser['is_verified'] === 1
     && $currentPage === 'email-verification'
 ) {
@@ -90,6 +107,7 @@ if (
 if (
     $requestMethod === 'GET'
     && $sessionUser !== null
+    && (int) ($sessionUser['role_id'] ?? 0) === pixelwarStudentRoleId()
     && (int) $sessionUser['is_verified'] === 1
     && $currentPage === 'profile-setup'
     && pixelwarUserDetailsExist(pixelwarRequireUserRepository($userRepository), (int) $sessionUser['user_id'])

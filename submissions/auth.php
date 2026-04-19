@@ -74,6 +74,33 @@ function pixelwarStudentRoleId(): int
     return 3;
 }
 
+function pixelwarTeacherRoleId(): int
+{
+    return 2;
+}
+
+function pixelwarAdminRoleId(): int
+{
+    return 1;
+}
+
+function pixelwarRedirectToRoleHome(array $user): void
+{
+    $roleId = (int) ($user['role_id'] ?? 0);
+
+    if ($roleId === pixelwarAdminRoleId()) {
+        header('Location: admin/?c=dashboard');
+        exit;
+    }
+
+    if ($roleId === pixelwarTeacherRoleId()) {
+        header('Location: teacher/?c=dashboard');
+        exit;
+    }
+
+    pixelwarRedirect('home');
+}
+
 function pixelwarUserDetailsExist(UserRepository $userRepository, int $userId): bool
 {
     return $userRepository->userDetailsExist($userId);
@@ -149,6 +176,10 @@ function pixelwarRedirectAfterAuthState(UserRepository $userRepository, array $u
 {
     pixelwarRefreshSessionUser($user);
 
+    if ((int) ($user['role_id'] ?? 0) !== pixelwarStudentRoleId()) {
+        pixelwarRedirectToRoleHome($user);
+    }
+
     if ((int) $user['is_verified'] !== 1) {
         pixelwarRedirect('email-verification');
     }
@@ -157,7 +188,7 @@ function pixelwarRedirectAfterAuthState(UserRepository $userRepository, array $u
         pixelwarRedirect('profile-setup');
     }
 
-    pixelwarRedirect('home');
+    pixelwarRedirectToRoleHome($user);
 }
 
 function pixelwarFailCsrf(string $redirectPage, bool $wantsJson = false): void
@@ -249,7 +280,14 @@ function pixelwarSendVerificationToken(Tools $tools, string $email, string $user
 
     $result = $tools->sendEmail($content, $email, 'Your Pixelwar verification code');
 
-    return !empty($result['success']);
+    if (empty($result['success'])) {
+        $error = $result['err'] ?? null;
+        error_log('Pixelwar verification email failed: ' . ($error instanceof Throwable ? $error->getMessage() : 'Unknown mail error'));
+
+        return false;
+    }
+
+    return true;
 }
 
 function pixelwarPrepareAccountVerification(VerificationRepository $verificationRepository, Tools $tools, int $userId, string $email, string $username): void
@@ -263,17 +301,8 @@ function pixelwarPrepareAccountVerification(VerificationRepository $verification
         $requestTimestamp = strtotime((string) $verification['request_timestamp']);
         $expiresAt = $requestTimestamp === false ? 0 : $requestTimestamp + (20 * 60);
         $storedToken = (string) $verification['token'];
-        $pendingToken = (string) ($_SESSION['pending_verification_token'] ?? '');
-        $pendingUserId = (int) ($_SESSION['pending_verification_user_id'] ?? 0);
-
         if ($verificationStatus === 0 && $expiresAt >= time()) {
-            if (
-                $pendingUserId === $userId
-                && $pendingToken !== ''
-                && pixelwarVerificationTokenMatches($storedToken, $pendingToken)
-            ) {
-                $token = $pendingToken;
-            } elseif (!pixelwarVerificationTokenIsHashed($storedToken)) {
+            if (!pixelwarVerificationTokenIsHashed($storedToken)) {
                 $token = $storedToken;
             }
         } elseif ($verificationStatus === 0) {
@@ -288,7 +317,6 @@ function pixelwarPrepareAccountVerification(VerificationRepository $verification
 
     $_SESSION['pending_verification_user_id'] = $userId;
     $_SESSION['pending_verification_email'] = $email;
-    $_SESSION['pending_verification_token'] = $token;
     $_SESSION['pending_verification_mail_sent'] = pixelwarSendVerificationToken($tools, $email, $username, $token);
     pixelwarResetVerificationAttempts($userId);
 }

@@ -65,6 +65,37 @@ class UserRepository
         return $user ?: null;
     }
 
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    public function listUsersByRole(int $roleId, int $limit = 50): array
+    {
+        $limit = max(1, min(100, $limit));
+        $statement = $this->connection->prepare(
+            'SELECT
+                users.user_id,
+                users.username,
+                users.email,
+                users.is_verified,
+                users.registration_date,
+                user_details.firstname,
+                user_details.lastname,
+                images.source AS avatar_url
+             FROM users
+             LEFT JOIN user_details ON user_details.user_id = users.user_id
+             LEFT JOIN images ON images.img_id = user_details.image_id
+             WHERE users.role_id = ? AND users.date_deleted IS NULL
+             ORDER BY users.registration_date DESC
+             LIMIT ?'
+        );
+        $statement->bind_param('ii', $roleId, $limit);
+        $statement->execute();
+        $users = $statement->get_result()->fetch_all(MYSQLI_ASSOC);
+        $statement->close();
+
+        return $users;
+    }
+
     public function userDetailsExist(int $userId): bool
     {
         $statement = $this->connection->prepare('SELECT ud_id FROM user_details WHERE user_id = ? LIMIT 1');

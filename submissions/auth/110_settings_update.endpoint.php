@@ -120,7 +120,7 @@ if ($requestMethod === 'POST' && $requestedPage === 'settings') {
 
     if ($emailChanged) {
         pixelwarPrepareAccountVerification(
-            $auth,
+            pixelwarRequireVerificationRepository($verificationRepository),
             $tools,
             $userId,
             $email,

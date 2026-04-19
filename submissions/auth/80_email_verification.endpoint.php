@@ -44,17 +44,17 @@ if ($requestMethod === 'POST' && $requestedPage === 'email-verification') {
 
             $_SESSION['email'] = $newEmail;
             pixelwarPrepareAccountVerification(
-                $auth,
+                $verifications,
                 $tools,
                 $userId,
                 $newEmail,
                 (string) $verificationUser['username']
             );
-            $_SESSION['verification_notices'] = [
-                !empty($_SESSION['pending_verification_mail_sent'])
-                    ? 'Email updated. A new verification code was sent.'
-                    : 'Email updated. A new verification code was prepared, but email delivery is not available right now.'
-            ];
+            if (!empty($_SESSION['pending_verification_mail_sent'])) {
+                $_SESSION['verification_notices'] = ['Email updated. A new verification code was sent.'];
+            } else {
+                $_SESSION['verification_errors'] = ['Email updated, but we could not send the verification email. Please request another code.'];
+            }
             pixelwarRedirect('email-verification');
         }
 
@@ -84,17 +84,17 @@ if ($requestMethod === 'POST' && $requestedPage === 'email-verification') {
             }
 
             pixelwarPrepareAccountVerification(
-                $auth,
+                $verifications,
                 $tools,
                 $userId,
                 (string) $verificationUser['email'],
                 (string) $verificationUser['username']
             );
-            $_SESSION['verification_notices'] = [
-                !empty($_SESSION['pending_verification_mail_sent'])
-                    ? 'A new verification code was sent.'
-                    : 'A new verification code was prepared. Email delivery is not available right now.'
-            ];
+            if (!empty($_SESSION['pending_verification_mail_sent'])) {
+                $_SESSION['verification_notices'] = ['A new verification code was sent.'];
+            } else {
+                $_SESSION['verification_errors'] = ['We could not send the verification email. Please check your email address or try again.'];
+            }
             pixelwarRedirect('email-verification');
         }
 
@@ -159,7 +159,6 @@ if ($requestMethod === 'POST' && $requestedPage === 'email-verification') {
         unset(
             $_SESSION['pending_verification_user_id'],
             $_SESSION['pending_verification_email'],
-            $_SESSION['pending_verification_token'],
             $_SESSION['pending_verification_mail_sent'],
             $_SESSION['verification_errors'],
             $_SESSION['verification_notices']

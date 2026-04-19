@@ -33,6 +33,8 @@ final class DatabaseInitializer
         $this->runSchema($connection);
         $this->runMigrations($connection);
         $this->seedRoles($connection);
+        $this->seedDefaultAdmin($connection);
+        $this->seedDefaultTeacher($connection);
 
         return $connection;
     }
@@ -159,6 +161,42 @@ final class DatabaseInitializer
             $statement->execute();
         }
 
+        $statement->close();
+    }
+
+    private function seedDefaultAdmin(mysqli $connection): void
+    {
+        $username = 'admin';
+        $email = 'admin@pixelwar.local';
+        $passwordHash = password_hash('admin123', PASSWORD_DEFAULT);
+        $roleId = 1;
+        $isVerified = 1;
+
+        $statement = $connection->prepare(
+            'INSERT INTO `users` (`role_id`, `username`, `email`, `password`, `is_verified`)
+             VALUES (?, ?, ?, ?, ?)
+             ON DUPLICATE KEY UPDATE `role_id` = VALUES(`role_id`), `is_verified` = VALUES(`is_verified`)'
+        );
+        $statement->bind_param('isssi', $roleId, $username, $email, $passwordHash, $isVerified);
+        $statement->execute();
+        $statement->close();
+    }
+
+    private function seedDefaultTeacher(mysqli $connection): void
+    {
+        $username = 'teacher';
+        $email = 'teacher@pixelwar.local';
+        $passwordHash = password_hash('teacher123', PASSWORD_DEFAULT);
+        $roleId = 2;
+        $isVerified = 1;
+
+        $statement = $connection->prepare(
+            'INSERT INTO `users` (`role_id`, `username`, `email`, `password`, `is_verified`)
+             VALUES (?, ?, ?, ?, ?)
+             ON DUPLICATE KEY UPDATE `role_id` = VALUES(`role_id`), `is_verified` = VALUES(`is_verified`)'
+        );
+        $statement->bind_param('isssi', $roleId, $username, $email, $passwordHash, $isVerified);
+        $statement->execute();
         $statement->close();
     }
 
