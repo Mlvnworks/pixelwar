@@ -23,6 +23,37 @@ function adminPanelRequireUserRepository($userRepository): UserRepository
     return $userRepository;
 }
 
+function adminPanelRequireTeacherAccountService($teacherAccountService): TeacherAccountService
+{
+    if (!$teacherAccountService instanceof TeacherAccountService) {
+        throw new RuntimeException('Teacher account service is not available.');
+    }
+
+    return $teacherAccountService;
+}
+
+function adminPanelRequireActivityLogRepository($activityLogRepository): ActivityLogRepository
+{
+    if (!$activityLogRepository instanceof ActivityLogRepository) {
+        throw new RuntimeException('Activity log repository is not available.');
+    }
+
+    return $activityLogRepository;
+}
+
+function adminPanelFindSignupConflict(UserRepository $userRepository, string $username, string $email): ?string
+{
+    $existingUser = $userRepository->findSignupConflict($username, $email);
+
+    if (!$existingUser) {
+        return null;
+    }
+
+    return strcasecmp((string) $existingUser['username'], $username) === 0
+        ? 'Username is already taken.'
+        : 'Email is already registered.';
+}
+
 function adminPanelCsrfToken(): string
 {
     if (empty($_SESSION['_csrf_token']) || !is_string($_SESSION['_csrf_token'])) {
@@ -65,4 +96,15 @@ function adminPanelRefreshSession(array $user): void
     if ($avatarUrl !== '') {
         $_SESSION['avatar_url'] = $avatarUrl;
     }
+}
+
+/**
+ * @param array<string, mixed> $payload
+ */
+function adminPanelJsonResponse(array $payload, int $statusCode = 200): void
+{
+    http_response_code($statusCode);
+    header('Content-Type: application/json; charset=UTF-8');
+    echo json_encode($payload);
+    exit;
 }

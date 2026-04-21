@@ -41,6 +41,7 @@ if ($requestMethod === 'POST' && $requestedPage === 'email-verification') {
             }
 
             $accounts->changeVerificationEmail($userId, $newEmail);
+            pixelwarLogActivity($activityLogRepository ?? null, $userId, 'account', 'Updated verification email address.');
 
             $_SESSION['email'] = $newEmail;
             pixelwarPrepareAccountVerification(
@@ -90,6 +91,7 @@ if ($requestMethod === 'POST' && $requestedPage === 'email-verification') {
                 (string) $verificationUser['email'],
                 (string) $verificationUser['username']
             );
+            pixelwarLogActivity($activityLogRepository ?? null, $userId, 'account', 'Requested a new verification code.');
             if (!empty($_SESSION['pending_verification_mail_sent'])) {
                 $_SESSION['verification_notices'] = ['A new verification code was sent.'];
             } else {
@@ -147,6 +149,7 @@ if ($requestMethod === 'POST' && $requestedPage === 'email-verification') {
         }
 
         $user = $accounts->verifyUserEmail($userId, $verificationId);
+        pixelwarLogActivity($activityLogRepository ?? null, $userId, 'account', 'Verified email address.');
 
         $_SESSION['user_id'] = $userId;
         $_SESSION['username'] = (string) ($user['username'] ?? 'Player');

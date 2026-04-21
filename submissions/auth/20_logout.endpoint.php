@@ -8,6 +8,8 @@ if ($requestMethod === 'POST' && $requestedPage === 'logout') {
         pixelwarFailCsrf('home');
     }
 
+    $logoutUserId = (int) ($_SESSION['user_id'] ?? 0);
+    pixelwarLogActivity($activityLogRepository ?? null, $logoutUserId, 'auth', 'Logged out.');
     pixelwarLogout();
     pixelwarRedirect('landing');
 }

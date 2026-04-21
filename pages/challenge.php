@@ -1,13 +1,81 @@
 <?php
 require_once __DIR__ . '/../classes/challenge-catalog.php';
 
+$challengeId = (int) ($_GET['id'] ?? 0);
 $challengeSlug = isset($_GET['slug']) ? trim((string) $_GET['slug']) : '';
-$challenge = ChallengeCatalog::find($challengeSlug) ?? ChallengeCatalog::first();
-$challengeStartUrl = './?c=pixelwar&intro=1&challenge=' . urlencode($challenge['slug']);
-$comments = $challenge['comments'];
-$moreChallenges = array_filter(ChallengeCatalog::all(), static function (array $catalogChallenge) use ($challenge): bool {
-    return $catalogChallenge['slug'] !== $challenge['slug'];
-});
+$dbChallenge = $challengeId > 0 && $challengeRepository instanceof ChallengeRepository
+    ? $challengeRepository->findCreatedChallenge($challengeId)
+    : null;
+$isDatabaseChallenge = $dbChallenge !== null;
+$catalogChallenge = $isDatabaseChallenge ? null : (ChallengeCatalog::find($challengeSlug) ?? ChallengeCatalog::first());
+$ongoingChallengeLookup = $userChallengeRepository instanceof UserChallengeRepository && isset($_SESSION['user_id'])
+    ? $userChallengeRepository->ongoingChallengeIdLookup((int) $_SESSION['user_id'])
+    : [];
+$challengeCompletedCount = 0;
+
+if ($isDatabaseChallenge) {
+    $challengeCompletedCount = $userChallengeRepository instanceof UserChallengeRepository
+        ? $userChallengeRepository->countCompletedByChallenge((int) $dbChallenge['challenge_id'])
+        : 0;
+    $difficulty = ucfirst(strtolower((string) ($dbChallenge['difficulty_name'] ?? 'Easy')));
+    $firstname = trim((string) ($dbChallenge['firstname'] ?? ''));
+    $lastname = trim((string) ($dbChallenge['lastname'] ?? ''));
+    $author = trim($firstname . ' ' . $lastname) ?: (string) ($dbChallenge['author'] ?? 'Teacher');
+    $challenge = [
+        'id' => (int) $dbChallenge['challenge_id'],
+        'title' => (string) $dbChallenge['name'],
+        'level' => $difficulty,
+        'levelClass' => 'challenge-difficulty--' . strtolower($difficulty),
+        'reward' => '+' . (int) ($dbChallenge['points'] ?? 0) . ' pts',
+        'author' => $author,
+        'description' => (string) $dbChallenge['instruction'],
+        'objective' => (string) $dbChallenge['instruction'],
+        'htmlSource' => (string) $dbChallenge['html_source'],
+        'cssSource' => (string) $dbChallenge['css_source'],
+        'isOngoing' => isset($ongoingChallengeLookup[(int) $dbChallenge['challenge_id']]),
+    ];
+    $challengeStartUrl = './?c=pixelwar&intro=1&challenge_id=' . (int) $challenge['id'];
+    $comments = [
+        ['player' => 'PixelRookie', 'posted' => 'Today', 'body' => 'This challenge is ready for classroom play.'],
+        ['player' => 'CSSRunner', 'posted' => 'Yesterday', 'body' => 'Review the target preview before starting the match.'],
+        ['player' => 'SelectorMage', 'posted' => '2 days ago', 'body' => 'Good practice for reading the design before placing properties.'],
+    ];
+    $moreChallengeRows = $challengeRepository instanceof ChallengeRepository
+        ? array_filter($challengeRepository->listLatestCreated(6), static fn (array $row): bool => (int) $row['challenge_id'] !== (int) $challenge['id'])
+        : [];
+    $moreChallenges = array_map(static function (array $row) use ($ongoingChallengeLookup): array {
+        $rowDifficulty = ucfirst(strtolower((string) ($row['difficulty_name'] ?? 'Easy')));
+        $rowChallengeId = (int) $row['challenge_id'];
+        return [
+            'title' => (string) $row['name'],
+            'level' => $rowDifficulty,
+            'levelClass' => 'challenge-difficulty--' . strtolower($rowDifficulty),
+            'author' => (string) ($row['author'] ?? 'Teacher'),
+            'description' => (string) $row['instruction'],
+            'href' => './?c=challenge&id=' . $rowChallengeId,
+            'isOngoing' => isset($ongoingChallengeLookup[$rowChallengeId]),
+        ];
+    }, $moreChallengeRows);
+} else {
+    $challenge = $catalogChallenge;
+    $challenge['isOngoing'] = false;
+    $challengeStartUrl = './?c=pixelwar&intro=1&challenge=' . urlencode($challenge['slug']);
+    $comments = $challenge['comments'];
+    $moreChallenges = array_map(static function (array $catalogItem): array {
+        return [
+            'title' => $catalogItem['title'],
+            'level' => $catalogItem['level'],
+            'levelClass' => $catalogItem['levelClass'],
+            'author' => $catalogItem['author'],
+            'description' => $catalogItem['description'],
+            'href' => './?c=challenge&slug=' . urlencode((string) $catalogItem['slug']),
+            'isOngoing' => false,
+        ];
+    }, array_filter(ChallengeCatalog::all(), static function (array $catalogItem) use ($challenge): bool {
+        return $catalogItem['slug'] !== $challenge['slug'];
+    }));
+}
+
 $previewSrcdoc = <<<'HTML'
 <!doctype html>
 <html lang="en">
@@ -47,22 +115,20 @@ HTML;
                         <span class="challenge-difficulty <?= htmlspecialchars($challenge['levelClass'], ENT_QUOTES, 'UTF-8') ?> rounded-full px-3 py-1 text-xs font-bold">
                             <?= htmlspecialchars($challenge['level'], ENT_QUOTES, 'UTF-8') ?>
                         </span>
-                        <span class="rounded-full bg-arcade-cyan/30 px-3 py-1 text-xs font-bold"><?= htmlspecialchars($challenge['estimate'], ENT_QUOTES, 'UTF-8') ?></span>
                         <span class="rounded-full bg-arcade-coral/20 px-3 py-1 text-xs font-bold"><?= htmlspecialchars($challenge['reward'], ENT_QUOTES, 'UTF-8') ?></span>
+                        <?php if (!empty($challenge['isOngoing'])) : ?>
+                            <span class="rounded-full border-2 border-arcade-ink bg-arcade-cyan px-3 py-1 text-xs font-bold text-arcade-ink">Ongoing</span>
+                        <?php endif; ?>
                     </div>
 
                     <p class="mt-6 font-arcade text-[10px] uppercase tracking-[0.28em] text-arcade-orange">Challenge Brief</p>
                     <h1 class="mt-3 text-4xl font-bold leading-tight md:text-6xl"><?= htmlspecialchars($challenge['title'], ENT_QUOTES, 'UTF-8') ?></h1>
                     <p class="mt-4 max-w-3xl text-base leading-8 text-arcade-ink/70"><?= htmlspecialchars($challenge['objective'], ENT_QUOTES, 'UTF-8') ?></p>
 
-                    <div class="challenge-meta-grid mt-6 grid gap-3 md:grid-cols-3">
+                    <div class="challenge-meta-grid mt-6 grid gap-3 md:grid-cols-2">
                         <div class="rounded-2xl border-2 border-arcade-ink/15 bg-white/75 p-4">
                             <p class="text-xs font-bold uppercase tracking-[0.18em] text-arcade-ink/55">Author</p>
                             <p class="mt-1 text-lg font-extrabold"><?= htmlspecialchars($challenge['author'], ENT_QUOTES, 'UTF-8') ?></p>
-                        </div>
-                        <div class="rounded-2xl border-2 border-arcade-ink/15 bg-white/75 p-4">
-                            <p class="text-xs font-bold uppercase tracking-[0.18em] text-arcade-ink/55">Focus</p>
-                            <p class="mt-1 text-lg font-extrabold"><?= htmlspecialchars($challenge['focus'], ENT_QUOTES, 'UTF-8') ?></p>
                         </div>
                         <div class="rounded-2xl border-2 border-arcade-ink/15 bg-white/75 p-4">
                             <p class="text-xs font-bold uppercase tracking-[0.18em] text-arcade-ink/55">Goal</p>
@@ -84,6 +150,11 @@ HTML;
                             Start Challenge
                         </a>
                     </div>
+                    <?php if ($isDatabaseChallenge) : ?>
+                        <p class="mt-3 text-[11px] font-bold uppercase tracking-[0.12em] text-arcade-ink/50">
+                            <?= (int) $challengeCompletedCount ?> completed
+                        </p>
+                    <?php endif; ?>
                 </section>
 
                 <section id="challenge-preview-card" class="challenge-preview-card rounded-[24px] bg-white/75 p-4 shadow-[0_10px_30px_rgba(38,25,15,0.12)]">
@@ -91,12 +162,23 @@ HTML;
                         <p class="font-arcade text-[10px] uppercase tracking-[0.24em] text-arcade-cyan">Preview</p>
                     </div>
                     <div class="challenge-preview-frame-shell mt-4">
+                        <div class="challenge-preview-loader" data-preview-loader>
+                            <span class="challenge-preview-loader__spinner" aria-hidden="true"></span>
+                            <strong>Loading preview...</strong>
+                            <span class="challenge-preview-loader__dots" aria-hidden="true"><i></i><i></i><i></i></span>
+                            <small>Preparing the target design.</small>
+                        </div>
                         <iframe
                             class="challenge-preview-frame h-[360px] w-full rounded-[20px] bg-transparent"
                             title="Static isolated challenge preview"
-                            sandbox=""
+                            sandbox="allow-same-origin"
                             loading="lazy"
-                            srcdoc="<?= htmlspecialchars($previewSrcdoc, ENT_QUOTES, 'UTF-8') ?>"></iframe>
+                            <?php if ($isDatabaseChallenge) : ?>
+                                data-html-source="<?= htmlspecialchars($challenge['htmlSource'], ENT_QUOTES, 'UTF-8') ?>"
+                                data-css-source="<?= htmlspecialchars($challenge['cssSource'], ENT_QUOTES, 'UTF-8') ?>"
+                            <?php else : ?>
+                                srcdoc="<?= htmlspecialchars($previewSrcdoc, ENT_QUOTES, 'UTF-8') ?>"
+                            <?php endif; ?>></iframe>
                     </div>
                 </section>
             </div>
@@ -144,7 +226,7 @@ HTML;
                     <p class="font-arcade text-[10px] uppercase tracking-[0.24em] text-arcade-cyan">More Like This</p>
                     <h2 class="mt-2 text-2xl font-bold">Challenges</h2>
                 </div>
-                <a href="./?c=home" class="rounded-xl bg-white px-3 py-2 text-sm font-bold text-arcade-ink no-underline transition hover:bg-arcade-yellow/60">View All</a>
+                <a href="./?c=challenges" class="rounded-xl bg-white px-3 py-2 text-sm font-bold text-arcade-ink no-underline transition hover:bg-arcade-yellow/60">View All</a>
             </div>
 
             <div class="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
@@ -152,13 +234,15 @@ HTML;
                     <article class="challenge-more-card rounded-[22px] border-2 border-arcade-ink/15 bg-arcade-panel p-4 shadow-[5px_5px_0_rgba(38,25,15,0.18)]">
                         <div class="flex flex-wrap items-center gap-2">
                             <span class="challenge-difficulty <?= htmlspecialchars($moreChallenge['levelClass'], ENT_QUOTES, 'UTF-8') ?> rounded-full px-3 py-1 text-xs font-bold"><?= htmlspecialchars($moreChallenge['level'], ENT_QUOTES, 'UTF-8') ?></span>
-                            <span class="rounded-full bg-arcade-cyan/30 px-3 py-1 text-xs font-bold"><?= htmlspecialchars($moreChallenge['estimate'], ENT_QUOTES, 'UTF-8') ?></span>
+                            <?php if (!empty($moreChallenge['isOngoing'])) : ?>
+                                <span class="rounded-full border-2 border-arcade-ink bg-arcade-cyan px-3 py-1 text-xs font-bold text-arcade-ink">Ongoing</span>
+                            <?php endif; ?>
                         </div>
                         <h3 class="mt-3 text-xl font-bold"><?= htmlspecialchars($moreChallenge['title'], ENT_QUOTES, 'UTF-8') ?></h3>
                         <p class="mt-2 text-sm leading-6 text-arcade-ink/70"><?= htmlspecialchars($moreChallenge['description'], ENT_QUOTES, 'UTF-8') ?></p>
                         <div class="challenge-more-card__footer mt-4 flex flex-wrap items-center justify-between gap-3">
                             <p class="text-xs font-bold uppercase tracking-[0.16em] text-arcade-ink/50">By <?= htmlspecialchars($moreChallenge['author'], ENT_QUOTES, 'UTF-8') ?></p>
-                            <a href="./?c=challenge&slug=<?= urlencode($moreChallenge['slug']) ?>" class="challenge-more-card__action rounded-xl border-2 border-arcade-ink bg-arcade-orange px-3 py-1.5 text-sm font-bold text-white no-underline shadow-[0_3px_0_#26190f] transition hover:-translate-y-0.5 hover:bg-arcade-yellow hover:text-arcade-ink">Train</a>
+                            <a href="<?= htmlspecialchars($moreChallenge['href'], ENT_QUOTES, 'UTF-8') ?>" class="challenge-more-card__action rounded-xl border-2 border-arcade-ink bg-arcade-orange px-3 py-1.5 text-sm font-bold text-white no-underline shadow-[0_3px_0_#26190f] transition hover:-translate-y-0.5 hover:bg-arcade-yellow hover:text-arcade-ink">Train</a>
                         </div>
                     </article>
                 <?php endforeach; ?>
@@ -179,12 +263,23 @@ HTML;
             </div>
             <div class="modal-body px-4 pb-4 pt-2">
                 <div class="challenge-preview-frame-shell">
-                    <iframe
-                        class="challenge-preview-frame h-[360px] w-full rounded-[20px] bg-transparent"
-                        title="Static isolated challenge preview"
-                        sandbox=""
-                        loading="lazy"
-                        srcdoc="<?= htmlspecialchars($previewSrcdoc, ENT_QUOTES, 'UTF-8') ?>"></iframe>
+                        <div class="challenge-preview-loader" data-preview-loader>
+                            <span class="challenge-preview-loader__spinner" aria-hidden="true"></span>
+                            <strong>Loading preview...</strong>
+                            <span class="challenge-preview-loader__dots" aria-hidden="true"><i></i><i></i><i></i></span>
+                            <small>Preparing the target design.</small>
+                        </div>
+                        <iframe
+                            class="challenge-preview-frame h-[360px] w-full rounded-[20px] bg-transparent"
+                            title="Static isolated challenge preview"
+                            sandbox="allow-same-origin"
+                            loading="lazy"
+                            <?php if ($isDatabaseChallenge) : ?>
+                                data-html-source="<?= htmlspecialchars($challenge['htmlSource'], ENT_QUOTES, 'UTF-8') ?>"
+                                data-css-source="<?= htmlspecialchars($challenge['cssSource'], ENT_QUOTES, 'UTF-8') ?>"
+                            <?php else : ?>
+                                srcdoc="<?= htmlspecialchars($previewSrcdoc, ENT_QUOTES, 'UTF-8') ?>"
+                            <?php endif; ?>></iframe>
                 </div>
             </div>
         </div>
@@ -200,14 +295,116 @@ HTML;
     const commentsToggle = document.getElementById('comments-toggle');
     const commentsToggleLabel = commentsToggle?.querySelector('[data-comments-toggle-label]');
     const commentsSection = document.getElementById('challenge-comments-section');
-    const previewShells = Array.from(document.querySelectorAll('.challenge-preview-frame-shell'));
+    const previewFrames = Array.from(document.querySelectorAll('.challenge-preview-frame'));
+    const sourcePreviewFrames = Array.from(document.querySelectorAll('.challenge-preview-frame[data-html-source][data-css-source]'));
     const previewModal = document.getElementById('challenge-preview-modal');
     const mobileQuery = window.matchMedia('(max-width: 768px)');
     const pageSize = 2;
     let currentPage = 1;
     const totalPages = Math.max(1, Math.ceil(rows.length / pageSize));
-    const previewWidth = 390;
-    const previewHeight = 360;
+
+    const hidePreviewLoader = (frame) => {
+        const loader = frame.closest('.challenge-preview-frame-shell')?.querySelector('[data-preview-loader]');
+        if (loader) {
+            loader.hidden = true;
+        }
+    };
+
+    const fitPreviewFrame = (frame) => {
+        if (!(frame instanceof HTMLIFrameElement)) {
+            return;
+        }
+
+        const doc = frame.contentDocument;
+        const body = doc?.body;
+        const html = doc?.documentElement;
+        if (!doc || !body || !html) {
+            return;
+        }
+
+        const shell = frame.closest('.challenge-preview-frame-shell');
+        if (!(shell instanceof HTMLElement)) {
+            return;
+        }
+
+        const naturalWidth = Math.max(
+            body.scrollWidth,
+            body.offsetWidth,
+            html.scrollWidth,
+            html.offsetWidth,
+            1
+        );
+        const naturalHeight = Math.max(
+            body.scrollHeight,
+            body.offsetHeight,
+            html.scrollHeight,
+            html.offsetHeight,
+            1
+        );
+
+        const shellWidth = shell.clientWidth;
+        const shellHeight = shell.clientHeight;
+        if (shellWidth <= 0 || shellHeight <= 0) {
+            return;
+        }
+
+        const scale = Math.min(1, shellWidth / naturalWidth, shellHeight / naturalHeight);
+        frame.style.width = `${naturalWidth}px`;
+        frame.style.height = `${naturalHeight}px`;
+        frame.style.maxWidth = 'none';
+        frame.style.maxHeight = 'none';
+        frame.style.transform = `scale(${scale})`;
+        frame.style.transformOrigin = 'top left';
+    };
+
+    previewFrames.forEach((frame) => {
+        frame.addEventListener('load', () => {
+            fitPreviewFrame(frame);
+            hidePreviewLoader(frame);
+        }, { once: false });
+    });
+
+    const buildSourcePreview = (html, css) => `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+* { box-sizing: border-box; }
+html, body { width: 100%; min-height: 100%; margin: 0; }
+body { display: grid; min-height: 100vh; place-items: center; background: #f7efe1; font-family: Arial, sans-serif; padding: 24px; }
+${css}
+</style>
+</head>
+<body>${html}</body>
+</html>`;
+
+    sourcePreviewFrames.forEach(async (frame) => {
+        try {
+            const htmlResponse = await fetch(frame.dataset.htmlSource || '', { cache: 'no-store' });
+            const cssResponse = await fetch(frame.dataset.cssSource || '', { cache: 'no-store' });
+
+            if (!htmlResponse.ok || !cssResponse.ok) {
+                throw new Error('Source preview request failed.');
+            }
+
+            const html = await htmlResponse.text();
+            const css = await cssResponse.text();
+            frame.srcdoc = buildSourcePreview(html, css);
+        } catch (error) {
+            frame.srcdoc = buildSourcePreview(
+                '<div class="preview-error">Preview source could not be loaded.</div>',
+                '.preview-error { border: 3px solid #26190f; border-radius: 18px; background: #ffd166; padding: 18px; color: #26190f; font-weight: 900; text-align: center; box-shadow: 6px 6px 0 #26190f; }'
+            );
+            window.setTimeout(() => hidePreviewLoader(frame), 250);
+        }
+    });
+
+    window.addEventListener('load', () => {
+        previewFrames
+            .filter((frame) => !frame.dataset.htmlSource && !frame.dataset.cssSource)
+            .forEach((frame) => hidePreviewLoader(frame));
+    });
 
     const renderPage = () => {
         const start = (currentPage - 1) * pageSize;
@@ -261,26 +458,11 @@ HTML;
         }
     });
 
-    const resizePreview = () => {
-        if (previewShells.length === 0) {
-            return;
-        }
+    const resizePreview = () => previewFrames.forEach((frame) => fitPreviewFrame(frame));
 
-        previewShells.forEach((previewShell) => {
-            const shellWidth = previewShell.clientWidth;
-            if (shellWidth <= 0) {
-                return;
-            }
-
-            const scale = Math.min(1, shellWidth / previewWidth);
-            previewShell.style.setProperty('--challenge-preview-scale', scale.toFixed(4));
-            previewShell.style.height = `${Math.ceil(previewHeight * scale)}px`;
-        });
-    };
-
-    if (previewShells.length > 0 && 'ResizeObserver' in window) {
+    if (previewFrames.length > 0 && 'ResizeObserver' in window) {
         const previewObserver = new ResizeObserver(resizePreview);
-        previewShells.forEach((previewShell) => previewObserver.observe(previewShell));
+        previewFrames.forEach((frame) => frame.parentElement && previewObserver.observe(frame.parentElement));
     }
 
     previewModal?.addEventListener('shown.bs.modal', () => requestAnimationFrame(resizePreview));

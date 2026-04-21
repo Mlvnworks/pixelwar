@@ -9,9 +9,12 @@ $allowedPages = array_map(static function (string $file): string {
 $isAllowedPage = in_array($normalizedContent, $allowedPages, true);
 $pageStyleFile = $teacherBasePath . '/styling/page/' . $normalizedContent . '.css';
 $teacherTitles = [
+    'activity-logs' => 'Teacher Activity Logs | ' . APP_NAME,
     'create-challenge' => 'Create Challenge | ' . APP_NAME,
     'dashboard' => 'Teacher Dashboard | ' . APP_NAME,
     'challenges' => 'Teacher Challenges | ' . APP_NAME,
+    'challenge-view' => 'Teacher Challenge Details | ' . APP_NAME,
+    'rooms' => 'Teacher Rooms | ' . APP_NAME,
     'students' => 'Teacher Students | ' . APP_NAME,
     'settings' => 'Teacher Settings | ' . APP_NAME,
 ];

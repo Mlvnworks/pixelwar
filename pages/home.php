@@ -5,43 +5,94 @@ $username = $_SESSION['username'] ?? 'Pixel Rookie';
 $currentYear = (int) date('Y');
 $yearStart = new DateTimeImmutable($currentYear . '-01-01');
 $today = new DateTimeImmutable('today');
+$currentStudentId = (int) ($_SESSION['user_id'] ?? 0);
 $currentSeason = 'Season 01: Arcade Dawn';
 $seasonEndsAt = new DateTimeImmutable($currentYear . '-06-30');
 $seasonDaysLeft = max(0, (int) $today->diff($seasonEndsAt)->format('%r%a'));
-$currentRankPoints = 340;
+$currentRankPoints = $userChallengeRepository instanceof UserChallengeRepository
+    ? $userChallengeRepository->totalCompletedPointsForUser($currentStudentId)
+    : 0;
 $rankRequirementPoints = 500;
 $rankProgressPercent = min(100, (int) round(($currentRankPoints / $rankRequirementPoints) * 100));
-$solvePattern = [0, 1, 0, 2, 3, 0, 1, 4, 2, 0, 0, 1, 3, 4, 1, 0, 2, 2, 5, 1, 0, 3, 4, 0, 1, 2, 5, 3, 0, 1, 4, 2, 0, 3, 5];
-$challengeNames = ['Button Border Basics', 'Card Shadow Match', 'Hero Text Alignment', 'Badge Color Tune', 'Spacing Sprint', 'Selector Stack', 'CTA Polish', 'Panel Radius Run'];
+$analyticsTrackedDays = 235;
+$analyticsEndDate = $yearStart->modify('+' . ($analyticsTrackedDays - 1) . ' days');
+$completedCountsByDate = $userChallengeRepository instanceof UserChallengeRepository
+    ? $userChallengeRepository->completedCountsByDate($currentStudentId, $yearStart, $analyticsEndDate)
+    : [];
+$attemptHistoryRows = $userChallengeRepository instanceof UserChallengeRepository
+    ? $userChallengeRepository->listAttemptHistory($currentStudentId, 50)
+    : [];
+$completedChallengeCount = $userChallengeRepository instanceof UserChallengeRepository
+    ? $userChallengeRepository->countCompletedForUser($currentStudentId)
+    : 0;
 $activityDays = [];
 $solvedChallengeRows = [];
 
-for ($dayIndex = 0; $dayIndex < 235; $dayIndex++) {
+for ($dayIndex = 0; $dayIndex < $analyticsTrackedDays; $dayIndex++) {
     $date = $yearStart->modify('+' . $dayIndex . ' days');
-    $solves = $solvePattern[$dayIndex % count($solvePattern)];
+    $dateKey = $date->format('Y-m-d');
+    $solves = $completedCountsByDate[$dateKey] ?? 0;
     $activityDays[] = [
         'date' => $date,
         'solves' => $solves,
         'level' => min($solves, 5),
     ];
+}
 
-    for ($solveIndex = 0; $solveIndex < $solves; $solveIndex++) {
-        $challengeName = $challengeNames[($dayIndex + $solveIndex) % count($challengeNames)];
+foreach ($attemptHistoryRows as $attemptRow) {
+    if (!empty($attemptRow['completed_at'])) {
+        $completedAt = new DateTimeImmutable((string) $attemptRow['completed_at']);
         $solvedChallengeRows[] = [
-            'date' => $date,
-            'title' => $challengeName,
+            'date' => $completedAt,
+            'title' => (string) $attemptRow['name'],
             'result' => 'Completed',
-            'points' => 20 + (($dayIndex + $solveIndex) % 5) * 10,
+            'points' => (int) ($attemptRow['points'] ?? 0),
         ];
     }
 }
 
-$recommendedChallenges = ChallengeCatalog::all();
+$createdChallengeRows = $challengeRepository instanceof ChallengeRepository
+    ? $challengeRepository->listLatestCreated(6)
+    : [];
+$ongoingChallengeLookup = $userChallengeRepository instanceof UserChallengeRepository
+    ? $userChallengeRepository->ongoingChallengeIdLookup($currentStudentId)
+    : [];
+$recommendedChallenges = [];
+
+foreach ($createdChallengeRows as $challengeRow) {
+    $difficulty = ucfirst(strtolower((string) ($challengeRow['difficulty_name'] ?? 'Easy')));
+    $challengeId = (int) $challengeRow['challenge_id'];
+    $recommendedChallenges[] = [
+        'id' => $challengeId,
+        'title' => (string) $challengeRow['name'],
+        'level' => $difficulty,
+        'levelClass' => 'challenge-difficulty--' . strtolower($difficulty),
+        'reward' => '+' . (int) ($challengeRow['points'] ?? 0) . ' pts',
+        'author' => (string) ($challengeRow['author'] ?? 'Teacher'),
+        'description' => (string) $challengeRow['instruction'],
+        'href' => './?c=challenge&id=' . $challengeId,
+        'isOngoing' => isset($ongoingChallengeLookup[$challengeId]),
+    ];
+}
+
+if ($recommendedChallenges === []) {
+    foreach (ChallengeCatalog::all() as $catalogChallenge) {
+        $recommendedChallenges[] = [
+            'title' => $catalogChallenge['title'],
+            'level' => $catalogChallenge['level'],
+            'levelClass' => $catalogChallenge['levelClass'],
+            'reward' => $catalogChallenge['reward'],
+            'author' => $catalogChallenge['author'],
+            'description' => $catalogChallenge['description'],
+            'href' => './?c=challenge&slug=' . urlencode((string) $catalogChallenge['slug']),
+            'isOngoing' => false,
+        ];
+    }
+}
+
 $firstRecommendedChallenge = array_values($recommendedChallenges)[0] ?? null;
-$startChallengeHref = $firstRecommendedChallenge !== null
-    ? './?c=challenge&slug=' . urlencode((string) $firstRecommendedChallenge['slug'])
-    : './?c=challenges';
-$latestSolvedChallenges = array_slice(array_reverse($solvedChallengeRows), 0, 5);
+$startChallengeHref = $firstRecommendedChallenge['href'] ?? './?c=challenges';
+$latestSolvedChallenges = array_slice($solvedChallengeRows, 0, 5);
 $joinRoomAvatarInitials = strtoupper(substr(preg_replace('/[^a-z0-9]+/i', '', (string) ($_SESSION['avatar_initials'] ?? $username)) ?: 'PR', 0, 2));
 $joinRoomAvatarColor = (string) ($_SESSION['avatar_color'] ?? 'yellow');
 $joinRoomAvatarUrl = trim((string) ($_SESSION['avatar_url'] ?? ''));
@@ -145,7 +196,7 @@ $joinRoomAvatarUrl = trim((string) ($_SESSION['avatar_url'] ?? ''));
                                 </span>
                                 <div>
                                     <p class="text-[10px] font-bold uppercase tracking-[0.18em] text-arcade-ink/55">Solved</p>
-                                    <p class="mt-0.5 text-xl font-bold">34</p>
+                                    <p class="mt-0.5 text-xl font-bold"><?= (int) $completedChallengeCount ?></p>
                                 </div>
                             </div>
                         </div>
@@ -165,7 +216,7 @@ $joinRoomAvatarUrl = trim((string) ($_SESSION['avatar_url'] ?? ''));
                     </div>
 
                     <div class="mt-4 overflow-x-auto pb-2">
-                        <div class="home-activity-grid" aria-label="<?= (int) $currentYear ?> challenge solving chart with 235 days">
+                        <div class="home-activity-grid" aria-label="<?= (int) $currentYear ?> challenge solving chart with <?= (int) $analyticsTrackedDays ?> days">
                             <?php foreach ($activityDays as $activityDay) : ?>
                                 <span
                                     class="home-activity-cell home-activity-cell--<?= (int) $activityDay['level'] ?>"
@@ -196,15 +247,19 @@ $joinRoomAvatarUrl = trim((string) ($_SESSION['avatar_url'] ?? ''));
                         </div>
 
                         <div class="mt-3 overflow-hidden rounded-2xl border-2 border-arcade-ink/10 bg-arcade-cream/70">
-                            <?php foreach ($latestSolvedChallenges as $solvedChallenge) : ?>
-                                <article class="solved-row flex flex-col gap-1 border-b border-arcade-ink/10 px-3 py-2 last:border-b-0 sm:flex-row sm:items-center sm:justify-between">
-                                    <div>
-                                        <p class="text-sm font-bold"><?= htmlspecialchars($solvedChallenge['title'], ENT_QUOTES, 'UTF-8') ?></p>
-                                        <p class="text-xs font-semibold text-arcade-ink/55"><?= htmlspecialchars($solvedChallenge['date']->format('M j, Y'), ENT_QUOTES, 'UTF-8') ?> - <?= htmlspecialchars($solvedChallenge['result'], ENT_QUOTES, 'UTF-8') ?></p>
-                                    </div>
-                                    <span class="text-xs font-bold text-arcade-orange">+<?= (int) $solvedChallenge['points'] ?> pts</span>
-                                </article>
-                            <?php endforeach; ?>
+                            <?php if ($latestSolvedChallenges === []) : ?>
+                                <p class="px-3 py-4 text-sm font-bold text-arcade-ink/55">No completed challenges yet.</p>
+                            <?php else : ?>
+                                <?php foreach ($latestSolvedChallenges as $solvedChallenge) : ?>
+                                    <article class="solved-row flex flex-col gap-1 border-b border-arcade-ink/10 px-3 py-2 last:border-b-0 sm:flex-row sm:items-center sm:justify-between">
+                                        <div>
+                                            <p class="text-sm font-bold"><?= htmlspecialchars($solvedChallenge['title'], ENT_QUOTES, 'UTF-8') ?></p>
+                                            <p class="text-xs font-semibold text-arcade-ink/55"><?= htmlspecialchars($solvedChallenge['date']->format('M j, Y'), ENT_QUOTES, 'UTF-8') ?> - <?= htmlspecialchars($solvedChallenge['result'], ENT_QUOTES, 'UTF-8') ?></p>
+                                        </div>
+                                        <span class="text-xs font-bold text-arcade-orange">+<?= (int) $solvedChallenge['points'] ?> pts</span>
+                                    </article>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
                         </div>
                     </div>
                 </article>
@@ -233,17 +288,18 @@ $joinRoomAvatarUrl = trim((string) ($_SESSION['avatar_url'] ?? ''));
                                 <div>
                                     <div class="flex flex-wrap items-center gap-2">
                                         <span class="challenge-difficulty <?= htmlspecialchars($challenge['levelClass'], ENT_QUOTES, 'UTF-8') ?> rounded-full px-3 py-1 text-xs font-bold"><?= htmlspecialchars($challenge['level'], ENT_QUOTES, 'UTF-8') ?></span>
-                                        <span class="rounded-full bg-arcade-cyan/30 px-3 py-1 text-xs font-bold"><?= htmlspecialchars($challenge['estimate'], ENT_QUOTES, 'UTF-8') ?></span>
                                         <span class="rounded-full bg-arcade-coral/20 px-3 py-1 text-xs font-bold"><?= htmlspecialchars($challenge['reward'], ENT_QUOTES, 'UTF-8') ?></span>
+                                        <?php if (!empty($challenge['isOngoing'])) : ?>
+                                            <span class="rounded-full border-2 border-arcade-ink bg-arcade-cyan px-3 py-1 text-xs font-bold text-arcade-ink">Ongoing</span>
+                                        <?php endif; ?>
                                     </div>
                                     <h3 class="mt-3 text-xl font-bold"><?= htmlspecialchars($challenge['title'], ENT_QUOTES, 'UTF-8') ?></h3>
                                     <div class="mt-2 flex flex-wrap items-center gap-2 text-xs font-bold text-arcade-ink/55">
                                         <span>By <?= htmlspecialchars($challenge['author'], ENT_QUOTES, 'UTF-8') ?></span>
                                     </div>
                                     <p class="mt-1.5 text-sm leading-6 text-arcade-ink/68"><?= htmlspecialchars($challenge['description'], ENT_QUOTES, 'UTF-8') ?></p>
-                                    <p class="mt-2 font-mono text-xs font-bold text-arcade-ink/55">Focus: <?= htmlspecialchars($challenge['focus'], ENT_QUOTES, 'UTF-8') ?></p>
                                 </div>
-                                <a href="./?c=challenge&slug=<?= urlencode($challenge['slug']) ?>" class="inline-flex shrink-0 justify-center rounded-xl border-2 border-arcade-ink bg-arcade-orange px-4 py-2 text-sm font-bold text-white no-underline shadow-[0_3px_0_#26190f] transition hover:-translate-y-0.5 hover:bg-arcade-yellow hover:text-arcade-ink">
+                                <a href="<?= htmlspecialchars($challenge['href'], ENT_QUOTES, 'UTF-8') ?>" class="inline-flex shrink-0 justify-center rounded-xl border-2 border-arcade-ink bg-arcade-orange px-4 py-2 text-sm font-bold text-white no-underline shadow-[0_3px_0_#26190f] transition hover:-translate-y-0.5 hover:bg-arcade-yellow hover:text-arcade-ink">
                                     Train
                                 </a>
                             </div>

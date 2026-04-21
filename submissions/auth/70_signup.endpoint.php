@@ -51,6 +51,7 @@ if ($requestMethod === 'POST' && $requestedPage === 'signup') {
             password_hash($password, PASSWORD_DEFAULT),
             pixelwarHashVerificationToken($token)
         );
+        pixelwarLogActivity($activityLogRepository ?? null, $userId, 'account', 'Created student account.');
 
         unset($_SESSION['signup_old'], $_SESSION['signup_errors']);
         $_SESSION['pending_verification_user_id'] = $userId;

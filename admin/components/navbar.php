@@ -1,75 +1,81 @@
 <?php
 $adminCurrentPage = isset($normalizedContent) ? (string) $normalizedContent : 'dashboard';
 $adminUsername = trim((string) ($_SESSION['username'] ?? 'Admin')) ?: 'Admin';
+$adminEmail = trim((string) ($_SESSION['email'] ?? 'admin@pixelwar.local')) ?: 'admin@pixelwar.local';
 $adminInitials = strtoupper(substr(preg_replace('/[^a-z0-9]+/i', '', (string) ($_SESSION['avatar_initials'] ?? $adminUsername)) ?: 'AD', 0, 2));
 $adminAvatarUrl = trim((string) ($_SESSION['avatar_url'] ?? ''));
 $adminNavItems = [
-    'dashboard' => 'Dashboard',
-    'teachers' => 'Teachers',
+    'dashboard' => ['label' => 'Dashboard', 'icon' => 'layout-dashboard'],
+    'teachers' => ['label' => 'Teachers', 'icon' => 'graduation-cap'],
+    'students' => ['label' => 'Students', 'icon' => 'users'],
+    'logs' => ['label' => 'Logs', 'icon' => 'history'],
+    'settings' => ['label' => 'Settings', 'icon' => 'settings'],
 ];
 ?>
 
-<header class="teacher-header relative z-40 w-full px-4 py-3">
-    <div class="container flex flex-col gap-3 rounded-[22px] border-4 border-arcade-ink bg-arcade-panel/92 px-4 py-3 shadow-[6px_6px_0_#26190f] lg:flex-row lg:items-center lg:justify-between">
-        <div class="flex items-center justify-between gap-3">
-            <a class="font-arcade text-sm uppercase tracking-[0.22em] text-arcade-orange no-underline transition hover:text-arcade-coral md:text-base" href="./?c=dashboard" aria-label="Go to admin dashboard">
-                <?= htmlspecialchars(APP_NAME, ENT_QUOTES, 'UTF-8') ?> Admin
+<header class="teacher-header admin-shell-nav">
+    <aside class="teacher-sidebar teacher-sidebar--admin" aria-label="Admin panel sidebar">
+        <div class="teacher-sidebar__brand">
+            <a class="teacher-sidebar__logo" href="./?c=dashboard" aria-label="Go to admin dashboard">
+                <img class="teacher-sidebar__mark" src="../assets/img/pixelwar-braces-logo.svg" alt="" aria-hidden="true">
+                <span>
+                    <span class="teacher-sidebar__app"><?= htmlspecialchars(APP_NAME, ENT_QUOTES, 'UTF-8') ?></span>
+                    <span class="teacher-sidebar__role">Admin Panel</span>
+                </span>
             </a>
         </div>
 
-        <nav class="teacher-nav flex gap-2" aria-label="Admin navigation">
-            <?php foreach ($adminNavItems as $adminPage => $adminLabel) : ?>
+        <div class="teacher-sidebar__account">
+            <span class="teacher-sidebar__avatar" aria-hidden="true">
+                <?php if ($adminAvatarUrl !== '') : ?>
+                    <img src="<?= htmlspecialchars($adminAvatarUrl, ENT_QUOTES, 'UTF-8') ?>" alt="" class="h-full w-full object-cover">
+                <?php else : ?>
+                    <?= htmlspecialchars($adminInitials, ENT_QUOTES, 'UTF-8') ?>
+                <?php endif; ?>
+            </span>
+            <div class="min-w-0">
+                <p class="teacher-sidebar__name"><?= htmlspecialchars($adminUsername, ENT_QUOTES, 'UTF-8') ?></p>
+                <p class="teacher-sidebar__email"><?= htmlspecialchars($adminEmail, ENT_QUOTES, 'UTF-8') ?></p>
+            </div>
+        </div>
+
+        <nav class="teacher-nav" aria-label="Admin navigation">
+            <?php foreach ($adminNavItems as $adminPage => $adminItem) : ?>
                 <a class="teacher-nav__link <?= $adminCurrentPage === $adminPage ? 'teacher-nav__link--active' : '' ?>" href="./?c=<?= htmlspecialchars($adminPage, ENT_QUOTES, 'UTF-8') ?>">
-                    <?= htmlspecialchars($adminLabel, ENT_QUOTES, 'UTF-8') ?>
+                    <i data-lucide="<?= htmlspecialchars($adminItem['icon'], ENT_QUOTES, 'UTF-8') ?>" class="h-4 w-4" aria-hidden="true"></i>
+                    <span><?= htmlspecialchars($adminItem['label'], ENT_QUOTES, 'UTF-8') ?></span>
                 </a>
             <?php endforeach; ?>
         </nav>
 
-        <div class="flex items-center justify-between gap-3 lg:justify-end">
-            <details class="teacher-profile relative">
-                <summary class="teacher-profile__summary flex list-none items-center gap-2 rounded-2xl border-2 border-arcade-ink bg-white px-2 py-1 text-arcade-ink shadow-[0_4px_0_rgba(38,25,15,0.25)] transition hover:-translate-y-0.5 hover:bg-arcade-yellow">
-                    <span class="grid h-9 w-9 place-items-center overflow-hidden rounded-xl border-2 border-arcade-ink bg-arcade-orange font-arcade text-[10px] text-white" aria-hidden="true">
-                        <?php if ($adminAvatarUrl !== '') : ?>
-                            <img src="<?= htmlspecialchars($adminAvatarUrl, ENT_QUOTES, 'UTF-8') ?>" alt="" class="h-full w-full object-cover">
-                        <?php else : ?>
-                            <?= htmlspecialchars($adminInitials, ENT_QUOTES, 'UTF-8') ?>
-                        <?php endif; ?>
-                    </span>
-                    <span class="hidden text-sm font-bold leading-none sm:inline"><?= htmlspecialchars($adminUsername, ENT_QUOTES, 'UTF-8') ?></span>
-                    <svg class="h-4 w-4" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
-                        <path fill="currentColor" d="M4 6h8l-4 4-4-4Z" />
-                    </svg>
-                </summary>
-
-                <div class="teacher-profile__menu absolute right-0 mt-3 w-[17rem] rounded-[22px] border-4 border-arcade-ink bg-arcade-panel p-3 text-arcade-ink shadow-[8px_8px_0_rgba(38,25,15,0.28)]">
-                    <div class="mb-3 rounded-2xl border-2 border-arcade-ink/10 bg-arcade-cream px-3 py-2">
-                        <p class="font-arcade text-[9px] uppercase tracking-[0.18em] text-arcade-orange">Admin</p>
-                        <p class="mt-1 text-sm font-bold"><?= htmlspecialchars($adminUsername, ENT_QUOTES, 'UTF-8') ?></p>
-                    </div>
-                    <label class="teacher-profile__item">
-                        <span>Sound</span>
-                        <input id="pixelwar-sound-toggle" class="pixelwar-toggle" type="checkbox" aria-label="Toggle sound">
-                    </label>
-                    <label class="teacher-profile__item">
-                        <span>Dark Mode</span>
-                        <input id="pixelwar-dark-toggle" class="pixelwar-toggle" type="checkbox" aria-label="Toggle dark mode">
-                    </label>
-                    <form action="../?c=logout" method="post">
-                        <?= adminPanelCsrfField() ?>
-                        <button class="teacher-profile__item teacher-profile__item--danger" type="submit">
-                            <span>Logout</span>
-                            <span aria-hidden="true">&rsaquo;</span>
-                        </button>
-                    </form>
-                </div>
-            </details>
+        <div class="teacher-sidebar__controls mt-auto">
+            <p class="teacher-sidebar__section-title">Options</p>
+            <label class="teacher-profile__item admin-sidebar-control">
+                <span>Sound</span>
+                <input id="pixelwar-sound-toggle" class="pixelwar-toggle" type="checkbox" aria-label="Toggle sound">
+            </label>
+            <label class="teacher-profile__item admin-sidebar-control">
+                <span>Dark Mode</span>
+                <input id="pixelwar-dark-toggle" class="pixelwar-toggle" type="checkbox" aria-label="Toggle dark mode">
+            </label>
+            <a class="teacher-sidebar__switch" href="./?c=settings">
+                <i data-lucide="settings" class="h-4 w-4" aria-hidden="true"></i>
+                <span>Settings</span>
+            </a>
+            <form action="../?c=logout" method="post">
+                <?= adminPanelCsrfField() ?>
+                <button class="teacher-sidebar__switch teacher-sidebar__switch--logout" type="submit">
+                    <i data-lucide="log-out" class="h-4 w-4" aria-hidden="true"></i>
+                    <span>Logout</span>
+                </button>
+            </form>
         </div>
-    </div>
+    </aside>
+
 </header>
 
 <script>
 (() => {
-    const profileMenu = document.querySelector('.teacher-profile');
     const soundToggle = document.getElementById('pixelwar-sound-toggle');
     const darkToggle = document.getElementById('pixelwar-dark-toggle');
     let audioContext = null;
@@ -126,11 +132,5 @@ $adminNavItems = [
             playPopSound();
         }
     }, { capture: true });
-
-    document.addEventListener('click', (event) => {
-        if (profileMenu && !profileMenu.contains(event.target)) {
-            profileMenu.removeAttribute('open');
-        }
-    });
 })();
 </script>

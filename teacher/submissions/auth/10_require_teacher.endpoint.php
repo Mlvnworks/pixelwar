@@ -24,6 +24,10 @@ try {
         teacherPanelRootRedirect('home');
     }
 
+    if ((int) ($teacherSessionUser['is_verified'] ?? 0) !== 1 || !$users->userDetailsExist((int) $teacherSessionUser['user_id'])) {
+        teacherPanelRootRedirect('profile-setup');
+    }
+
     teacherPanelRefreshSession($teacherSessionUser);
 } catch (Throwable $err) {
     error_log('Pixelwar teacher auth error: ' . $err->getMessage());

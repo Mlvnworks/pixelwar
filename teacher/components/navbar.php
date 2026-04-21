@@ -2,78 +2,150 @@
 $teacherCurrentPage = isset($normalizedContent) ? (string) $normalizedContent : 'dashboard';
 $isTeacherLoggedIn = isset($_SESSION['user_id']) && (int) $_SESSION['user_id'] > 0;
 $teacherUsername = $isTeacherLoggedIn ? (trim((string) ($_SESSION['username'] ?? 'Teacher')) ?: 'Teacher') : 'Guest Builder';
+$teacherEmail = trim((string) ($_SESSION['email'] ?? 'teacher@pixelwar.local'));
 $teacherInitials = strtoupper(substr(preg_replace('/[^a-z0-9]+/i', '', (string) ($_SESSION['avatar_initials'] ?? $teacherUsername)) ?: 'TR', 0, 2));
 $teacherAvatarUrl = trim((string) ($_SESSION['avatar_url'] ?? ''));
+$teacherNavItems = [
+    'dashboard' => ['label' => 'Dashboard', 'icon' => 'layout-dashboard'],
+    'students' => ['label' => 'Students', 'icon' => 'users'],
+    'rooms' => ['label' => 'Rooms', 'icon' => 'messages-square'],
+    'challenges' => ['label' => 'Challenges', 'icon' => 'swords'],
+    'settings' => ['label' => 'Settings', 'icon' => 'settings'],
+];
+$teacherTopbarLabels = $teacherNavItems + [
+    'activity-logs' => ['label' => 'Activity Logs', 'icon' => 'activity'],
+    'create-challenge' => ['label' => 'Create Challenge', 'icon' => 'square-plus'],
+    'challenge-view' => ['label' => 'Challenge Details', 'icon' => 'file-text'],
+];
+$teacherNotifications = [
+    [
+        'title' => 'Room waiting',
+        'body' => 'Arcade Dawn practice room has 3 players waiting.',
+        'time' => 'Now',
+        'unread' => true,
+    ],
+    [
+        'title' => 'Challenge draft',
+        'body' => 'Button Border Basics is ready for review.',
+        'time' => '18m',
+        'unread' => true,
+    ],
+    [
+        'title' => 'Student activity',
+        'body' => '12 students completed a challenge today.',
+        'time' => '1h',
+        'unread' => false,
+    ],
+];
+$teacherUnreadNotifications = count(array_filter($teacherNotifications, static fn (array $notification): bool => (bool) $notification['unread']));
 ?>
 
-<header class="teacher-header relative z-40 w-full px-4 py-3">
-    <div class="container flex flex-col gap-3 rounded-[22px] border-4 border-arcade-ink bg-arcade-panel/92 px-4 py-3 shadow-[6px_6px_0_#26190f] lg:flex-row lg:items-center lg:justify-between">
-        <div class="flex items-center justify-between gap-3">
-            <a class="font-arcade text-sm uppercase tracking-[0.22em] text-arcade-orange no-underline transition hover:text-arcade-coral md:text-base" href="./?c=dashboard" aria-label="Go to teacher dashboard">
-                <?= htmlspecialchars(APP_NAME, ENT_QUOTES, 'UTF-8') ?> Teacher
+<header class="teacher-header admin-shell-nav">
+    <aside class="teacher-sidebar" aria-label="Teacher panel sidebar">
+        <div class="teacher-sidebar__brand">
+            <a class="teacher-sidebar__logo" href="./?c=dashboard" aria-label="Go to teacher dashboard">
+                <img class="teacher-sidebar__mark" src="../assets/img/pixelwar-braces-logo.svg" alt="" aria-hidden="true">
+                <span>
+                    <span class="teacher-sidebar__app"><?= htmlspecialchars(APP_NAME, ENT_QUOTES, 'UTF-8') ?></span>
+                    <span class="teacher-sidebar__role">Teacher Panel</span>
+                </span>
             </a>
-            <a class="rounded-xl border-2 border-arcade-ink/15 bg-white px-3 py-1.5 text-xs font-black text-arcade-ink no-underline transition hover:bg-arcade-yellow lg:hidden" href="../?c=home">Student View</a>
         </div>
 
-        <div class="flex items-center justify-between gap-3 lg:justify-end">
-            <a class="hidden rounded-xl border-2 border-arcade-ink/15 bg-white px-3 py-1.5 text-xs font-black text-arcade-ink no-underline transition hover:bg-arcade-yellow lg:inline-flex" href="../?c=home">Student View</a>
-            <details class="teacher-profile relative">
-                <summary class="teacher-profile__summary flex list-none items-center gap-2 rounded-2xl border-2 border-arcade-ink bg-white px-2 py-1 text-arcade-ink shadow-[0_4px_0_rgba(38,25,15,0.25)] transition hover:-translate-y-0.5 hover:bg-arcade-yellow">
-                    <span class="grid h-9 w-9 place-items-center overflow-hidden rounded-xl border-2 border-arcade-ink bg-arcade-cyan font-arcade text-[10px] text-arcade-ink" aria-hidden="true">
-                        <?php if ($teacherAvatarUrl !== '') : ?>
-                            <img src="<?= htmlspecialchars($teacherAvatarUrl, ENT_QUOTES, 'UTF-8') ?>" alt="" class="h-full w-full object-cover">
-                        <?php else : ?>
-                            <?= htmlspecialchars($teacherInitials, ENT_QUOTES, 'UTF-8') ?>
-                        <?php endif; ?>
-                    </span>
-                    <span class="hidden text-sm font-bold leading-none sm:inline"><?= htmlspecialchars($teacherUsername, ENT_QUOTES, 'UTF-8') ?></span>
-                    <svg class="h-4 w-4" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
-                        <path fill="currentColor" d="M4 6h8l-4 4-4-4Z" />
-                    </svg>
-                </summary>
+        <section class="teacher-sidebar__account" aria-label="Teacher account">
+            <span class="teacher-sidebar__avatar" aria-hidden="true">
+                <?php if ($teacherAvatarUrl !== '') : ?>
+                    <img src="<?= htmlspecialchars($teacherAvatarUrl, ENT_QUOTES, 'UTF-8') ?>" alt="" class="h-full w-full object-cover">
+                <?php else : ?>
+                    <?= htmlspecialchars($teacherInitials, ENT_QUOTES, 'UTF-8') ?>
+                <?php endif; ?>
+            </span>
+            <div class="min-w-0">
+                <p class="teacher-sidebar__name"><?= htmlspecialchars($teacherUsername, ENT_QUOTES, 'UTF-8') ?></p>
+                <p class="teacher-sidebar__email"><?= htmlspecialchars($teacherEmail, ENT_QUOTES, 'UTF-8') ?></p>
+            </div>
+        </section>
 
-                <div class="teacher-profile__menu absolute right-0 mt-3 w-[17rem] rounded-[22px] border-4 border-arcade-ink bg-arcade-panel p-3 text-arcade-ink shadow-[8px_8px_0_rgba(38,25,15,0.28)]">
-                    <div class="mb-3 rounded-2xl border-2 border-arcade-ink/10 bg-arcade-cream px-3 py-2">
-                        <p class="font-arcade text-[9px] uppercase tracking-[0.18em] text-arcade-orange">Teacher</p>
-                        <p class="mt-1 text-sm font-bold"><?= htmlspecialchars($teacherUsername, ENT_QUOTES, 'UTF-8') ?></p>
-                    </div>
-                    <label class="teacher-profile__item">
-                        <span>Sound</span>
-                        <input id="pixelwar-sound-toggle" class="pixelwar-toggle" type="checkbox" aria-label="Toggle sound">
-                    </label>
-                    <label class="teacher-profile__item">
-                        <span>Dark Mode</span>
-                        <input id="pixelwar-dark-toggle" class="pixelwar-toggle" type="checkbox" aria-label="Toggle dark mode">
-                    </label>
-                    <?php if ($isTeacherLoggedIn) : ?>
-                        <a class="teacher-profile__item no-underline" href="./?c=settings">
-                            <span>Settings</span>
-                            <span aria-hidden="true">&rsaquo;</span>
-                        </a>
-                        <form action="../?c=logout" method="post">
-                            <?= teacherPanelCsrfField() ?>
-                            <button class="teacher-profile__item teacher-profile__item--danger" type="submit">
-                                <span>Logout</span>
-                                <span aria-hidden="true">&rsaquo;</span>
-                            </button>
-                        </form>
-                    <?php else : ?>
-                        <a class="teacher-profile__item no-underline" href="../?c=login">
-                            <span>Login as Player</span>
-                            <span aria-hidden="true">&rsaquo;</span>
-                        </a>
+        <nav class="teacher-nav" aria-label="Teacher navigation">
+            <?php foreach ($teacherNavItems as $teacherPage => $teacherItem) : ?>
+                <a class="teacher-nav__link <?= $teacherCurrentPage === $teacherPage ? 'teacher-nav__link--active' : '' ?>" href="./?c=<?= htmlspecialchars($teacherPage, ENT_QUOTES, 'UTF-8') ?>">
+                    <i data-lucide="<?= htmlspecialchars($teacherItem['icon'], ENT_QUOTES, 'UTF-8') ?>" class="h-4 w-4" aria-hidden="true"></i>
+                    <span><?= htmlspecialchars($teacherItem['label'], ENT_QUOTES, 'UTF-8') ?></span>
+                </a>
+            <?php endforeach; ?>
+        </nav>
+
+        <section class="teacher-sidebar__controls" aria-label="Teacher options">
+            <p class="teacher-sidebar__section-title">Options</p>
+            <label class="teacher-profile__item">
+                <span>Sound</span>
+                <input id="pixelwar-sound-toggle" class="pixelwar-toggle" type="checkbox" aria-label="Toggle sound">
+            </label>
+            <label class="teacher-profile__item">
+                <span>Dark Mode</span>
+                <input id="pixelwar-dark-toggle" class="pixelwar-toggle" type="checkbox" aria-label="Toggle dark mode">
+            </label>
+            <?php if ($isTeacherLoggedIn) : ?>
+                <form action="../?c=logout" method="post">
+                    <?= teacherPanelCsrfField() ?>
+                    <button class="teacher-profile__item teacher-profile__item--danger" type="submit">
+                        <span>Logout</span>
+                        <span aria-hidden="true">&rsaquo;</span>
+                    </button>
+                </form>
+            <?php else : ?>
+                <a class="teacher-profile__item no-underline" href="../?c=login">
+                    <span>Login as Player</span>
+                    <span aria-hidden="true">&rsaquo;</span>
+                </a>
+            <?php endif; ?>
+        </section>
+    </aside>
+
+    <div class="teacher-topbar">
+        <div>
+            <p class="teacher-topbar__eyebrow">Workspace</p>
+            <p class="teacher-topbar__title"><?= htmlspecialchars($teacherTopbarLabels[$teacherCurrentPage]['label'] ?? 'Teacher Panel', ENT_QUOTES, 'UTF-8') ?></p>
+        </div>
+
+        <details class="pixelwar-notifications teacher-notifications relative">
+            <summary class="pixelwar-notifications__summary relative grid h-11 w-11 list-none place-items-center rounded-2xl border-2 border-arcade-ink bg-white text-arcade-ink shadow-[0_4px_0_rgba(38,25,15,0.25)] transition hover:-translate-y-0.5 hover:bg-arcade-yellow" aria-label="Open notifications">
+                <svg class="h-5 w-5" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+                    <path fill="currentColor" d="M8 1.5A4.5 4.5 0 0 0 3.5 6v2.4L2.3 11v1h11.4v-1l-1.2-2.6V6A4.5 4.5 0 0 0 8 1.5Zm0 13a2 2 0 0 0 1.9-1.4H6.1A2 2 0 0 0 8 14.5Z" />
+                </svg>
+                <?php if ($teacherUnreadNotifications > 0) : ?>
+                    <span class="pixelwar-notifications__badge" aria-label="<?= (int) $teacherUnreadNotifications ?> new notifications"><?= (int) $teacherUnreadNotifications ?></span>
+                <?php endif; ?>
+            </summary>
+
+            <div class="pixelwar-notifications__menu absolute right-0 mt-3 w-[19rem] rounded-[22px] border-4 border-arcade-ink bg-arcade-panel p-3 text-arcade-ink shadow-[8px_8px_0_rgba(38,25,15,0.28)]">
+                <div class="mb-2 flex items-center justify-between gap-3 px-1">
+                    <p class="font-arcade text-[9px] uppercase tracking-[0.18em] text-arcade-orange">Notifications</p>
+                    <?php if ($teacherUnreadNotifications > 0) : ?>
+                        <span class="rounded-full bg-arcade-coral px-2 py-1 text-[10px] font-black text-white"><?= (int) $teacherUnreadNotifications ?> new</span>
                     <?php endif; ?>
                 </div>
-            </details>
-        </div>
+                <div class="grid gap-2">
+                    <?php foreach ($teacherNotifications as $notification) : ?>
+                        <article class="pixelwar-notification <?= $notification['unread'] ? 'pixelwar-notification--unread' : '' ?>">
+                            <div>
+                                <p class="text-sm font-black"><?= htmlspecialchars($notification['title'], ENT_QUOTES, 'UTF-8') ?></p>
+                                <p class="mt-1 text-xs font-bold leading-5 text-arcade-ink/60"><?= htmlspecialchars($notification['body'], ENT_QUOTES, 'UTF-8') ?></p>
+                            </div>
+                            <span class="text-[10px] font-black uppercase tracking-[0.12em] text-arcade-orange"><?= htmlspecialchars($notification['time'], ENT_QUOTES, 'UTF-8') ?></span>
+                        </article>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+        </details>
     </div>
 </header>
 
 <script>
 (() => {
-    const profileMenu = document.querySelector('.teacher-profile');
     const soundToggle = document.getElementById('pixelwar-sound-toggle');
     const darkToggle = document.getElementById('pixelwar-dark-toggle');
+    const notificationMenu = document.querySelector('.pixelwar-notifications');
     let audioContext = null;
     const storageGet = (key) => {
         try {
@@ -90,6 +162,7 @@ $teacherAvatarUrl = trim((string) ($_SESSION['avatar_url'] ?? ''));
         }
     };
     const soundIsOn = () => storageGet('pixelwarSound') !== 'off';
+    const renderIcons = () => window.lucide?.createIcons();
     const playPopSound = () => {
         if (!soundIsOn()) {
             return;
@@ -126,6 +199,12 @@ $teacherAvatarUrl = trim((string) ($_SESSION['avatar_url'] ?? ''));
         }
     };
 
+    if (window.lucide) {
+        renderIcons();
+    } else {
+        window.addEventListener('load', renderIcons);
+    }
+
     if (soundToggle) {
         soundToggle.checked = storageGet('pixelwarSound') !== 'off';
         soundToggle.addEventListener('change', () => {
@@ -153,8 +232,8 @@ $teacherAvatarUrl = trim((string) ($_SESSION['avatar_url'] ?? ''));
     }, { capture: true });
 
     document.addEventListener('click', (event) => {
-        if (profileMenu && !profileMenu.contains(event.target)) {
-            profileMenu.removeAttribute('open');
+        if (notificationMenu && !notificationMenu.contains(event.target)) {
+            notificationMenu.removeAttribute('open');
         }
     });
 })();

@@ -1,18 +1,142 @@
 <?php
 $teacherName = trim((string) ($_SESSION['firstname'] ?? $_SESSION['username'] ?? 'Teacher')) ?: 'Teacher';
+$teacherId = (int) ($_SESSION['user_id'] ?? 0);
+$editChallengeId = max(0, (int) ($_GET['edit'] ?? 0));
+$editingChallenge = null;
+$editAccessDenied = false;
+$sourceLoadError = '';
+
+if ($editChallengeId > 0) {
+    if (!$challengeRepository instanceof ChallengeRepository) {
+        $editAccessDenied = true;
+    } else {
+        $editingChallenge = $challengeRepository->findCreatedChallenge($editChallengeId);
+        $editAccessDenied = $editingChallenge === null || (int) $editingChallenge['user_id'] !== $teacherId;
+    }
+
+    if (!$editAccessDenied) {
+        try {
+            $editingChallenge['html_code'] = SupabaseStorage::readPublicTextObject((string) $editingChallenge['html_source']);
+            $editingChallenge['css_code'] = SupabaseStorage::readPublicTextObject((string) $editingChallenge['css_source']);
+        } catch (Throwable $err) {
+            $sourceLoadError = 'Saved source files could not be loaded. Check Supabase public file access before saving edits.';
+            $editingChallenge['html_code'] = '';
+            $editingChallenge['css_code'] = '';
+        }
+    }
+}
+
+$isEditing = $editingChallenge !== null && !$editAccessDenied;
+$createChallengeOld = $_SESSION['create_challenge_old'] ?? [];
+unset($_SESSION['create_challenge_old']);
+
+if (is_array($createChallengeOld)) {
+    $oldChallengeId = (int) ($createChallengeOld['challenge_id'] ?? 0);
+    if (($isEditing && $oldChallengeId !== $editChallengeId) || (!$isEditing && $oldChallengeId > 0)) {
+        $createChallengeOld = [];
+    }
+} else {
+    $createChallengeOld = [];
+}
+
+$defaultHtmlSource = '<section class="target-card">
+  <p class="eyebrow">Pixelwar</p>
+  <h1>Arcade Button</h1>
+  <button class="target-button">Start Run</button>
+</section>';
+$defaultCssSource = '.target-card {
+  width: 280px;
+  border: 4px solid #26190f;
+  border-radius: 24px;
+  background: #fffdf6;
+  padding: 24px;
+  box-shadow: 8px 8px 0 #26190f;
+  text-align: center;
+}
+
+.eyebrow {
+  color: #ff8c42;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.target-card h1 {
+  margin: 12px 0 18px;
+  color: #26190f;
+  font-size: 28px;
+}
+
+.target-button {
+  border: 3px solid #26190f;
+  border-radius: 14px;
+  background: #ffd166;
+  padding: 12px 18px;
+  color: #26190f;
+  font-weight: 900;
+}';
+$oldChallengeName = (string) ($createChallengeOld['name'] ?? ($editingChallenge['name'] ?? ''));
+$oldChallengeInstruction = (string) ($createChallengeOld['instruction'] ?? ($editingChallenge['instruction'] ?? ''));
+$oldChallengeDifficulty = (string) ($createChallengeOld['difficulty'] ?? ($editingChallenge['difficulty_name'] ?? ''));
+$oldHtmlSource = (string) ($createChallengeOld['html'] ?? ($editingChallenge['html_code'] ?? $defaultHtmlSource));
+$oldCssSource = (string) ($createChallengeOld['css'] ?? ($editingChallenge['css_code'] ?? $defaultCssSource));
+$modeLabel = $isEditing ? 'Edit Challenge' : 'Create Challenge';
+$heroTitle = $isEditing ? 'Update this Pixelwar challenge.' : 'Build a Pixelwar challenge.';
+$heroCopy = $isEditing
+    ? 'Review the saved challenge details and source code, then confirm to replace the uploaded HTML and CSS files.'
+    : 'Start with challenge details, then create the HTML and CSS target source. Confirming uploads the source files and saves the challenge.';
+$difficultyRows = $challengeRepository instanceof ChallengeRepository
+    ? $challengeRepository->listDifficulties()
+    : [];
+
+if ($difficultyRows === []) {
+    $difficultyRows = [
+        ['name' => 'easy', 'description' => 'Simple selector and spacing challenge.', 'points' => 20],
+        ['name' => 'medium', 'description' => 'Moderate matching challenge with more visual details.', 'points' => 40],
+        ['name' => 'hard', 'description' => 'Advanced target requiring precise layout and styling.', 'points' => 80],
+    ];
+}
+
+$difficultyMap = [];
+
+foreach ($difficultyRows as $difficultyRow) {
+    $difficultyKey = ucfirst(strtolower((string) $difficultyRow['name']));
+    $difficultyMap[$difficultyKey] = [
+        'description' => (string) $difficultyRow['description'],
+        'points' => (int) $difficultyRow['points'],
+    ];
+}
 ?>
 
 <main class="teacher-shell create-challenge-shell relative overflow-hidden px-4 py-6 text-arcade-ink md:py-8">
     <div class="teacher-bg absolute inset-0"></div>
-    <section class="container relative grid gap-5">
+    <section class="container relative mx-auto grid gap-5">
+        <?php if ($editAccessDenied) : ?>
+            <article class="teacher-panel rounded-[26px] border-4 border-arcade-ink bg-arcade-panel p-5 shadow-[7px_7px_0_#26190f] md:p-6">
+                <p class="font-arcade text-[10px] uppercase tracking-[0.26em] text-arcade-coral">Edit Blocked</p>
+                <h1 class="mt-3 text-3xl font-black">Challenge cannot be edited.</h1>
+                <p class="mt-2 text-sm font-bold leading-7 text-arcade-ink/62">The challenge does not exist, or it belongs to another teacher account.</p>
+                <a href="./?c=challenges" class="teacher-button teacher-button--light mt-4 gap-2">
+                    <i data-lucide="arrow-left" class="h-4 w-4" aria-hidden="true"></i>
+                    <span>Back to Challenges</span>
+                </a>
+            </article>
+        <?php else : ?>
+
         <article class="teacher-hero rounded-[26px] border-4 border-arcade-ink bg-arcade-panel p-4 shadow-[7px_7px_0_#26190f] md:p-6">
             <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
                 <div>
-                    <p class="font-arcade text-[10px] uppercase tracking-[0.26em] text-arcade-orange">Create Challenge</p>
-                    <h1 class="mt-3 text-3xl font-black md:text-5xl">Build a Pixelwar challenge.</h1>
+                    <p class="font-arcade text-[10px] uppercase tracking-[0.26em] text-arcade-orange"><?= htmlspecialchars($modeLabel, ENT_QUOTES, 'UTF-8') ?></p>
+                    <h1 class="mt-3 text-3xl font-black md:text-5xl"><?= htmlspecialchars($heroTitle, ENT_QUOTES, 'UTF-8') ?></h1>
                     <p class="mt-3 max-w-3xl text-sm font-bold leading-7 text-arcade-ink/65 md:text-base">
-                        Start with challenge details, then create the HTML and CSS target source. Publishing is disabled for now while the backend flow is prepared.
+                        <?= htmlspecialchars($heroCopy, ENT_QUOTES, 'UTF-8') ?>
                     </p>
+                    <?php if ($sourceLoadError !== '') : ?>
+                        <p class="mt-3 rounded-2xl border-2 border-arcade-coral/45 bg-arcade-coral/12 px-4 py-3 text-sm font-black text-arcade-ink">
+                            <?= htmlspecialchars($sourceLoadError, ENT_QUOTES, 'UTF-8') ?>
+                        </p>
+                    <?php endif; ?>
                 </div>
                 <div class="flex flex-wrap gap-2">
                     <a href="./?c=challenges" class="teacher-button teacher-button--light gap-2">
@@ -22,6 +146,10 @@ $teacherName = trim((string) ($_SESSION['firstname'] ?? $_SESSION['username'] ??
                 </div>
             </div>
         </article>
+
+        <form id="create-challenge-form" action="./?c=create-challenge" method="post">
+        <?= teacherPanelCsrfField() ?>
+        <input type="hidden" name="challenge_id" value="<?= $isEditing ? (int) $editingChallenge['challenge_id'] : 0 ?>">
 
         <article class="teacher-panel create-stepper-card rounded-[26px] border-4 border-arcade-ink bg-arcade-panel p-4 shadow-[7px_7px_0_#26190f] md:p-5">
             <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
@@ -62,21 +190,24 @@ $teacherName = trim((string) ($_SESSION['firstname'] ?? $_SESSION['username'] ??
                     <div class="mt-5 grid gap-4">
                         <label class="create-field">
                             <span>Challenge Name</span>
-                            <input id="challenge-name" type="text" placeholder="Example: Arcade Button Match" maxlength="80">
+                            <input id="challenge-name" name="challenge_name" type="text" placeholder="Example: Arcade Button Match" maxlength="150" value="<?= htmlspecialchars($oldChallengeName, ENT_QUOTES, 'UTF-8') ?>">
                         </label>
 
                         <label class="create-field">
                             <span>Challenge Instruction</span>
-                            <textarea id="challenge-instruction" rows="6" placeholder="Example: Match the border, rounded corners, shadow, spacing, alignment, and button styling shown in the target design."></textarea>
+                            <textarea id="challenge-instruction" name="challenge_instruction" rows="6" placeholder="Example: Match the border, rounded corners, shadow, spacing, alignment, and button styling shown in the target design."><?= htmlspecialchars($oldChallengeInstruction, ENT_QUOTES, 'UTF-8') ?></textarea>
                         </label>
 
                         <label class="create-field">
                             <span>Difficulty</span>
-                            <select id="challenge-difficulty">
+                            <select id="challenge-difficulty" name="challenge_difficulty">
                                 <option value="">Select difficulty</option>
-                                <option value="Easy">Easy</option>
-                                <option value="Medium">Medium</option>
-                                <option value="Hard">Hard</option>
+                                <?php foreach ($difficultyRows as $difficultyRow) : ?>
+                                    <?php $difficultyName = ucfirst(strtolower((string) $difficultyRow['name'])); ?>
+                                    <option value="<?= htmlspecialchars($difficultyName, ENT_QUOTES, 'UTF-8') ?>" <?= strcasecmp($oldChallengeDifficulty, $difficultyName) === 0 ? 'selected' : '' ?>>
+                                        <?= htmlspecialchars($difficultyName . ' - ' . (int) $difficultyRow['points'] . ' points - ' . (string) $difficultyRow['description'], ENT_QUOTES, 'UTF-8') ?>
+                                    </option>
+                                <?php endforeach; ?>
                             </select>
                         </label>
 
@@ -98,7 +229,7 @@ $teacherName = trim((string) ($_SESSION['firstname'] ?? $_SESSION['username'] ??
                     </p>
                     <div class="create-example-meta mt-4 grid gap-2 sm:grid-cols-2">
                         <span><strong>Difficulty</strong><em id="info-preview-difficulty">Not Set</em></span>
-                        <span><strong>Status</strong><em>Draft</em></span>
+                        <span><strong>Status</strong><em><?= $isEditing ? 'Editing' : 'Draft' ?></em></span>
                     </div>
                 </aside>
             </div>
@@ -135,11 +266,7 @@ $teacherName = trim((string) ($_SESSION['firstname'] ?? $_SESSION['username'] ??
 
                         <div class="create-editor-wrap mt-4" data-editor-shell>
                             <div class="create-editor-gutter" id="html-line-count" aria-hidden="true">1</div>
-                            <textarea id="challenge-html-code" class="create-code-editor" spellcheck="false" autocomplete="off" autocapitalize="off" aria-label="HTML source code"><section class="target-card">
-  <p class="eyebrow">Pixelwar</p>
-  <h1>Arcade Button</h1>
-  <button class="target-button">Start Run</button>
-</section></textarea>
+                            <textarea id="challenge-html-code" name="html_source_code" class="create-code-editor" spellcheck="false" autocomplete="off" autocapitalize="off" aria-label="HTML source code"><?= htmlspecialchars($oldHtmlSource, ENT_QUOTES, 'UTF-8') ?></textarea>
                         </div>
 
                         <div id="challenge-html-feedback" class="create-feedback mt-3" role="status"></div>
@@ -160,38 +287,7 @@ $teacherName = trim((string) ($_SESSION['firstname'] ?? $_SESSION['username'] ??
 
                         <div class="create-editor-wrap mt-4" data-editor-shell>
                             <div class="create-editor-gutter" id="css-line-count" aria-hidden="true">1</div>
-                            <textarea id="challenge-css-code" class="create-code-editor" spellcheck="false" autocomplete="off" autocapitalize="off" aria-label="CSS source code">.target-card {
-  width: 280px;
-  border: 4px solid #26190f;
-  border-radius: 24px;
-  background: #fffdf6;
-  padding: 24px;
-  box-shadow: 8px 8px 0 #26190f;
-  text-align: center;
-}
-
-.eyebrow {
-  color: #ff8c42;
-  font-size: 12px;
-  font-weight: 900;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-}
-
-.target-card h1 {
-  margin: 12px 0 18px;
-  color: #26190f;
-  font-size: 28px;
-}
-
-.target-button {
-  border: 3px solid #26190f;
-  border-radius: 14px;
-  background: #ffd166;
-  padding: 12px 18px;
-  color: #26190f;
-  font-weight: 900;
-}</textarea>
+                            <textarea id="challenge-css-code" name="css_source_code" class="create-code-editor" spellcheck="false" autocomplete="off" autocapitalize="off" aria-label="CSS source code"><?= htmlspecialchars($oldCssSource, ENT_QUOTES, 'UTF-8') ?></textarea>
                         </div>
 
                         <div id="challenge-css-feedback" class="create-feedback mt-3" role="status"></div>
@@ -227,9 +323,9 @@ $teacherName = trim((string) ($_SESSION['firstname'] ?? $_SESSION['username'] ??
             <div class="grid items-start gap-5 xl:grid-cols-[0.95fr_1.05fr]">
                 <article class="teacher-panel create-confirm-card rounded-[26px] border-4 border-arcade-ink bg-arcade-panel p-4 shadow-[7px_7px_0_#26190f] md:p-5">
                     <p class="font-arcade text-[10px] uppercase tracking-[0.22em] text-arcade-orange">Final Check</p>
-                    <h2 class="mt-2 text-3xl font-black">Confirm challenge draft</h2>
+                    <h2 class="mt-2 text-3xl font-black"><?= $isEditing ? 'Confirm challenge update' : 'Confirm challenge draft' ?></h2>
                     <p class="mt-3 text-sm font-bold leading-7 text-arcade-ink/65">
-                        Review the challenge information and source validation before saving functionality is connected.
+                        Review the challenge information and source validation before <?= $isEditing ? 'updating' : 'creating' ?> the challenge.
                     </p>
 
                     <div class="create-confirm-list mt-5 grid gap-3">
@@ -282,11 +378,15 @@ $teacherName = trim((string) ($_SESSION['firstname'] ?? $_SESSION['username'] ??
                 </div>
             </div>
         </article>
+        </form>
+        <?php endif; ?>
     </section>
 </main>
 
+<?php if (!$editAccessDenied) : ?>
 <script>
 (() => {
+    const challengeForm = document.getElementById('create-challenge-form');
     const htmlEditor = document.getElementById('challenge-html-code');
     const cssEditor = document.getElementById('challenge-css-code');
     const htmlFile = document.getElementById('challenge-html-file');
@@ -311,6 +411,9 @@ $teacherName = trim((string) ($_SESSION['firstname'] ?? $_SESSION['username'] ??
     const stepTitle = document.getElementById('challenge-step-title');
     const progressBar = document.getElementById('challenge-progress-bar');
     const stepNote = document.getElementById('challenge-step-note');
+    const isEditMode = <?= $isEditing ? 'true' : 'false' ?>;
+    const difficultyDetails = <?= json_encode($difficultyMap, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?: '{}' ?>;
+    const validDifficulties = Object.keys(difficultyDetails);
     let currentStep = 1;
     let sourceIsValid = true;
 
@@ -323,7 +426,7 @@ $teacherName = trim((string) ($_SESSION['firstname'] ?? $_SESSION['username'] ??
     const stepNotes = {
         1: 'Step 1: Complete the challenge information before adding source code.',
         2: 'Step 2: Add clean HTML and CSS. The preview updates in real time.',
-        3: 'Step 3: Confirm the draft. Backend publishing will be connected later.'
+        3: isEditMode ? 'Step 3: Confirm and update the challenge.' : 'Step 3: Confirm and create the challenge.'
     };
 
     const escapeHtml = (value) => value
@@ -350,10 +453,13 @@ $teacherName = trim((string) ($_SESSION['firstname'] ?? $_SESSION['username'] ??
         if (info.name.length < 4) {
             errors.push('Challenge name must be at least 4 characters.');
         }
+        if (info.name.length > 150) {
+            errors.push('Challenge name must be 150 characters or fewer.');
+        }
         if (info.instruction.length < 20) {
             errors.push('Instruction must explain the challenge in at least 20 characters.');
         }
-        if (!info.difficulty) {
+        if (!validDifficulties.includes(info.difficulty)) {
             errors.push('Difficulty is required.');
         }
         return errors;
@@ -385,6 +491,9 @@ $teacherName = trim((string) ($_SESSION['firstname'] ?? $_SESSION['username'] ??
 
     const validateHtml = (code) => {
         const errors = [];
+        if (!code.trim()) {
+            errors.push('HTML source is required.');
+        }
         if (/<style\b[\s\S]*?>[\s\S]*?<\/style>/i.test(code)) {
             errors.push('Internal CSS is not allowed. Move style rules to the CSS editor.');
         }
@@ -405,6 +514,9 @@ $teacherName = trim((string) ($_SESSION['firstname'] ?? $_SESSION['username'] ??
 
     const validateCss = (code) => {
         const errors = [];
+        if (!code.trim()) {
+            errors.push('CSS source is required.');
+        }
         if (/<\/?[a-z][\s\S]*?>/i.test(code)) {
             errors.push('CSS editor must not contain HTML tags.');
         }
@@ -487,7 +599,9 @@ ${html}
         stepNote.textContent = stepNotes[currentStep];
         progressBar.style.width = `${((currentStep - 1) / 2) * 100}%`;
         backButton.disabled = currentStep === 1;
-        nextButton.querySelector('span').textContent = currentStep === 3 ? 'Create Challenge' : 'Continue';
+        nextButton.querySelector('span').textContent = currentStep === 3
+            ? (isEditMode ? 'Update Challenge' : 'Create Challenge')
+            : 'Continue';
         updateNextButton();
         window.lucide?.createIcons();
         document.querySelector('.create-stepper-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -556,7 +670,31 @@ ${html}
             return;
         }
 
-        stepNote.textContent = 'Draft confirmed. Save and database functionality will be connected next.';
+        nextButton.disabled = true;
+        nextButton.querySelector('span').textContent = isEditMode ? 'Updating...' : 'Creating...';
+        stepNote.textContent = isEditMode
+            ? 'Updating challenge, replacing source files, and recording activity log...'
+            : 'Creating challenge, uploading source files, and recording activity log...';
+        challengeForm.requestSubmit();
+    });
+
+    challengeForm.addEventListener('submit', (event) => {
+        const infoValid = updateInfoViews();
+        refreshSource();
+
+        if (!infoValid || !sourceIsValid) {
+            event.preventDefault();
+            nextButton.disabled = false;
+            nextButton.querySelector('span').textContent = currentStep === 3
+                ? (isEditMode ? 'Update Challenge' : 'Create Challenge')
+                : 'Continue';
+            stepNote.textContent = !infoValid
+                ? 'Fix the challenge details before creating the challenge.'
+                : 'Fix the HTML or CSS source warnings before creating the challenge.';
+            showStep(!infoValid ? 1 : 2);
+            return;
+        }
+
         nextButton.disabled = true;
     });
 
@@ -569,3 +707,4 @@ ${html}
     showStep(1);
 })();
 </script>
+<?php endif; ?>

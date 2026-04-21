@@ -2,6 +2,14 @@
 $profileSetupErrors = $_SESSION['profile_setup_errors'] ?? [];
 $profileSetupOld = $_SESSION['profile_setup_old'] ?? [];
 $setupUsername = (string) ($_SESSION['username'] ?? 'Player');
+$setupRoleId = (int) ($_SESSION['role_id'] ?? 0);
+$isTeacherSetup = $setupRoleId === 2;
+$profileTitle = $isTeacherSetup ? 'Finish your teacher setup.' : 'Finish your profile.';
+$profileEyebrow = $isTeacherSetup ? 'Teacher Setup' : 'Player Setup';
+$profileDescription = $isTeacherSetup
+    ? 'Welcome ' . htmlspecialchars($setupUsername, ENT_QUOTES, 'UTF-8') . '. Set your final access credentials and profile before entering the teacher panel.'
+    : 'Welcome ' . htmlspecialchars($setupUsername, ENT_QUOTES, 'UTF-8') . '. Add your details before entering the arena.';
+$submitLabel = $isTeacherSetup ? 'Finish Teacher Setup' : 'Enter Pixelwar';
 unset($_SESSION['profile_setup_errors'], $_SESSION['profile_setup_old']);
 ?>
 <main class="auth-page relative min-h-[calc(100vh-4.25rem)] overflow-hidden bg-arcade-cream px-4 py-4 text-arcade-ink">
@@ -14,15 +22,35 @@ unset($_SESSION['profile_setup_errors'], $_SESSION['profile_setup_old']);
     <section class="container relative flex min-h-[calc(100vh-7.25rem)] items-center justify-center">
         <form id="profile-setup-form" class="auth-card w-full max-w-[25rem] rounded-[24px] border-4 border-arcade-ink bg-arcade-panel p-4 shadow-[8px_8px_0_#26190f] md:p-5" action="./?c=profile-setup" method="post" enctype="multipart/form-data" novalidate>
             <?= pixelwarCsrfField() ?>
-            <p class="font-arcade text-[10px] uppercase tracking-[0.28em] text-arcade-orange">Player Setup</p>
-            <h1 class="mt-2 text-[1.35rem] font-bold leading-tight">Finish your profile.</h1>
-            <p class="mt-1 text-sm leading-5 text-arcade-ink/68">Welcome <?= htmlspecialchars($setupUsername, ENT_QUOTES, 'UTF-8') ?>. Add your details before entering the arena.</p>
+            <p class="font-arcade text-[10px] uppercase tracking-[0.28em] text-arcade-orange"><?= htmlspecialchars($profileEyebrow, ENT_QUOTES, 'UTF-8') ?></p>
+            <h1 class="mt-2 text-[1.35rem] font-bold leading-tight"><?= htmlspecialchars($profileTitle, ENT_QUOTES, 'UTF-8') ?></h1>
+            <p class="mt-1 text-sm leading-5 text-arcade-ink/68"><?= $profileDescription ?></p>
 
             <?php if ($profileSetupErrors !== []) : ?>
                 <div class="mt-3 rounded-2xl border-2 border-arcade-coral bg-arcade-coral/10 px-3 py-2 text-sm font-bold leading-5 text-arcade-ink" role="alert">
                     <?php foreach ($profileSetupErrors as $error) : ?>
                         <p class="mb-1 last:mb-0"><?= htmlspecialchars((string) $error, ENT_QUOTES, 'UTF-8') ?></p>
                     <?php endforeach; ?>
+                </div>
+            <?php endif; ?>
+
+            <?php if ($isTeacherSetup) : ?>
+                <div class="mt-4 grid gap-3 sm:grid-cols-2">
+                    <label class="block text-sm font-bold sm:col-span-2" for="profile-username">
+                        Final Username
+                        <input id="profile-username" name="username" type="text" autocomplete="username" required maxlength="32" value="<?= htmlspecialchars((string) ($profileSetupOld['username'] ?? $setupUsername), ENT_QUOTES, 'UTF-8') ?>" class="mt-1 w-full rounded-xl border-2 border-arcade-ink/15 bg-white px-3 py-2 outline-none transition focus:border-arcade-orange" placeholder="teacher_username" data-teacher-setup-username>
+                        <span id="profile-username-feedback" class="mt-1 block min-h-5 text-xs font-bold leading-5 text-arcade-ink/55"></span>
+                    </label>
+
+                    <label class="block text-sm font-bold" for="profile-password">
+                        Final Password
+                        <input id="profile-password" name="password" type="password" autocomplete="new-password" required minlength="8" class="mt-1 w-full rounded-xl border-2 border-arcade-ink/15 bg-white px-3 py-2 outline-none transition focus:border-arcade-orange" placeholder="Minimum 8 characters">
+                    </label>
+
+                    <label class="block text-sm font-bold" for="profile-confirm-password">
+                        Confirm Password
+                        <input id="profile-confirm-password" name="confirm_password" type="password" autocomplete="new-password" required minlength="8" class="mt-1 w-full rounded-xl border-2 border-arcade-ink/15 bg-white px-3 py-2 outline-none transition focus:border-arcade-orange" placeholder="Repeat password">
+                    </label>
                 </div>
             <?php endif; ?>
 
@@ -67,7 +95,7 @@ unset($_SESSION['profile_setup_errors'], $_SESSION['profile_setup_old']);
 
             <button id="profile-submit-button" type="submit" class="profile-submit-button mt-4 inline-flex w-full items-center justify-center gap-3 rounded-xl border-2 border-arcade-ink bg-arcade-yellow px-6 py-2.5 text-sm font-bold shadow-[0_4px_0_#26190f] transition hover:-translate-y-0.5 hover:bg-arcade-orange hover:text-white">
                 <span class="profile-submit-spinner hidden h-4 w-4 rounded-full border-2 border-arcade-ink/40 border-t-arcade-ink" aria-hidden="true"></span>
-                <span id="profile-submit-label">Enter Pixelwar</span>
+                <span id="profile-submit-label"><?= htmlspecialchars($submitLabel, ENT_QUOTES, 'UTF-8') ?></span>
             </button>
         </form>
     </section>
@@ -278,6 +306,9 @@ unset($_SESSION['profile_setup_errors'], $_SESSION['profile_setup_old']);
     const progressBar = document.querySelector('#profile-upload-progress-bar');
     const submitButton = document.querySelector('#profile-submit-button');
     const submitLabel = document.querySelector('#profile-submit-label');
+    const usernameInput = document.querySelector('#profile-username');
+    const usernameFeedback = document.querySelector('#profile-username-feedback');
+    const defaultSubmitLabel = submitLabel ? submitLabel.textContent : 'Continue';
 
     if (!form || !dropzone || !input || !preview || !initials || !fileName || !message || !progress || !progressLabel || !progressValue || !progressBar || !submitButton || !submitLabel) {
         return;
@@ -285,6 +316,12 @@ unset($_SESSION['profile_setup_errors'], $_SESSION['profile_setup_old']);
 
     const allowedTypes = ['image/png', 'image/jpeg', 'image/webp', 'image/gif'];
     const maxSize = 2 * 1024 * 1024;
+    const requiresTeacherUsernameCheck = Boolean(usernameInput && usernameFeedback);
+    const teacherUsernameState = {
+        valid: !requiresTeacherUsernameCheck,
+        available: !requiresTeacherUsernameCheck,
+        pending: false,
+    };
 
     const setError = (text) => {
         message.textContent = text;
@@ -302,7 +339,91 @@ unset($_SESSION['profile_setup_errors'], $_SESSION['profile_setup_old']);
     const setLoading = (isLoading, label = 'Uploading avatar') => {
         submitButton.disabled = isLoading;
         submitButton.classList.toggle('is-loading', isLoading);
-        submitLabel.textContent = isLoading ? label : 'Enter Pixelwar';
+        submitLabel.textContent = isLoading ? label : defaultSubmitLabel;
+    };
+
+    const updateSubmitAvailability = () => {
+        if (!requiresTeacherUsernameCheck) {
+            return;
+        }
+
+        if (submitButton.classList.contains('is-loading')) {
+            return;
+        }
+
+        submitButton.disabled = !teacherUsernameState.valid || !teacherUsernameState.available || teacherUsernameState.pending;
+    };
+
+    const applyUsernameFeedback = (messageText, tone) => {
+        if (!usernameInput || !usernameFeedback) {
+            return;
+        }
+
+        usernameInput.classList.remove('border-arcade-coral', 'border-arcade-mint', 'border-arcade-yellow');
+        usernameFeedback.classList.remove('text-arcade-coral', 'text-arcade-mint', 'text-arcade-orange', 'text-arcade-ink/55');
+
+        if (tone === 'invalid') {
+            usernameInput.classList.add('border-arcade-coral');
+            usernameFeedback.classList.add('text-arcade-coral');
+        } else if (tone === 'valid') {
+            usernameInput.classList.add('border-arcade-mint');
+            usernameFeedback.classList.add('text-arcade-mint');
+        } else if (tone === 'loading') {
+            usernameInput.classList.add('border-arcade-yellow');
+            usernameFeedback.classList.add('text-arcade-orange');
+        } else {
+            usernameFeedback.classList.add('text-arcade-ink/55');
+        }
+
+        usernameFeedback.textContent = messageText;
+    };
+
+    let usernameCheckTimer = null;
+
+    const runTeacherUsernameCheck = () => {
+        if (!usernameInput) {
+            return;
+        }
+
+        const value = usernameInput.value.trim();
+
+        if (value === '') {
+            teacherUsernameState.valid = false;
+            teacherUsernameState.available = false;
+            teacherUsernameState.pending = false;
+            applyUsernameFeedback('', 'idle');
+            updateSubmitAvailability();
+            return;
+        }
+
+        teacherUsernameState.pending = true;
+        updateSubmitAvailability();
+        applyUsernameFeedback('Checking username...', 'loading');
+
+        const url = new URL('./?c=profile-setup', window.location.href);
+        url.searchParams.set('check_username', '1');
+        url.searchParams.set('username', value);
+
+        fetch(url.toString(), {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+        })
+            .then((response) => response.json())
+            .then((payload) => {
+                teacherUsernameState.valid = Boolean(payload.valid);
+                teacherUsernameState.available = Boolean(payload.available);
+                teacherUsernameState.pending = false;
+
+                const tone = payload.valid && payload.available ? 'valid' : 'invalid';
+                applyUsernameFeedback(payload.message || '', tone);
+                updateSubmitAvailability();
+            })
+            .catch(() => {
+                teacherUsernameState.valid = false;
+                teacherUsernameState.available = false;
+                teacherUsernameState.pending = false;
+                applyUsernameFeedback('Unable to check username right now.', 'invalid');
+                updateSubmitAvailability();
+            });
     };
 
     const showPreview = (file) => {
@@ -348,6 +469,25 @@ unset($_SESSION['profile_setup_errors'], $_SESSION['profile_setup_old']);
             showPreview(input.files[0]);
         }
     });
+
+    if (requiresTeacherUsernameCheck && usernameInput) {
+        usernameInput.addEventListener('input', () => {
+            window.clearTimeout(usernameCheckTimer);
+            usernameCheckTimer = window.setTimeout(runTeacherUsernameCheck, 320);
+        });
+
+        usernameInput.addEventListener('blur', () => {
+            window.clearTimeout(usernameCheckTimer);
+            runTeacherUsernameCheck();
+        });
+
+        if (usernameInput.value.trim() !== '') {
+            runTeacherUsernameCheck();
+        } else {
+            updateSubmitAvailability();
+        }
+    }
+
     const submitWithProgress = () => {
         const request = new XMLHttpRequest();
         const formData = new FormData(form);
@@ -376,7 +516,7 @@ unset($_SESSION['profile_setup_errors'], $_SESSION['profile_setup_old']);
 
             if (request.status >= 200 && request.status < 300 && response && response.success) {
                 setProgress(100, 'Upload complete');
-                submitLabel.textContent = 'Entering Pixelwar...';
+                submitLabel.textContent = response.redirect && response.redirect.includes('teacher/') ? 'Opening teacher panel...' : 'Entering Pixelwar...';
                 window.location.href = response.redirect || './?c=home';
                 return;
             }
@@ -400,6 +540,12 @@ unset($_SESSION['profile_setup_errors'], $_SESSION['profile_setup_old']);
 
     form.addEventListener('submit', (event) => {
         event.preventDefault();
+
+        if (requiresTeacherUsernameCheck && (!teacherUsernameState.valid || !teacherUsernameState.available || teacherUsernameState.pending)) {
+            applyUsernameFeedback('Use a valid and available username before continuing.', 'invalid');
+            updateSubmitAvailability();
+            return;
+        }
 
         if (input.files.length === 0) {
             setError('Upload a profile image before continuing.');

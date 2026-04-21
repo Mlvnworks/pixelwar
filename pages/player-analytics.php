@@ -1,16 +1,41 @@
 <?php
-$analyticsRows = [];
-$analyticsTitles = ['Button Border Basics', 'Card Shadow Match', 'Hero Text Alignment', 'Badge Color Tune', 'Spacing Sprint', 'Selector Stack', 'CTA Polish', 'Panel Radius Run', 'Grid Gap Drill', 'Text Contrast Fix'];
-$analyticsStatuses = ['completed', 'ongoing'];
-$analyticsStart = new DateTimeImmutable(date('Y') . '-01-08');
+$currentStudentId = (int) ($_SESSION['user_id'] ?? 0);
+$initialStatusFilter = isset($_GET['status']) && in_array((string) $_GET['status'], ['completed', 'ongoing'], true)
+    ? (string) $_GET['status']
+    : 'all';
 $currentYear = (int) date('Y');
 $yearStart = new DateTimeImmutable($currentYear . '-01-01');
-$solvePattern = [0, 1, 0, 2, 3, 0, 1, 4, 2, 0, 0, 1, 3, 4, 1, 0, 2, 2, 5, 1, 0, 3, 4, 0, 1, 2, 5, 3, 0, 1, 4, 2, 0, 3, 5];
+$analyticsTrackedDays = 235;
+$analyticsEndDate = $yearStart->modify('+' . ($analyticsTrackedDays - 1) . ' days');
+$completedCountsByDate = $userChallengeRepository instanceof UserChallengeRepository
+    ? $userChallengeRepository->completedCountsByDate($currentStudentId, $yearStart, $analyticsEndDate)
+    : [];
+$attemptHistoryRows = $userChallengeRepository instanceof UserChallengeRepository
+    ? $userChallengeRepository->listAttemptHistory($currentStudentId, 250)
+    : [];
 $activityDays = [];
+$analyticsRows = [];
 
-for ($dayIndex = 0; $dayIndex < 235; $dayIndex++) {
+$formatDurationLabel = static function (int $totalSeconds): string {
+    $safeSeconds = max(0, $totalSeconds);
+    $hours = intdiv($safeSeconds, 3600);
+    $minutes = intdiv($safeSeconds % 3600, 60);
+    $seconds = $safeSeconds % 60;
+
+    if ($hours > 0) {
+        return sprintf('%dh %02dm', $hours, $minutes);
+    }
+
+    if ($minutes > 0) {
+        return sprintf('%dm %02ds', $minutes, $seconds);
+    }
+
+    return sprintf('%ds', $seconds);
+};
+
+for ($dayIndex = 0; $dayIndex < $analyticsTrackedDays; $dayIndex++) {
     $date = $yearStart->modify('+' . $dayIndex . ' days');
-    $solves = $solvePattern[$dayIndex % count($solvePattern)];
+    $solves = $completedCountsByDate[$date->format('Y-m-d')] ?? 0;
     $activityDays[] = [
         'date' => $date,
         'solves' => $solves,
@@ -18,22 +43,39 @@ for ($dayIndex = 0; $dayIndex < 235; $dayIndex++) {
     ];
 }
 
-for ($index = 0; $index < 64; $index++) {
-    $status = $analyticsStatuses[$index % 4 === 0 ? 1 : 0];
-    $startedAt = $analyticsStart->modify('+' . $index . ' days');
-    $durationMinutes = 6 + ($index % 9) * 4;
-    $completedAt = $status === 'completed' ? $startedAt->modify('+' . $durationMinutes . ' minutes') : null;
+foreach ($attemptHistoryRows as $attemptRow) {
+    $status = !empty($attemptRow['completed_at']) ? 'completed' : 'ongoing';
+    $startedAt = new DateTimeImmutable((string) $attemptRow['started_at']);
+    $completedAt = !empty($attemptRow['completed_at'])
+        ? new DateTimeImmutable((string) $attemptRow['completed_at'])
+        : null;
+    $durationLabel = 'Ongoing';
+    $durationDetails = 'Started ' . $startedAt->format('M j, Y g:i A');
+
+    if ($completedAt instanceof DateTimeImmutable) {
+        $durationSeconds = max(0, $completedAt->getTimestamp() - $startedAt->getTimestamp());
+        $durationLabel = $formatDurationLabel($durationSeconds);
+        $durationDetails = 'Taken ' . $startedAt->format('M j, Y g:i A') . ' - Completed in ' . $durationLabel;
+    } else {
+        $ongoingSeconds = max(0, time() - $startedAt->getTimestamp());
+        $durationDetails = 'Taken ' . $startedAt->format('M j, Y g:i A') . ' - Running for ' . $formatDurationLabel($ongoingSeconds);
+    }
 
     $analyticsRows[] = [
-        'title' => $analyticsTitles[$index % count($analyticsTitles)],
+        'challengeId' => (int) $attemptRow['challenge_id'],
+        'title' => (string) $attemptRow['name'],
         'status' => $status,
-        'level' => $index % 3 === 0 ? 'Novice' : 'Beginner',
+        'level' => ucfirst(strtolower((string) ($attemptRow['difficulty_name'] ?? 'Beginner'))),
         'startedAt' => $startedAt,
         'completedAt' => $completedAt,
-        'duration' => $status === 'completed' ? $durationMinutes . ' min' : 'Ongoing',
+        'duration' => $durationLabel,
+        'durationDetails' => $durationDetails,
         'summary' => $status === 'completed'
-            ? 'Matched the target selectors and completed the CSS design.'
-            : 'Started solving and still needs final property placement.',
+            ? 'Completed this CSS matching challenge and locked in the solve.'
+            : 'Started this CSS matching challenge and still has an active run.',
+        'href' => $status === 'completed'
+            ? './?c=challenge&id=' . (int) $attemptRow['challenge_id']
+            : './?c=pixelwar&intro=1&challenge_id=' . (int) $attemptRow['challenge_id'],
     ];
 }
 ?>
@@ -61,14 +103,18 @@ for ($index = 0; $index < 64; $index++) {
                         <p class="font-arcade text-[10px] uppercase tracking-[0.24em] text-arcade-orange">Solving Chart</p>
                         <h2 class="mt-2 text-xl font-bold"><?= (int) $currentYear ?> Activity</h2>
                     </div>
-                    <p class="text-sm font-bold text-arcade-ink/60">235 tracked days</p>
+                    <p class="text-sm font-bold text-arcade-ink/60"><?= (int) $analyticsTrackedDays ?> tracked days</p>
                 </div>
 
                 <div class="mt-4 overflow-x-auto pb-2">
-                    <div class="analytics-activity-grid" aria-label="<?= (int) $currentYear ?> challenge solving chart with 235 days">
+                    <div class="analytics-activity-grid" aria-label="<?= (int) $currentYear ?> challenge solving chart with <?= (int) $analyticsTrackedDays ?> days">
                         <?php foreach ($activityDays as $activityDay) : ?>
                             <span
                                 class="analytics-activity-cell analytics-activity-cell--<?= (int) $activityDay['level'] ?>"
+                                tabindex="0"
+                                role="button"
+                                aria-label="<?= htmlspecialchars($activityDay['date']->format('M j, Y'), ENT_QUOTES, 'UTF-8') ?>: <?= (int) $activityDay['solves'] ?> solved challenges"
+                                data-tooltip="<?= htmlspecialchars($activityDay['date']->format('M j, Y'), ENT_QUOTES, 'UTF-8') ?>: <?= (int) $activityDay['solves'] ?> solved"
                                 title="<?= htmlspecialchars($activityDay['date']->format('M j, Y'), ENT_QUOTES, 'UTF-8') ?>: <?= (int) $activityDay['solves'] ?> solved"></span>
                         <?php endforeach; ?>
                     </div>
@@ -90,13 +136,16 @@ for ($index = 0; $index < 64; $index++) {
                     <input id="analytics-search" type="search" class="mt-1 w-full rounded-xl border-2 border-arcade-ink/15 bg-white px-3 py-2 text-sm outline-none transition focus:border-arcade-orange" placeholder="Search title, status, level, or details...">
                 </label>
                 <div class="flex gap-2">
-                    <button class="analytics-filter is-active rounded-xl border-2 border-arcade-ink/10 bg-arcade-yellow px-3 py-2 text-xs font-bold" type="button" data-status-filter="all">All</button>
-                    <button class="analytics-filter rounded-xl border-2 border-arcade-ink/10 bg-white px-3 py-2 text-xs font-bold" type="button" data-status-filter="completed">Completed</button>
-                    <button class="analytics-filter rounded-xl border-2 border-arcade-ink/10 bg-white px-3 py-2 text-xs font-bold" type="button" data-status-filter="ongoing">Ongoing</button>
+                    <button class="analytics-filter <?= $initialStatusFilter === 'all' ? 'is-active bg-arcade-yellow' : 'bg-white' ?> rounded-xl border-2 border-arcade-ink/10 px-3 py-2 text-xs font-bold" type="button" data-status-filter="all">All</button>
+                    <button class="analytics-filter <?= $initialStatusFilter === 'completed' ? 'is-active bg-arcade-yellow' : 'bg-white' ?> rounded-xl border-2 border-arcade-ink/10 px-3 py-2 text-xs font-bold" type="button" data-status-filter="completed">Completed</button>
+                    <button class="analytics-filter <?= $initialStatusFilter === 'ongoing' ? 'is-active bg-arcade-yellow' : 'bg-white' ?> rounded-xl border-2 border-arcade-ink/10 px-3 py-2 text-xs font-bold" type="button" data-status-filter="ongoing">Ongoing</button>
                 </div>
             </div>
 
             <div class="mt-5 overflow-hidden rounded-2xl border-2 border-arcade-ink/10 bg-white">
+                <?php if ($analyticsRows === []) : ?>
+                    <p class="px-4 py-5 text-sm font-bold text-arcade-ink/55">No challenge activity yet.</p>
+                <?php endif; ?>
                 <?php foreach ($analyticsRows as $rowIndex => $row) : ?>
                     <article
                         class="analytics-row grid gap-2 border-b border-arcade-ink/10 px-4 py-3 last:border-b-0 lg:grid-cols-[1.2fr_0.55fr_0.65fr_1fr_auto] lg:items-center"
@@ -113,14 +162,9 @@ for ($index = 0; $index < 64; $index++) {
                             </span>
                         </div>
                         <p class="text-xs font-bold text-arcade-ink/60"><?= htmlspecialchars($row['level'], ENT_QUOTES, 'UTF-8') ?> - <?= htmlspecialchars($row['duration'], ENT_QUOTES, 'UTF-8') ?></p>
-                        <p class="text-xs font-semibold text-arcade-ink/55">
-                            Started <?= htmlspecialchars($row['startedAt']->format('M j, Y g:i A'), ENT_QUOTES, 'UTF-8') ?>
-                            <?php if ($row['completedAt'] !== null) : ?>
-                                <br>Completed <?= htmlspecialchars($row['completedAt']->format('M j, Y g:i A'), ENT_QUOTES, 'UTF-8') ?>
-                            <?php endif; ?>
-                        </p>
-                        <a href="./?c=pixelwar&intro=1" class="inline-flex justify-center rounded-xl border-2 border-arcade-ink bg-arcade-orange px-3 py-1.5 text-xs font-bold text-white no-underline shadow-[0_3px_0_#26190f] transition hover:-translate-y-0.5 hover:bg-arcade-yellow hover:text-arcade-ink">
-                            Open
+                        <p class="text-xs font-semibold text-arcade-ink/55"><?= htmlspecialchars($row['durationDetails'], ENT_QUOTES, 'UTF-8') ?></p>
+                        <a href="<?= htmlspecialchars($row['href'], ENT_QUOTES, 'UTF-8') ?>" class="inline-flex justify-center rounded-xl border-2 border-arcade-ink bg-arcade-orange px-3 py-1.5 text-xs font-bold text-white no-underline shadow-[0_3px_0_#26190f] transition hover:-translate-y-0.5 hover:bg-arcade-yellow hover:text-arcade-ink">
+                            Train again
                         </a>
                     </article>
                 <?php endforeach; ?>
@@ -135,8 +179,12 @@ for ($index = 0; $index < 64; $index++) {
     </section>
 </main>
 
+<div id="analytics-activity-tooltip" class="analytics-activity-tooltip" role="status" hidden></div>
+
 <script>
 (() => {
+    const tooltip = document.getElementById('analytics-activity-tooltip');
+    const cells = Array.from(document.querySelectorAll('.analytics-activity-cell[data-tooltip]'));
     const rows = Array.from(document.querySelectorAll('[data-analytics-row]'));
     const searchInput = document.getElementById('analytics-search');
     const filterButtons = Array.from(document.querySelectorAll('[data-status-filter]'));
@@ -145,7 +193,26 @@ for ($index = 0; $index < 64; $index++) {
     const pageStatus = document.getElementById('analytics-page-status');
     const pageSize = 20;
     let currentPage = 1;
-    let activeStatus = 'all';
+    let activeStatus = <?= json_encode($initialStatusFilter, JSON_UNESCAPED_SLASHES) ?>;
+
+    const showTooltip = (cell) => {
+        const text = cell.dataset.tooltip || '';
+        if (!tooltip || text === '') {
+            return;
+        }
+
+        const rect = cell.getBoundingClientRect();
+        tooltip.textContent = text;
+        tooltip.hidden = false;
+        tooltip.style.left = `${Math.min(window.innerWidth - 12, Math.max(12, rect.left + rect.width / 2))}px`;
+        tooltip.style.top = `${Math.max(12, rect.top - 10)}px`;
+    };
+
+    const hideTooltip = () => {
+        if (tooltip) {
+            tooltip.hidden = true;
+        }
+    };
 
     const matchingRows = () => {
         const query = (searchInput?.value || '').trim().toLowerCase();
@@ -210,6 +277,16 @@ for ($index = 0; $index < 64; $index++) {
         renderRows();
     });
 
+    cells.forEach((cell) => {
+        cell.addEventListener('mouseenter', () => showTooltip(cell));
+        cell.addEventListener('focus', () => showTooltip(cell));
+        cell.addEventListener('click', () => showTooltip(cell));
+        cell.addEventListener('mouseleave', hideTooltip);
+        cell.addEventListener('blur', hideTooltip);
+    });
+
+    window.addEventListener('scroll', hideTooltip, { passive: true });
+    window.addEventListener('resize', hideTooltip);
     renderRows();
 })();
 </script>

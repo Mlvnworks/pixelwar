@@ -84,6 +84,96 @@ final class SupabaseStorage
         return true;
     }
 
+    public function uploadTextObject(string $contents, string $fileBaseName, string $extension, string $mimeType): string
+    {
+        $this->ensureConfigured();
+
+        $extension = strtolower(trim($extension, '. '));
+        $mimeType = trim($mimeType);
+
+        if ($contents === '') {
+            throw new RuntimeException('Source file content cannot be empty.');
+        }
+
+        if (!in_array($extension, ['html', 'css'], true)) {
+            throw new RuntimeException('Unsupported source file extension.');
+        }
+
+        if (!in_array($mimeType, ['text/html', 'text/css'], true)) {
+            throw new RuntimeException('Unsupported source file type.');
+        }
+
+        if (($extension === 'html' && $mimeType !== 'text/html') || ($extension === 'css' && $mimeType !== 'text/css')) {
+            throw new RuntimeException('Source file extension and MIME type do not match.');
+        }
+
+        $safeBaseName = strtolower(preg_replace('/[^a-z0-9\-]+/i', '-', $fileBaseName) ?? 'challenge-source');
+        $safeBaseName = trim($safeBaseName, '-') ?: 'challenge-source';
+        $objectPath = $this->folder !== ''
+            ? $this->folder . '/' . $safeBaseName . '-' . bin2hex(random_bytes(8)) . '.' . $extension
+            : $safeBaseName . '-' . bin2hex(random_bytes(8)) . '.' . $extension;
+        $uploadUrl = $this->url . '/storage/v1/object/' . rawurlencode($this->bucket) . '/' . $this->encodeObjectPath($objectPath);
+
+        if (function_exists('curl_init')) {
+            $this->uploadWithCurl($uploadUrl, $contents, $mimeType);
+        } else {
+            $this->uploadWithStreamContext($uploadUrl, $contents, $mimeType);
+        }
+
+        return $this->url . '/storage/v1/object/public/' . rawurlencode($this->bucket) . '/' . $this->encodeObjectPath($objectPath);
+    }
+
+    public static function readPublicTextObject(string $publicUrl): string
+    {
+        $publicUrl = trim($publicUrl);
+
+        if ($publicUrl === '' || filter_var($publicUrl, FILTER_VALIDATE_URL) === false) {
+            throw new RuntimeException('Source URL is invalid.');
+        }
+
+        if (function_exists('curl_init')) {
+            $curl = curl_init($publicUrl);
+
+            if ($curl === false) {
+                throw new RuntimeException('Unable to start source file request.');
+            }
+
+            curl_setopt_array($curl, [
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_FOLLOWLOCATION => true,
+                CURLOPT_TIMEOUT => 20,
+                CURLOPT_MAXREDIRS => 3,
+            ]);
+
+            $response = curl_exec($curl);
+            $statusCode = (int) curl_getinfo($curl, CURLINFO_HTTP_CODE);
+            $error = curl_error($curl);
+            curl_close($curl);
+
+            if (!is_string($response) || $statusCode < 200 || $statusCode >= 300) {
+                throw new RuntimeException('Unable to load source file: ' . ($error !== '' ? $error : 'HTTP ' . $statusCode));
+            }
+
+            return $response;
+        }
+
+        $context = stream_context_create([
+            'http' => [
+                'method' => 'GET',
+                'ignore_errors' => true,
+                'timeout' => 20,
+            ],
+        ]);
+        $response = file_get_contents($publicUrl, false, $context);
+        $statusLine = $http_response_header[0] ?? '';
+
+        if (!is_string($response) || !preg_match('/\s2\d\d\s/', $statusLine)) {
+            throw new RuntimeException('Unable to load source file: ' . $statusLine);
+        }
+
+        return $response;
+    }
+
     private function ensureConfigured(): void
     {
         if (!$this->isConfigured()) {

@@ -177,9 +177,63 @@
 
 .preview-frame,
 .target-frame {
+    position: relative;
+    display: flex;
+    align-items: stretch;
+    justify-content: center;
     height: 100%;
     padding: 0.6rem !important;
-    overflow: auto;
+    overflow: hidden;
+}
+
+.game-source-preview {
+    display: block;
+    flex: 1 1 auto;
+    width: 100%;
+    min-height: 100%;
+    height: 100%;
+    border: 0;
+    border-radius: 1rem;
+    background: #f7efe1;
+}
+
+.game-source-loader {
+    position: absolute;
+    inset: 0.6rem;
+    z-index: 3;
+    display: grid;
+    place-items: center;
+    align-content: center;
+    gap: 0.55rem;
+    border-radius: 1rem;
+    background: radial-gradient(circle at 50% 35%, rgba(255, 209, 102, 0.38), transparent 34%),
+        rgba(255, 247, 232, 0.94);
+    color: #26190f;
+    text-align: center;
+}
+
+.game-source-loader[hidden] {
+    display: none;
+}
+
+.game-source-loader strong {
+    font-size: 0.9rem;
+    font-weight: 950;
+}
+
+.game-source-loader__spinner {
+    width: 2.15rem;
+    height: 2.15rem;
+    border: 4px solid rgba(38, 25, 15, 0.16);
+    border-top-color: #ff8c42;
+    border-radius: 999px;
+    animation: pixelwarSourceSpin 800ms linear infinite;
+}
+
+@keyframes pixelwarSourceSpin {
+    to {
+        transform: rotate(360deg);
+    }
 }
 
 .preview-stage,
@@ -273,7 +327,9 @@
 }
 
 .selector-card.is-target-active {
-    box-shadow: inset 0 0 0 2px rgba(255, 140, 66, 0.28), 0 0 0 2px rgba(255, 140, 66, 0.34);
+    border-color: #ff8c42 !important;
+    background: rgba(255, 209, 102, 0.3) !important;
+    box-shadow: inset 0 0 0 2px rgba(255, 140, 66, 0.38), 0 0 0 3px rgba(255, 140, 66, 0.34);
 }
 
 .selector-card.is-target-active p {
@@ -459,11 +515,6 @@
     box-shadow: 0 0 0 2px rgba(255, 140, 66, 0.22);
 }
 
-#game-status.is-success {
-    background: rgba(139, 211, 199, 0.55);
-    border-color: rgba(38, 25, 15, 0.18);
-}
-
 .split-handle {
     width: 12px;
     border-radius: 999px;
@@ -521,6 +572,9 @@ body.is-resizing-split * {
 }
 
 .hud-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     border: 2px solid rgba(38, 25, 15, 0.18);
     background: rgba(255, 209, 102, 0.9);
     color: #26190f;
@@ -532,8 +586,116 @@ body.is-resizing-split * {
     box-shadow: 0 8px 16px rgba(38, 25, 15, 0.14);
 }
 
-#game-status.is-success {
+.gameplay-status-pill {
+    flex-wrap: wrap;
+    gap: 0.55rem;
+    justify-content: space-between;
+}
+
+.gameplay-time {
+    border-left: 2px solid rgba(38, 25, 15, 0.14);
+    padding-left: 0.55rem;
+    color: #ff8c42;
+    font-variant-numeric: tabular-nums;
+}
+
+.give-up-form {
+    margin: 0;
+}
+
+.give-up-button {
+    border: 2px solid rgba(38, 25, 15, 0.18);
+    border-radius: 0.7rem;
+    background: rgba(249, 115, 115, 0.92);
+    padding: 0.28rem 0.55rem;
+    color: #fff;
+    font-size: 0.68rem;
+    font-weight: 900;
+    line-height: 1;
+    box-shadow: 0 3px 0 rgba(38, 25, 15, 0.18);
+    transition: transform 140ms ease, background-color 140ms ease;
+}
+
+.give-up-button:hover {
+    background: #ef4444;
+    transform: translateY(-1px);
+}
+
+.hud-pill.is-success {
     background: rgba(139, 211, 199, 0.9);
+}
+
+.completion-confetti {
+    position: fixed;
+    inset: 0;
+    z-index: 980;
+    overflow: hidden;
+    pointer-events: none;
+}
+
+.completion-confetti:not(.is-active) {
+    display: none;
+}
+
+.confetti-piece {
+    position: absolute;
+    top: -10vh;
+    width: 0.72rem;
+    height: 1.2rem;
+    border-radius: 0.18rem;
+    opacity: 0.96;
+    animation-name: pixelwarConfettiFall;
+    animation-timing-function: linear;
+    animation-fill-mode: forwards;
+    box-shadow: 0 2px 0 rgba(38, 25, 15, 0.18);
+}
+
+@keyframes pixelwarConfettiFall {
+    0% {
+        opacity: 0;
+        transform: translate3d(0, -10vh, 0) rotate(0deg);
+    }
+    10% {
+        opacity: 1;
+    }
+    100% {
+        opacity: 1;
+        transform: translate3d(0, 118vh, 0) rotate(540deg);
+    }
+}
+
+.gameplay-complete-summary {
+    display: grid;
+    gap: 0.75rem;
+}
+
+.gameplay-complete-grid {
+    display: grid;
+    gap: 0.75rem;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.gameplay-complete-card {
+    display: grid;
+    gap: 0.3rem;
+    border: 2px solid rgba(38, 25, 15, 0.12);
+    border-radius: 1rem;
+    background: rgba(255, 255, 255, 0.74);
+    padding: 0.8rem 0.9rem;
+}
+
+.gameplay-complete-card__label {
+    font-size: 0.66rem;
+    font-weight: 900;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: rgba(38, 25, 15, 0.52);
+}
+
+.gameplay-complete-card strong {
+    font-size: 1rem;
+    line-height: 1.2;
+    color: #26190f;
 }
 
 body.pixelwar-dark-mode .mobile-preview-modal .modal-content {
@@ -541,6 +703,33 @@ body.pixelwar-dark-mode .mobile-preview-modal .modal-content {
     background: #1f160f !important;
     color: #fff7e8 !important;
     box-shadow: 8px 8px 0 rgba(0, 0, 0, 0.48) !important;
+}
+
+body.pixelwar-dark-mode .gameplay-complete-modal .modal-content {
+    border-color: rgba(255, 247, 232, 0.34) !important;
+    background: #1f160f !important;
+    color: #fff7e8 !important;
+    box-shadow: 8px 8px 0 rgba(0, 0, 0, 0.48) !important;
+}
+
+body.pixelwar-dark-mode .gameplay-exit-modal .modal-content {
+    border-color: rgba(255, 247, 232, 0.34) !important;
+    background: #1f160f !important;
+    color: #fff7e8 !important;
+    box-shadow: 8px 8px 0 rgba(0, 0, 0, 0.48) !important;
+}
+
+body.pixelwar-dark-mode .gameplay-complete-card {
+    border-color: rgba(255, 247, 232, 0.18);
+    background: rgba(255, 247, 232, 0.06);
+}
+
+body.pixelwar-dark-mode .gameplay-complete-card__label {
+    color: rgba(255, 247, 232, 0.62);
+}
+
+body.pixelwar-dark-mode .gameplay-complete-card strong {
+    color: #fff7e8;
 }
 
 @media (min-width: 769px) {
@@ -851,6 +1040,10 @@ body.pixelwar-dark-mode .mobile-preview-modal .modal-content {
         padding: 0.42rem 0.55rem;
         font-size: 0.68rem;
         box-shadow: 0 6px 14px rgba(38, 25, 15, 0.16);
+    }
+
+    .gameplay-complete-grid {
+        grid-template-columns: 1fr;
     }
 }
 

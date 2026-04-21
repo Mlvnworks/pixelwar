@@ -78,6 +78,7 @@ class UserRepository
                 users.email,
                 users.is_verified,
                 users.registration_date,
+                user_details.ud_id AS user_details_id,
                 user_details.firstname,
                 user_details.lastname,
                 images.source AS avatar_url
@@ -94,6 +95,167 @@ class UserRepository
         $statement->close();
 
         return $users;
+    }
+
+    public function countUsersByRole(int $roleId): int
+    {
+        $statement = $this->connection->prepare(
+            'SELECT COUNT(*) AS total
+             FROM users
+             WHERE role_id = ? AND date_deleted IS NULL'
+        );
+        $statement->bind_param('i', $roleId);
+        $statement->execute();
+        $row = $statement->get_result()->fetch_assoc();
+        $statement->close();
+
+        return (int) ($row['total'] ?? 0);
+    }
+
+    public function countUsersByRoleFiltered(int $roleId, string $search = '', ?int $isVerified = null): int
+    {
+        $search = trim($search);
+        $sql = 'SELECT COUNT(*) AS total
+                FROM users
+                LEFT JOIN user_details ON user_details.user_id = users.user_id
+                WHERE users.role_id = ?
+                    AND users.date_deleted IS NULL';
+        $types = 'i';
+        $params = [$roleId];
+
+        if ($isVerified !== null) {
+            $sql .= ' AND users.is_verified = ?';
+            $types .= 'i';
+            $params[] = $isVerified;
+        }
+
+        if ($search !== '') {
+            $sql .= ' AND (
+                users.username LIKE ?
+                OR users.email LIKE ?
+                OR CONCAT(COALESCE(user_details.firstname, \'\'), \' \', COALESCE(user_details.lastname, \'\')) LIKE ?
+            )';
+            $searchLike = '%' . $search . '%';
+            $types .= 'sss';
+            $params[] = $searchLike;
+            $params[] = $searchLike;
+            $params[] = $searchLike;
+        }
+
+        $statement = $this->connection->prepare($sql);
+        $statement->bind_param($types, ...$params);
+        $statement->execute();
+        $row = $statement->get_result()->fetch_assoc();
+        $statement->close();
+
+        return (int) ($row['total'] ?? 0);
+    }
+
+    public function countUsersRegisteredTodayByRole(int $roleId): int
+    {
+        $statement = $this->connection->prepare(
+            'SELECT COUNT(*) AS total
+             FROM users
+             WHERE role_id = ?
+                AND date_deleted IS NULL
+                AND DATE(registration_date) = CURDATE()'
+        );
+        $statement->bind_param('i', $roleId);
+        $statement->execute();
+        $row = $statement->get_result()->fetch_assoc();
+        $statement->close();
+
+        return (int) ($row['total'] ?? 0);
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    public function listUsersByRoleFiltered(int $roleId, string $search = '', ?int $isVerified = null, int $limit = 25, int $offset = 0): array
+    {
+        $search = trim($search);
+        $limit = max(1, min(100, $limit));
+        $offset = max(0, $offset);
+        $sql = 'SELECT
+                    users.user_id,
+                    users.username,
+                    users.email,
+                    users.is_verified,
+                    users.registration_date,
+                    user_details.ud_id AS user_details_id,
+                    user_details.firstname,
+                    user_details.lastname,
+                    images.source AS avatar_url
+                FROM users
+                LEFT JOIN user_details ON user_details.user_id = users.user_id
+                LEFT JOIN images ON images.img_id = user_details.image_id
+                WHERE users.role_id = ?
+                    AND users.date_deleted IS NULL';
+        $types = 'i';
+        $params = [$roleId];
+
+        if ($isVerified !== null) {
+            $sql .= ' AND users.is_verified = ?';
+            $types .= 'i';
+            $params[] = $isVerified;
+        }
+
+        if ($search !== '') {
+            $sql .= ' AND (
+                users.username LIKE ?
+                OR users.email LIKE ?
+                OR CONCAT(COALESCE(user_details.firstname, \'\'), \' \', COALESCE(user_details.lastname, \'\')) LIKE ?
+            )';
+            $searchLike = '%' . $search . '%';
+            $types .= 'sss';
+            $params[] = $searchLike;
+            $params[] = $searchLike;
+            $params[] = $searchLike;
+        }
+
+        $sql .= ' ORDER BY users.registration_date DESC LIMIT ? OFFSET ?';
+        $types .= 'ii';
+        $params[] = $limit;
+        $params[] = $offset;
+
+        $statement = $this->connection->prepare($sql);
+        $statement->bind_param($types, ...$params);
+        $statement->execute();
+        $users = $statement->get_result()->fetch_all(MYSQLI_ASSOC);
+        $statement->close();
+
+        return $users;
+    }
+
+    /**
+     * @return array<string, int>
+     */
+    public function countRegistrationsByDayAndRole(int $roleId, DateTimeInterface $startDate, DateTimeInterface $endDate): array
+    {
+        $start = $startDate->format('Y-m-d 00:00:00');
+        $end = $endDate->format('Y-m-d 23:59:59');
+        $statement = $this->connection->prepare(
+            'SELECT DATE(registration_date) AS registration_day, COUNT(*) AS total
+             FROM users
+             WHERE role_id = ?
+                AND date_deleted IS NULL
+                AND registration_date >= ?
+                AND registration_date <= ?
+             GROUP BY DATE(registration_date)
+             ORDER BY registration_day ASC'
+        );
+        $statement->bind_param('iss', $roleId, $start, $end);
+        $statement->execute();
+        $rows = $statement->get_result()->fetch_all(MYSQLI_ASSOC);
+        $statement->close();
+
+        $counts = [];
+
+        foreach ($rows as $row) {
+            $counts[(string) $row['registration_day']] = (int) ($row['total'] ?? 0);
+        }
+
+        return $counts;
     }
 
     public function userDetailsExist(int $userId): bool
@@ -135,6 +297,17 @@ class UserRepository
         $statement->close();
 
         return $user ?: null;
+    }
+
+    public function usernameExistsForOtherUser(string $username, int $userId): bool
+    {
+        $statement = $this->connection->prepare('SELECT user_id FROM users WHERE username = ? AND user_id <> ? AND date_deleted IS NULL LIMIT 1');
+        $statement->bind_param('si', $username, $userId);
+        $statement->execute();
+        $exists = $statement->get_result()->fetch_assoc() !== null;
+        $statement->close();
+
+        return $exists;
     }
 
     public function findVerificationUser(int $userId): ?array
@@ -185,6 +358,21 @@ class UserRepository
         return $userId;
     }
 
+    public function createTeacher(string $username, string $email, string $passwordHash): int
+    {
+        $roleId = 2;
+        $isVerified = 0;
+        $statement = $this->connection->prepare(
+            'INSERT INTO users (role_id, username, email, password, is_verified) VALUES (?, ?, ?, ?, ?)'
+        );
+        $statement->bind_param('isssi', $roleId, $username, $email, $passwordHash, $isVerified);
+        $statement->execute();
+        $userId = (int) $statement->insert_id;
+        $statement->close();
+
+        return $userId;
+    }
+
     public function updateEmailVerificationState(int $userId, string $email, int $isVerified): void
     {
         $statement = $this->connection->prepare('UPDATE users SET email = ?, is_verified = ? WHERE user_id = ?');
@@ -198,6 +386,18 @@ class UserRepository
         $verified = 1;
         $statement = $this->connection->prepare('UPDATE users SET is_verified = ? WHERE user_id = ?');
         $statement->bind_param('ii', $verified, $userId);
+        $statement->execute();
+        $statement->close();
+    }
+
+    public function updateTeacherSetupCredentials(int $userId, string $username, string $passwordHash, int $isVerified): void
+    {
+        $statement = $this->connection->prepare(
+            'UPDATE users
+             SET username = ?, password = ?, is_verified = ?
+             WHERE user_id = ?'
+        );
+        $statement->bind_param('ssii', $username, $passwordHash, $isVerified, $userId);
         $statement->execute();
         $statement->close();
     }

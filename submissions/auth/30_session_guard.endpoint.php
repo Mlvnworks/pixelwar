@@ -26,6 +26,7 @@ if (isset($_SESSION['user_id'])) {
 
 if (
     $sessionUser !== null
+    && (int) ($sessionUser['role_id'] ?? 0) === pixelwarStudentRoleId()
     && (int) $sessionUser['is_verified'] !== 1
     && (
         empty($_SESSION['pending_verification_user_id'])
@@ -95,6 +96,16 @@ if (
 }
 
 if (
+    $sessionUser !== null
+    && pixelwarTeacherNeedsSetup(pixelwarRequireUserRepository($userRepository), $sessionUser)
+    && $currentPage !== 'profile-setup'
+    && $currentPage !== 'login'
+    && $currentPage !== 'landing'
+) {
+    pixelwarRedirect('profile-setup');
+}
+
+if (
     $requestMethod === 'GET'
     && $sessionUser !== null
     && (int) ($sessionUser['role_id'] ?? 0) === pixelwarStudentRoleId()
@@ -113,4 +124,14 @@ if (
     && pixelwarUserDetailsExist(pixelwarRequireUserRepository($userRepository), (int) $sessionUser['user_id'])
 ) {
     pixelwarRedirect('home');
+}
+
+if (
+    $requestMethod === 'GET'
+    && $sessionUser !== null
+    && (int) ($sessionUser['role_id'] ?? 0) === pixelwarTeacherRoleId()
+    && !pixelwarTeacherNeedsSetup(pixelwarRequireUserRepository($userRepository), $sessionUser)
+    && $currentPage === 'profile-setup'
+) {
+    pixelwarRedirectToRoleHome($sessionUser);
 }

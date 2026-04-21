@@ -23,6 +23,24 @@ function teacherPanelRequireUserRepository($userRepository): UserRepository
     return $userRepository;
 }
 
+function teacherPanelRequireChallengeCreationService($challengeCreationService): ChallengeCreationService
+{
+    if (!$challengeCreationService instanceof ChallengeCreationService) {
+        throw new RuntimeException('Challenge creation service is not available.');
+    }
+
+    return $challengeCreationService;
+}
+
+function teacherPanelValidateCsrf(): bool
+{
+    $token = (string) ($_POST['_csrf_token'] ?? '');
+
+    return isset($_SESSION['_csrf_token'])
+        && is_string($_SESSION['_csrf_token'])
+        && hash_equals($_SESSION['_csrf_token'], $token);
+}
+
 function teacherPanelCsrfToken(): string
 {
     if (empty($_SESSION['_csrf_token']) || !is_string($_SESSION['_csrf_token'])) {

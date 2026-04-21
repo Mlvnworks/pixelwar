@@ -51,6 +51,37 @@ function pixelwarRequireUserAccountService($userAccountService): UserAccountServ
     return $userAccountService;
 }
 
+function pixelwarRequireTeacherAccountService($teacherAccountService): TeacherAccountService
+{
+    if (!$teacherAccountService instanceof TeacherAccountService) {
+        throw new RuntimeException('Teacher account service is not available.');
+    }
+
+    return $teacherAccountService;
+}
+
+function pixelwarRequireActivityLogRepository($activityLogRepository): ActivityLogRepository
+{
+    if (!$activityLogRepository instanceof ActivityLogRepository) {
+        throw new RuntimeException('Activity log repository is not available.');
+    }
+
+    return $activityLogRepository;
+}
+
+function pixelwarLogActivity($activityLogRepository, int $userId, string $category, string $logText): void
+{
+    if ($userId <= 0 || !$activityLogRepository instanceof ActivityLogRepository) {
+        return;
+    }
+
+    try {
+        $activityLogRepository->create($userId, $category, $logText);
+    } catch (Throwable $err) {
+        error_log('Pixelwar activity log error: ' . $err->getMessage());
+    }
+}
+
 function pixelwarFindSignupConflict(UserRepository $userRepository, string $username, string $email): ?string
 {
     $existingUser = $userRepository->findSignupConflict($username, $email);
@@ -104,6 +135,15 @@ function pixelwarRedirectToRoleHome(array $user): void
 function pixelwarUserDetailsExist(UserRepository $userRepository, int $userId): bool
 {
     return $userRepository->userDetailsExist($userId);
+}
+
+function pixelwarTeacherNeedsSetup(UserRepository $userRepository, array $user): bool
+{
+    return (int) ($user['role_id'] ?? 0) === pixelwarTeacherRoleId()
+        && (
+            (int) ($user['is_verified'] ?? 0) !== 1
+            || !pixelwarUserDetailsExist($userRepository, (int) ($user['user_id'] ?? 0))
+        );
 }
 
 function pixelwarFindSessionUser(UserRepository $userRepository): ?array
@@ -175,6 +215,10 @@ function pixelwarValidateCsrf(): bool
 function pixelwarRedirectAfterAuthState(UserRepository $userRepository, array $user): void
 {
     pixelwarRefreshSessionUser($user);
+
+    if (pixelwarTeacherNeedsSetup($userRepository, $user)) {
+        pixelwarRedirect('profile-setup');
+    }
 
     if ((int) ($user['role_id'] ?? 0) !== pixelwarStudentRoleId()) {
         pixelwarRedirectToRoleHome($user);

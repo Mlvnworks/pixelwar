@@ -1,6 +1,191 @@
 .teacher-shell {
-    min-height: calc(100vh - 9rem);
+    min-height: 100vh;
     background: #fff7e8;
+}
+
+.teacher-header {
+    position: relative;
+    z-index: 40;
+}
+
+.teacher-sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    border-bottom: 4px solid #26190f;
+    background: linear-gradient(180deg, #fffdf6 0%, #fff7e8 100%);
+    padding: 1rem;
+    box-shadow: 0 5px 0 rgba(38, 25, 15, 0.14);
+}
+
+.teacher-sidebar__brand {
+    padding: 0.25rem 0.15rem 0.65rem;
+}
+
+.teacher-sidebar__logo {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    color: #26190f;
+    text-decoration: none;
+}
+
+.teacher-sidebar__mark {
+    flex: 0 0 auto;
+    width: 3.3rem;
+    height: 2.15rem;
+    border-radius: 0.65rem;
+    object-fit: cover;
+}
+
+.teacher-sidebar--admin .teacher-sidebar__mark {
+    background: transparent;
+}
+
+.teacher-sidebar__app,
+.teacher-sidebar__role {
+    display: block;
+}
+
+.teacher-sidebar__app {
+    font-family: "Press Start 2P", cursive;
+    font-size: 0.82rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.teacher-sidebar__role {
+    margin-top: 0.28rem;
+    color: rgba(38, 25, 15, 0.62);
+    font-size: 0.78rem;
+    font-weight: 900;
+}
+
+.teacher-sidebar__account {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    border: 2px solid rgba(38, 25, 15, 0.14);
+    border-radius: 1.2rem;
+    background: rgba(255, 255, 255, 0.72);
+    padding: 0.75rem;
+}
+
+.teacher-sidebar__avatar {
+    display: grid;
+    flex: 0 0 auto;
+    width: 3rem;
+    height: 3rem;
+    place-items: center;
+    overflow: hidden;
+    border: 2px solid #26190f;
+    border-radius: 1rem;
+    background: #4cc9f0;
+    color: #26190f;
+    font-family: "Press Start 2P", cursive;
+    font-size: 0.68rem;
+    box-shadow: 0 3px 0 rgba(38, 25, 15, 0.2);
+}
+
+.teacher-sidebar__name,
+.teacher-sidebar__email {
+    overflow: hidden;
+    margin: 0;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.teacher-sidebar__name {
+    color: #26190f;
+    font-size: 0.92rem;
+    font-weight: 950;
+}
+
+.teacher-sidebar__email {
+    margin-top: 0.18rem;
+    color: rgba(38, 25, 15, 0.58);
+    font-size: 0.74rem;
+    font-weight: 800;
+}
+
+.teacher-sidebar__switch {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border: 2px solid rgba(38, 25, 15, 0.16);
+    border-radius: 1rem;
+    background: #fff;
+    padding: 0.7rem 0.8rem;
+    color: #26190f;
+    font-size: 0.82rem;
+    font-weight: 900;
+    text-decoration: none;
+    transition: transform 160ms ease, background-color 160ms ease, border-color 160ms ease;
+}
+
+.teacher-sidebar__switch:hover {
+    border-color: #26190f;
+    background: #4cc9f0;
+    transform: translateY(-1px);
+}
+
+.teacher-sidebar__controls {
+    display: grid;
+    gap: 0.3rem;
+    border-top: 2px solid rgba(38, 25, 15, 0.1);
+    padding-top: 0.8rem;
+}
+
+.teacher-sidebar__section-title {
+    margin: 0 0 0.2rem;
+    font-family: "Press Start 2P", cursive;
+    color: #ff8c42;
+    font-size: 0.55rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+}
+
+.teacher-topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    border-bottom: 3px solid rgba(38, 25, 15, 0.12);
+    background: rgba(255, 253, 246, 0.92);
+    padding: 0.85rem 1rem;
+    backdrop-filter: blur(14px);
+}
+
+.teacher-topbar__eyebrow {
+    margin: 0;
+    font-family: "Press Start 2P", cursive;
+    color: #ff8c42;
+    font-size: 0.58rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+}
+
+.teacher-topbar__title {
+    margin: 0.2rem 0 0;
+    color: #26190f;
+    font-size: 1rem;
+    font-weight: 950;
+}
+
+.teacher-shell > .container,
+.teacher-footer > .container {
+    max-width: 1440px;
+}
+
+.create-challenge-shell > .container {
+    width: min(calc(100% - clamp(1rem, 2.5vw, 2rem)), 1380px);
+    padding-inline: 0;
+}
+
+.create-challenge-shell .teacher-hero,
+.create-challenge-shell .teacher-panel {
+    max-width: 100%;
 }
 
 .teacher-bg {
@@ -33,18 +218,21 @@
 }
 
 .teacher-nav {
+    display: flex;
     max-width: 100%;
+    gap: 0.55rem;
     overflow-x: auto;
     overflow-y: visible;
-    padding: 0.25rem 0.2rem 0.55rem;
+    padding: 0.15rem 0.15rem 0.55rem;
     scrollbar-width: thin;
 }
 
 .teacher-nav__link {
+    gap: 0.65rem;
     border: 2px solid rgba(38, 25, 15, 0.12);
-    border-radius: 0.9rem;
+    border-radius: 1rem;
     background: rgba(255, 255, 255, 0.78);
-    padding: 0.55rem 0.85rem;
+    padding: 0.7rem 0.85rem;
     color: #26190f;
     font-size: 0.82rem;
     font-weight: 900;
@@ -137,9 +325,11 @@
 
 .teacher-activity-scroll {
     margin-inline: -0.25rem;
+    max-width: 100%;
     overflow-x: auto;
     overflow-y: visible;
     padding: 2.4rem 0.25rem 1rem;
+    scrollbar-width: thin;
 }
 
 .teacher-activity-cell {
@@ -227,6 +417,25 @@
 .teacher-created-challenge {
     position: relative;
     overflow: hidden;
+    min-height: 100%;
+}
+
+.teacher-created-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
+    gap: 1rem;
+}
+
+.teacher-created-grid--compact {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 17rem), 21rem));
+}
+
+.teacher-created-challenge--library {
+    max-width: 21rem;
+}
+
+.teacher-created-challenge--library .teacher-card-description {
+    -webkit-line-clamp: 3;
 }
 
 .teacher-created-challenge::before {
@@ -247,6 +456,103 @@
     overflow: hidden;
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 2;
+}
+
+.challenge-detail-meta {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 8.5rem), 1fr));
+    gap: 0.85rem 1rem;
+    border-top: 2px solid rgba(38, 25, 15, 0.1);
+    border-bottom: 2px solid rgba(38, 25, 15, 0.1);
+    padding-block: 1rem;
+}
+
+.challenge-detail-meta span {
+    min-width: 0;
+}
+
+.challenge-detail-meta small {
+    display: block;
+    color: rgba(38, 25, 15, 0.52);
+    font-size: 0.68rem;
+    font-weight: 950;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+}
+
+.challenge-detail-meta strong {
+    display: inline-flex;
+    max-width: 100%;
+    margin-top: 0.35rem;
+    color: #26190f;
+    font-size: 0.92rem;
+    font-weight: 950;
+}
+
+.challenge-source-inline {
+    border-bottom: 2px solid rgba(38, 25, 15, 0.1);
+    padding-bottom: 1rem;
+}
+
+.challenge-detail-preview {
+    border: 2px solid rgba(38, 25, 15, 0.12);
+    border-radius: 1.35rem;
+    background: rgba(255, 255, 255, 0.52);
+    padding: 1rem;
+}
+
+.challenge-detail-preview__frame {
+    position: relative;
+    overflow: hidden;
+    min-height: 24rem;
+    border: 2px solid rgba(38, 25, 15, 0.14);
+    border-radius: 1rem;
+    background: #fff7e8;
+}
+
+.challenge-detail-preview__frame iframe {
+    width: 100%;
+    min-height: 24rem;
+    border: 0;
+    background: #fff7e8;
+}
+
+.challenge-preview-loader {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    display: grid;
+    place-items: center;
+    align-content: center;
+    gap: 0.55rem;
+    background: radial-gradient(circle at 50% 35%, rgba(255, 209, 102, 0.35), transparent 34%),
+        rgba(255, 247, 232, 0.92);
+    color: #26190f;
+    text-align: center;
+}
+
+.challenge-preview-loader[hidden] {
+    display: none;
+}
+
+.challenge-preview-loader strong {
+    font-size: 0.95rem;
+    font-weight: 950;
+}
+
+.challenge-preview-loader small {
+    color: rgba(38, 25, 15, 0.58);
+    font-size: 0.78rem;
+    font-weight: 850;
+}
+
+.challenge-preview-loader__spinner {
+    width: 2.25rem;
+    height: 2.25rem;
+    border: 4px solid rgba(38, 25, 15, 0.16);
+    border-top-color: #ff8c42;
+    border-radius: 999px;
+    animation: teacherSpin 800ms linear infinite;
 }
 
 .teacher-top-rank {
@@ -304,12 +610,102 @@
     box-shadow: 0 3px 0 #26190f;
 }
 
+.teacher-filterbar {
+    display: grid;
+    grid-template-columns: minmax(0, 1.6fr) minmax(9rem, 0.7fr) minmax(9rem, 0.7fr) auto auto;
+    gap: 0.75rem;
+    align-items: end;
+    border: 2px solid rgba(38, 25, 15, 0.12);
+    border-radius: 1.35rem;
+    background: rgba(255, 255, 255, 0.62);
+    padding: 1rem;
+}
+
+.teacher-filterbar label {
+    display: grid;
+    gap: 0.35rem;
+    min-width: 0;
+}
+
+.teacher-filterbar label span {
+    color: rgba(38, 25, 15, 0.58);
+    font-size: 0.72rem;
+    font-weight: 950;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.teacher-filterbar input,
+.teacher-filterbar select {
+    width: 100%;
+    min-height: 2.7rem;
+    border: 2px solid rgba(38, 25, 15, 0.18);
+    border-radius: 0.95rem;
+    background: #fff;
+    padding: 0.68rem 0.85rem;
+    color: #26190f;
+    font-weight: 850;
+    outline: none;
+}
+
 .teacher-profile > summary::-webkit-details-marker {
+    display: none;
+}
+
+.pixelwar-notifications > summary::-webkit-details-marker {
     display: none;
 }
 
 .teacher-profile__menu {
     animation: teacherMenuIn 160ms ease both;
+}
+
+.pixelwar-notifications__menu {
+    animation: teacherMenuIn 160ms ease both;
+}
+
+.pixelwar-notifications__badge {
+    position: absolute;
+    right: -0.35rem;
+    top: -0.35rem;
+    display: grid;
+    min-width: 1.25rem;
+    height: 1.25rem;
+    place-items: center;
+    border: 2px solid #26190f;
+    border-radius: 999px;
+    background: #f97373;
+    color: #fff;
+    font-size: 0.62rem;
+    font-weight: 900;
+    line-height: 1;
+    box-shadow: 0 2px 0 rgba(38, 25, 15, 0.25);
+}
+
+.pixelwar-notification {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.75rem;
+    border-radius: 1rem;
+    padding: 0.75rem;
+    background: rgba(255, 247, 232, 0.72);
+}
+
+.pixelwar-notification--unread {
+    border: 2px solid rgba(249, 115, 115, 0.5);
+    background: rgba(255, 209, 102, 0.28);
+}
+
+.pixelwar-notification--unread::before {
+    content: "";
+    flex: 0 0 auto;
+    width: 0.55rem;
+    height: 0.55rem;
+    margin-top: 0.35rem;
+    border-radius: 999px;
+    background: #f97373;
+    box-shadow: 0 0 0 3px rgba(249, 115, 115, 0.18);
 }
 
 .teacher-profile__item {
@@ -379,10 +775,13 @@ body.pixelwar-dark-mode .teacher-bg {
 }
 
 body.pixelwar-dark-mode .teacher-header .container,
+body.pixelwar-dark-mode .teacher-sidebar,
+body.pixelwar-dark-mode .teacher-topbar,
 body.pixelwar-dark-mode .teacher-hero,
 body.pixelwar-dark-mode .teacher-panel,
 body.pixelwar-dark-mode .teacher-page-card,
-body.pixelwar-dark-mode .teacher-profile__menu {
+body.pixelwar-dark-mode .teacher-profile__menu,
+body.pixelwar-dark-mode .pixelwar-notifications__menu {
     border-color: rgba(255, 247, 232, 0.72) !important;
     background: linear-gradient(145deg, #24170d 0%, #1a1310 100%) !important;
     color: #fff7e8 !important;
@@ -397,9 +796,13 @@ body.pixelwar-dark-mode .teacher-top-challenge,
 body.pixelwar-dark-mode .teacher-student-card,
 body.pixelwar-dark-mode .teacher-challenge-card,
 body.pixelwar-dark-mode .teacher-settings-card,
+body.pixelwar-dark-mode .teacher-sidebar__account,
 body.pixelwar-dark-mode .teacher-nav__link,
 body.pixelwar-dark-mode .teacher-profile__summary,
-body.pixelwar-dark-mode .teacher-search input {
+body.pixelwar-dark-mode .teacher-search input,
+body.pixelwar-dark-mode .teacher-filterbar,
+body.pixelwar-dark-mode .teacher-filterbar input,
+body.pixelwar-dark-mode .teacher-filterbar select {
     border-color: rgba(255, 247, 232, 0.28) !important;
     background: #1f160f !important;
     color: #fff7e8 !important;
@@ -451,8 +854,40 @@ body.pixelwar-dark-mode .teacher-mini-link {
 }
 
 body.pixelwar-dark-mode .teacher-profile__item,
-body.pixelwar-dark-mode .teacher-profile__menu p {
+body.pixelwar-dark-mode .teacher-profile__menu p,
+body.pixelwar-dark-mode .pixelwar-notifications__menu p {
     color: #fff7e8;
+}
+
+body.pixelwar-dark-mode .pixelwar-notification {
+    background: #2a1d13;
+}
+
+body.pixelwar-dark-mode .pixelwar-notification--unread {
+    border-color: rgba(255, 140, 66, 0.58);
+    background: rgba(255, 140, 66, 0.14);
+}
+
+body.pixelwar-dark-mode .teacher-sidebar__switch,
+body.pixelwar-dark-mode .teacher-topbar__title {
+    color: #26190f;
+}
+
+body.pixelwar-dark-mode .teacher-sidebar__logo,
+body.pixelwar-dark-mode .teacher-sidebar__app {
+    color: #fff7e8;
+}
+
+body.pixelwar-dark-mode .teacher-sidebar__name {
+    color: #fff7e8;
+}
+
+body.pixelwar-dark-mode .teacher-sidebar__email {
+    color: rgba(255, 247, 232, 0.62);
+}
+
+body.pixelwar-dark-mode .teacher-sidebar__role {
+    color: rgba(38, 25, 15, 0.68);
 }
 
 @keyframes teacherMenuIn {
@@ -464,6 +899,12 @@ body.pixelwar-dark-mode .teacher-profile__menu p {
     to {
         opacity: 1;
         transform: translateY(0) scale(1);
+    }
+}
+
+@keyframes teacherSpin {
+    to {
+        transform: rotate(360deg);
     }
 }
 
@@ -480,7 +921,50 @@ body.pixelwar-dark-mode .teacher-profile__menu p {
         flex-direction: column;
     }
 
+    .teacher-filterbar {
+        grid-template-columns: 1fr;
+    }
+
     .teacher-button {
         width: 100%;
+    }
+}
+
+@media (min-width: 1024px) {
+    .teacher-sidebar {
+        position: fixed;
+        inset: 0 auto 0 0;
+        width: 17.5rem;
+        border-right: 4px solid #26190f;
+        border-bottom: 0;
+        padding: 1.15rem;
+        box-shadow: 6px 0 0 rgba(38, 25, 15, 0.18);
+    }
+
+    .teacher-nav {
+        flex-direction: column;
+        overflow: visible;
+        padding: 0.25rem 0;
+    }
+
+    .teacher-nav__link {
+        justify-content: flex-start;
+        width: 100%;
+    }
+
+    .teacher-sidebar__switch {
+        margin-top: auto;
+    }
+
+    .teacher-topbar {
+        position: sticky;
+        top: 0;
+        margin-left: 17.5rem;
+        padding-inline: 1.5rem;
+    }
+
+    .teacher-shell,
+    .teacher-footer {
+        margin-left: 17.5rem;
     }
 }

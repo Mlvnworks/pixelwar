@@ -11,6 +11,8 @@ $pageStyleFile = $adminBasePath . '/styling/page/' . $normalizedContent . '.css'
 $adminTitles = [
     'dashboard' => 'Admin Dashboard | ' . APP_NAME,
     'teachers' => 'Teacher Management | ' . APP_NAME,
+    'students' => 'Student Management | ' . APP_NAME,
+    'logs' => 'Activity Logs | ' . APP_NAME,
     'settings' => 'Admin Settings | ' . APP_NAME,
 ];
 $appName = $adminTitles[$normalizedContent] ?? ('Admin Panel | ' . APP_NAME);
@@ -33,6 +35,7 @@ $appDescription = 'Admin workspace for managing Pixelwar teachers and platform c
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
         integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
         crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js" defer></script>
     <script>

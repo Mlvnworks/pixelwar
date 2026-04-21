@@ -20,7 +20,7 @@ $landingTryGameHref = './?c=challenge&slug=' . urlencode((string) $landingFirstC
             </p>
 
             <div class="mt-9 flex flex-col gap-3 sm:flex-row">
-                <a href="./?c=signup" class="landing-button landing-button--primary inline-flex justify-center rounded-2xl border-2 border-arcade-ink bg-arcade-yellow px-7 py-4 text-sm font-bold text-arcade-ink no-underline shadow-[0_7px_0_#26190f] transition hover:-translate-y-0.5 hover:bg-arcade-orange hover:text-white">
+                <a href="./?c=login" class="landing-button landing-button--primary inline-flex justify-center rounded-2xl border-2 border-arcade-ink bg-arcade-yellow px-7 py-4 text-sm font-bold text-arcade-ink no-underline shadow-[0_7px_0_#26190f] transition hover:-translate-y-0.5 hover:bg-arcade-orange hover:text-white">
                     Start Learning
                 </a>
                 <a href="<?= htmlspecialchars($landingTryGameHref, ENT_QUOTES, 'UTF-8') ?>" class="landing-button inline-flex justify-center rounded-2xl border-2 border-arcade-ink/15 bg-white/80 px-7 py-4 text-sm font-bold text-arcade-ink no-underline transition hover:bg-arcade-peach/80">

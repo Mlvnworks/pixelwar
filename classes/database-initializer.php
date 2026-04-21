@@ -33,6 +33,7 @@ final class DatabaseInitializer
         $this->runSchema($connection);
         $this->runMigrations($connection);
         $this->seedRoles($connection);
+        $this->seedDifficulties($connection);
         $this->seedDefaultAdmin($connection);
         $this->seedDefaultTeacher($connection);
 
@@ -106,6 +107,54 @@ final class DatabaseInitializer
                 CONSTRAINT `user_details_user_id_foreign` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`),
                 CONSTRAINT `user_details_image_id_foreign` FOREIGN KEY (`image_id`) REFERENCES `images` (`img_id`)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci',
+            'CREATE TABLE IF NOT EXISTS `difficulties` (
+                `difficulty_id` INT NOT NULL AUTO_INCREMENT,
+                `name` VARCHAR(50) NOT NULL,
+                `description` VARCHAR(255) NOT NULL,
+                `points` INT NOT NULL,
+                PRIMARY KEY (`difficulty_id`),
+                UNIQUE KEY `difficulties_name_unique` (`name`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci',
+            'CREATE TABLE IF NOT EXISTS `challenges` (
+                `challenge_id` INT NOT NULL AUTO_INCREMENT,
+                `user_id` INT NOT NULL,
+                `difficulty_id` INT NOT NULL,
+                `name` VARCHAR(150) NOT NULL,
+                `instruction` TEXT NOT NULL,
+                `html_source` VARCHAR(255) NOT NULL,
+                `css_source` VARCHAR(255) NOT NULL,
+                `status` INT NOT NULL DEFAULT 0,
+                `date_created` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (`challenge_id`),
+                KEY `challenges_user_id_index` (`user_id`),
+                KEY `challenges_difficulty_id_index` (`difficulty_id`),
+                KEY `challenges_status_index` (`status`),
+                CONSTRAINT `challenges_user_id_foreign` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`),
+                CONSTRAINT `challenges_difficulty_id_foreign` FOREIGN KEY (`difficulty_id`) REFERENCES `difficulties` (`difficulty_id`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci',
+            'CREATE TABLE IF NOT EXISTS `user_challenge` (
+                `uc_id` INT NOT NULL AUTO_INCREMENT,
+                `challenge_id` INT NOT NULL,
+                `user_id` INT NOT NULL,
+                `started_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                `completed_at` TIMESTAMP NULL DEFAULT NULL,
+                PRIMARY KEY (`uc_id`),
+                KEY `user_challenge_challenge_id_index` (`challenge_id`),
+                KEY `user_challenge_user_id_index` (`user_id`),
+                CONSTRAINT `user_challenge_challenge_id_foreign` FOREIGN KEY (`challenge_id`) REFERENCES `challenges` (`challenge_id`),
+                CONSTRAINT `user_challenge_user_id_foreign` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci',
+            'CREATE TABLE IF NOT EXISTS `activity_logs` (
+                `al_id` INT NOT NULL AUTO_INCREMENT,
+                `user_id` INT NOT NULL,
+                `category` VARCHAR(50) NOT NULL,
+                `log_text` VARCHAR(255) NOT NULL,
+                `date_created` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (`al_id`),
+                KEY `activity_logs_user_id_index` (`user_id`),
+                KEY `activity_logs_category_index` (`category`),
+                CONSTRAINT `activity_logs_user_id_foreign` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci',
         ];
     }
 
@@ -126,6 +175,14 @@ final class DatabaseInitializer
         }
 
         $connection->query("UPDATE `roles` SET `role` = 'student' WHERE `role_id` = 3 AND `role` = 'player'");
+
+        if (
+            $this->tableExists($connection, 'activity_logs')
+            && !$this->columnExists($connection, 'activity_logs', 'category')
+        ) {
+            $connection->query("ALTER TABLE `activity_logs` ADD `category` VARCHAR(50) NOT NULL DEFAULT 'general' AFTER `user_id`");
+            $connection->query('ALTER TABLE `activity_logs` ADD KEY `activity_logs_category_index` (`category`)');
+        }
     }
 
     private function tableExists(mysqli $connection, string $table): bool
@@ -158,6 +215,30 @@ final class DatabaseInitializer
 
         foreach ($roles as $roleId => $role) {
             $statement->bind_param('is', $roleId, $role);
+            $statement->execute();
+        }
+
+        $statement->close();
+    }
+
+    private function seedDifficulties(mysqli $connection): void
+    {
+        $difficulties = [
+            1 => ['easy', 'Intro-friendly CSS matching challenge.', 20],
+            2 => ['medium', 'Requires combining layout, spacing, and visual details.', 40],
+            3 => ['hard', 'Advanced matching challenge with stricter visual precision.', 80],
+        ];
+        $statement = $connection->prepare(
+            'INSERT INTO `difficulties` (`difficulty_id`, `name`, `description`, `points`) VALUES (?, ?, ?, ?)
+             ON DUPLICATE KEY UPDATE
+                `name` = VALUES(`name`),
+                `description` = VALUES(`description`),
+                `points` = VALUES(`points`)'
+        );
+
+        foreach ($difficulties as $difficultyId => $difficulty) {
+            [$name, $description, $points] = $difficulty;
+            $statement->bind_param('issi', $difficultyId, $name, $description, $points);
             $statement->execute();
         }
 

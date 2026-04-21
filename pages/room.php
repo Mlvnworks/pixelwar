@@ -128,7 +128,7 @@ HTML;
                             <iframe
                                 class="mt-4 h-[340px] w-full rounded-[20px] bg-transparent"
                                 title="Static isolated room challenge preview"
-                                sandbox=""
+                                sandbox="allow-same-origin"
                                 loading="lazy"
                                 srcdoc="<?= htmlspecialchars($previewSrcdoc, ENT_QUOTES, 'UTF-8') ?>"></iframe>
                         </section>
@@ -183,7 +183,7 @@ HTML;
                     <iframe
                         class="room-preview-frame h-[340px] w-full rounded-[20px] bg-transparent"
                         title="Static isolated room challenge preview"
-                        sandbox=""
+                        sandbox="allow-same-origin"
                         loading="lazy"
                         srcdoc="<?= htmlspecialchars($previewSrcdoc, ENT_QUOTES, 'UTF-8') ?>"></iframe>
                 </div>
@@ -194,27 +194,75 @@ HTML;
 
 <script>
 (() => {
-    const previewShells = Array.from(document.querySelectorAll('.room-preview-frame-shell'));
+    const previewFrames = Array.from(document.querySelectorAll('.room-preview iframe, .room-preview-frame'));
     const previewModal = document.getElementById('room-preview-modal');
-    const previewWidth = 390;
-    const previewHeight = 340;
 
-    const resizePreview = () => {
-        previewShells.forEach((previewShell) => {
-            const shellWidth = previewShell.clientWidth;
-            if (shellWidth <= 0) {
-                return;
-            }
+    const fitPreviewFrame = (frame) => {
+        if (!(frame instanceof HTMLIFrameElement)) {
+            return;
+        }
 
-            const scale = Math.min(1, shellWidth / previewWidth);
-            previewShell.style.setProperty('--room-preview-scale', scale.toFixed(4));
-            previewShell.style.height = `${Math.ceil(previewHeight * scale)}px`;
-        });
+        const doc = frame.contentDocument;
+        const body = doc?.body;
+        if (!doc || !body) {
+            return;
+        }
+
+        let stage = doc.querySelector('[data-preview-fit-stage]');
+        let sizer = doc.querySelector('[data-preview-fit-sizer]');
+        let content = doc.querySelector('[data-preview-fit-content]');
+
+        if (!stage || !sizer || !content) {
+            const existingNodes = Array.from(body.childNodes);
+            body.innerHTML = '';
+
+            stage = doc.createElement('div');
+            stage.setAttribute('data-preview-fit-stage', 'true');
+            stage.style.cssText = 'width:100%;min-height:100vh;display:grid;place-items:center;padding:24px;overflow:visible;box-sizing:border-box;';
+
+            sizer = doc.createElement('div');
+            sizer.setAttribute('data-preview-fit-sizer', 'true');
+            sizer.style.cssText = 'position:relative;display:block;';
+
+            content = doc.createElement('div');
+            content.setAttribute('data-preview-fit-content', 'true');
+            content.style.cssText = 'display:block;width:max-content;transform-origin:top left;';
+
+            existingNodes.forEach((node) => content.appendChild(node));
+            sizer.appendChild(content);
+            stage.appendChild(sizer);
+            body.appendChild(stage);
+        }
+
+        content.style.transform = 'scale(1)';
+        sizer.style.width = 'max-content';
+        sizer.style.height = 'max-content';
+        content.style.width = 'max-content';
+        content.style.height = 'auto';
+
+        const stageStyles = window.getComputedStyle(stage);
+        const availableWidth = stage.clientWidth - parseFloat(stageStyles.paddingLeft || '0') - parseFloat(stageStyles.paddingRight || '0');
+        const availableHeight = stage.clientHeight - parseFloat(stageStyles.paddingTop || '0') - parseFloat(stageStyles.paddingBottom || '0');
+        const naturalWidth = Math.max(content.scrollWidth, content.offsetWidth, 1);
+        const naturalHeight = Math.max(content.scrollHeight, content.offsetHeight, 1);
+        const scale = Math.min(1, availableWidth / naturalWidth, availableHeight / naturalHeight);
+
+        sizer.style.width = `${Math.ceil(naturalWidth * scale)}px`;
+        sizer.style.height = `${Math.ceil(naturalHeight * scale)}px`;
+        content.style.width = `${naturalWidth}px`;
+        content.style.height = `${naturalHeight}px`;
+        content.style.transform = `scale(${scale})`;
     };
 
-    if (previewShells.length > 0 && 'ResizeObserver' in window) {
+    previewFrames.forEach((frame) => {
+        frame.addEventListener('load', () => fitPreviewFrame(frame), { once: false });
+    });
+
+    const resizePreview = () => previewFrames.forEach((frame) => fitPreviewFrame(frame));
+
+    if (previewFrames.length > 0 && 'ResizeObserver' in window) {
         const previewObserver = new ResizeObserver(resizePreview);
-        previewShells.forEach((previewShell) => previewObserver.observe(previewShell));
+        previewFrames.forEach((frame) => frame.parentElement && previewObserver.observe(frame.parentElement));
     }
 
     previewModal?.addEventListener('shown.bs.modal', () => requestAnimationFrame(resizePreview));

@@ -9,13 +9,20 @@ if ($requestMethod === 'POST' && $requestedPage === 'profile-setup') {
 
         $users = pixelwarRequireUserRepository($userRepository);
         $accounts = pixelwarRequireUserAccountService($userAccountService);
+        $teacherAccounts = pixelwarRequireTeacherAccountService($teacherAccountService);
         $userId = (int) ($_SESSION['user_id'] ?? 0);
+        $roleId = (int) ($_SESSION['role_id'] ?? 0);
+        $isTeacherSetup = $roleId === pixelwarTeacherRoleId();
+        $username = trim((string) ($_POST['username'] ?? ($_SESSION['username'] ?? '')));
+        $password = (string) ($_POST['password'] ?? '');
+        $confirmPassword = (string) ($_POST['confirm_password'] ?? '');
         $firstname = trim((string) ($_POST['firstname'] ?? ''));
         $lastname = trim((string) ($_POST['lastname'] ?? ''));
         $profileImageFile = $_FILES['profile_image'] ?? [];
         $errors = [];
 
         $_SESSION['profile_setup_old'] = [
+            'username' => $username,
             'firstname' => $firstname,
             'lastname' => $lastname,
         ];
@@ -35,7 +42,20 @@ if ($requestMethod === 'POST' && $requestedPage === 'profile-setup') {
 
         $sessionUser = pixelwarFindSessionUser($users);
 
-        if ($sessionUser === null || (int) $sessionUser['is_verified'] !== 1) {
+        if ($sessionUser === null) {
+            if ($profileSetupWantsJson) {
+                pixelwarJsonResponse([
+                    'success' => false,
+                    'message' => 'Your session expired. Login again.',
+                    'redirect' => './?c=login',
+                ], 401);
+            }
+
+            $_SESSION['profile_setup_errors'] = ['Your session expired. Login again.'];
+            pixelwarRedirect('login');
+        }
+
+        if (!$isTeacherSetup && (int) $sessionUser['is_verified'] !== 1) {
             if ($profileSetupWantsJson) {
                 pixelwarJsonResponse([
                     'success' => false,
@@ -46,6 +66,24 @@ if ($requestMethod === 'POST' && $requestedPage === 'profile-setup') {
 
             $_SESSION['profile_setup_errors'] = ['Verify your email before setting up your profile.'];
             pixelwarRedirect('email-verification');
+        }
+
+        if ($isTeacherSetup) {
+            if (!preg_match('/^[A-Za-z0-9_]{3,32}$/', $username)) {
+                $errors[] = 'Username must be 3-32 characters and only use letters, numbers, or underscores.';
+            }
+
+            if (strlen($password) < 8) {
+                $errors[] = 'Password must be at least 8 characters.';
+            }
+
+            if ($password !== $confirmPassword) {
+                $errors[] = 'Password confirmation does not match.';
+            }
+
+            if ($errors === [] && $users->usernameExistsForOtherUser($username, $userId)) {
+                $errors[] = 'Username is already taken.';
+            }
         }
 
         if (!preg_match('/^[A-Za-z][A-Za-z .\'-]{1,79}$/', $firstname)) {
@@ -81,27 +119,40 @@ if ($requestMethod === 'POST' && $requestedPage === 'profile-setup') {
         );
         $profileImage = $supabaseStorage->uploadProfileImage($profileImageFile, $userId);
 
-        $accounts->createProfileDetails($userId, $profileImage, $firstname, $lastname);
+        if ($isTeacherSetup) {
+            $teacherAccounts->completeTeacherSetup($userId, $username, $password, $profileImage, $firstname, $lastname);
+            $sessionUser['username'] = $username;
+            $sessionUser['is_verified'] = 1;
+            pixelwarLogActivity($activityLogRepository ?? null, $userId, 'account', 'Completed teacher account setup.');
+            $successMessage = 'Teacher setup complete. Welcome to the teacher panel.';
+            $redirect = './teacher/?c=dashboard';
+        } else {
+            $accounts->createProfileDetails($userId, $profileImage, $firstname, $lastname);
+            pixelwarLogActivity($activityLogRepository ?? null, $userId, 'profile', 'Completed player profile setup.');
+            $successMessage = 'Player profile saved. Welcome to Pixelwar.';
+            $redirect = './?c=home';
+        }
 
         unset($_SESSION['profile_setup_old'], $_SESSION['profile_setup_errors']);
-        $_SESSION['firstname'] = $firstname;
-        $_SESSION['lastname'] = $lastname;
-        $_SESSION['avatar_url'] = $profileImage;
-        $_SESSION['avatar_initials'] = strtoupper(substr($firstname, 0, 1) . substr($lastname, 0, 1));
+        $sessionUser['firstname'] = $firstname;
+        $sessionUser['lastname'] = $lastname;
+        $sessionUser['avatar_url'] = $profileImage;
+        pixelwarRefreshSessionUser($sessionUser);
         $_SESSION['alert'] = [
             'error' => false,
-            'content' => 'Player profile saved. Welcome to Pixelwar.'
+            'content' => $successMessage
         ];
 
         if ($profileSetupWantsJson) {
             pixelwarJsonResponse([
                 'success' => true,
-                'message' => 'Player profile saved. Welcome to Pixelwar.',
-                'redirect' => './?c=home',
+                'message' => $successMessage,
+                'redirect' => $redirect,
             ]);
         }
 
-        pixelwarRedirect('home');
+        header('Location: ' . $redirect);
+        exit;
     } catch (Throwable $err) {
         error_log('Pixelwar profile setup error: ' . $err->getMessage());
         if ($profileSetupWantsJson) {

@@ -119,6 +119,7 @@ if ($requestMethod === 'POST' && $requestedPage === 'settings') {
     $_SESSION['avatar_url'] = $avatarUrl;
 
     if ($emailChanged) {
+        pixelwarLogActivity($activityLogRepository ?? null, $userId, 'settings', 'Updated account settings and changed email address.');
         pixelwarPrepareAccountVerification(
             pixelwarRequireVerificationRepository($verificationRepository),
             $tools,
@@ -132,6 +133,8 @@ if ($requestMethod === 'POST' && $requestedPage === 'settings') {
         ];
         pixelwarRedirect('email-verification');
     }
+
+    pixelwarLogActivity($activityLogRepository ?? null, $userId, 'settings', 'Updated account settings.');
 
     $_SESSION['alert'] = [
         'error' => false,

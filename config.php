@@ -89,6 +89,14 @@ if (!defined('SUPABASE_STORAGE_AVATAR_FOLDER')) {
     define('SUPABASE_STORAGE_AVATAR_FOLDER', Env::get('SUPABASE_STORAGE_AVATAR_FOLDER', 'avatars'));
 }
 
+if (!defined('SUPABASE_STORAGE_CHALLENGE_HTML_FOLDER')) {
+    define('SUPABASE_STORAGE_CHALLENGE_HTML_FOLDER', Env::get('SUPABASE_STORAGE_CHALLENGE_HTML_FOLDER', 'challenge-sources/html'));
+}
+
+if (!defined('SUPABASE_STORAGE_CHALLENGE_CSS_FOLDER')) {
+    define('SUPABASE_STORAGE_CHALLENGE_CSS_FOLDER', Env::get('SUPABASE_STORAGE_CHALLENGE_CSS_FOLDER', 'challenge-sources/css'));
+}
+
 ini_set('display_errors', APP_DEBUG ? '1' : '0');
 error_reporting(APP_DEBUG ? E_ALL : 0);
 

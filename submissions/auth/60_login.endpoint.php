@@ -39,6 +39,15 @@ if ($requestMethod === 'POST' && $requestedPage === 'login') {
         $_SESSION['role_id'] = (int) ($user['role_id'] ?? 0);
         $_SESSION['username'] = (string) $user['username'];
         $_SESSION['email'] = (string) $user['email'];
+        pixelwarLogActivity($activityLogRepository ?? null, (int) $user['user_id'], 'auth', 'Logged in.');
+
+        if ((int) ($user['role_id'] ?? 0) === pixelwarTeacherRoleId()) {
+            if (pixelwarTeacherNeedsSetup($users, $user)) {
+                pixelwarRedirect('profile-setup');
+            }
+
+            pixelwarRedirectToRoleHome($user);
+        }
 
         if ((int) ($user['role_id'] ?? 0) !== pixelwarStudentRoleId()) {
             pixelwarRedirectToRoleHome($user);
