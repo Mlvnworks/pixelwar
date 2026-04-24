@@ -4,6 +4,9 @@ $studentCount = $userRepository instanceof UserRepository ? $userRepository->cou
 $studentCountToday = $userRepository instanceof UserRepository ? $userRepository->countUsersRegisteredTodayByRole(3) : 0;
 $teacherCount = $userRepository instanceof UserRepository ? $userRepository->countUsersByRole(2) : 0;
 $teacherCountToday = $userRepository instanceof UserRepository ? $userRepository->countUsersRegisteredTodayByRole(2) : 0;
+$pendingStudentVerificationCount = $userRepository instanceof UserRepository
+    ? $userRepository->countPendingStudentReviews()
+    : 0;
 $roomCount = 0;
 $roomCountToday = 0;
 $summaryCards = [
@@ -16,6 +19,13 @@ $summaryCards = [
         'label' => 'Teachers',
         'value' => $teacherCount,
         'today' => $teacherCountToday,
+    ],
+    [
+        'label' => 'Pending Student Verification',
+        'value' => $pendingStudentVerificationCount,
+        'today' => null,
+        'href' => './?c=student-verification',
+        'cta' => 'Review queue',
     ],
     [
         'label' => 'Rooms Created',
@@ -67,7 +77,7 @@ $roleLabels = [
     <section class="container relative grid gap-5">
         <section class="grid gap-2">
             <p class="text-sm font-semibold uppercase tracking-[0.08em] text-arcade-ink/60">Dashboard</p>
-            <h1 class="text-3xl font-bold leading-tight md:text-4xl">Welcome, <?= htmlspecialchars($adminName, ENT_QUOTES, 'UTF-8') ?></h1>
+            <h1 class="text-3xl font-bold leading-tight md:text-4xl">Hello, <?= htmlspecialchars($adminName, ENT_QUOTES, 'UTF-8') ?></h1>
             <p class="max-w-3xl text-sm font-medium leading-7 text-arcade-ink/65 md:text-base">
                 Monitor account growth and review the latest platform activity in one place.
             </p>
@@ -81,7 +91,14 @@ $roleLabels = [
                             <p class="text-sm font-semibold text-arcade-ink/60"><?= htmlspecialchars($summaryCard['label'], ENT_QUOTES, 'UTF-8') ?></p>
                             <strong class="mt-2 block text-3xl font-bold leading-none md:text-4xl"><?= (int) $summaryCard['value'] ?></strong>
                         </div>
-                        <span class="teacher-pill">+<?= (int) $summaryCard['today'] ?> today</span>
+                        <?php if (array_key_exists('href', $summaryCard)) : ?>
+                            <a href="<?= htmlspecialchars((string) $summaryCard['href'], ENT_QUOTES, 'UTF-8') ?>" class="teacher-button teacher-button--light gap-2">
+                                <i data-lucide="arrow-right" class="h-4 w-4" aria-hidden="true"></i>
+                                <span><?= htmlspecialchars((string) ($summaryCard['cta'] ?? 'Open'), ENT_QUOTES, 'UTF-8') ?></span>
+                            </a>
+                        <?php else : ?>
+                            <span class="teacher-pill">+<?= (int) $summaryCard['today'] ?> today</span>
+                        <?php endif; ?>
                     </div>
                 </article>
             <?php endforeach; ?>

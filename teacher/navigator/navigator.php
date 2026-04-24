@@ -14,8 +14,10 @@ $teacherTitles = [
     'dashboard' => 'Teacher Dashboard | ' . APP_NAME,
     'challenges' => 'Teacher Challenges | ' . APP_NAME,
     'challenge-view' => 'Teacher Challenge Details | ' . APP_NAME,
+    'challenge-completions' => 'Teacher Challenge Completion Records | ' . APP_NAME,
     'rooms' => 'Teacher Rooms | ' . APP_NAME,
     'students' => 'Teacher Students | ' . APP_NAME,
+    'student-view' => 'Teacher Student Details | ' . APP_NAME,
     'settings' => 'Teacher Settings | ' . APP_NAME,
 ];
 $appName = $teacherTitles[$normalizedContent] ?? ('Teacher Panel | ' . APP_NAME);

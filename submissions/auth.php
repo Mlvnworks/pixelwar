@@ -140,10 +140,28 @@ function pixelwarUserDetailsExist(UserRepository $userRepository, int $userId): 
 function pixelwarTeacherNeedsSetup(UserRepository $userRepository, array $user): bool
 {
     return (int) ($user['role_id'] ?? 0) === pixelwarTeacherRoleId()
-        && (
-            (int) ($user['is_verified'] ?? 0) !== 1
-            || !pixelwarUserDetailsExist($userRepository, (int) ($user['user_id'] ?? 0))
-        );
+        && (int) ($user['is_verified'] ?? 0) === 1
+        && !pixelwarUserDetailsExist($userRepository, (int) ($user['user_id'] ?? 0));
+}
+
+function pixelwarAdminNeedsSetup(UserRepository $userRepository, array $user): bool
+{
+    return (int) ($user['role_id'] ?? 0) === pixelwarAdminRoleId()
+        && !pixelwarUserDetailsExist($userRepository, (int) ($user['user_id'] ?? 0));
+}
+
+function pixelwarStudentUnderReview(array $user): bool
+{
+    return (int) ($user['role_id'] ?? 0) === pixelwarStudentRoleId()
+        && (int) ($user['is_verified'] ?? 0) === 1
+        && (int) ($user['is_active'] ?? 0) === 0;
+}
+
+function pixelwarStudentRejected(array $user): bool
+{
+    return (int) ($user['role_id'] ?? 0) === pixelwarStudentRoleId()
+        && (int) ($user['is_verified'] ?? 0) === 1
+        && (int) ($user['is_active'] ?? 0) === -1;
 }
 
 function pixelwarFindSessionUser(UserRepository $userRepository): ?array
@@ -157,6 +175,8 @@ function pixelwarRefreshSessionUser(array $user): void
     $_SESSION['role_id'] = (int) ($user['role_id'] ?? 0);
     $_SESSION['username'] = (string) $user['username'];
     $_SESSION['email'] = (string) $user['email'];
+    $_SESSION['is_verified'] = (int) ($user['is_verified'] ?? 0);
+    $_SESSION['is_active'] = (int) ($user['is_active'] ?? 0);
 
     $firstname = trim((string) ($user['firstname'] ?? ''));
     $lastname = trim((string) ($user['lastname'] ?? ''));
@@ -216,6 +236,18 @@ function pixelwarRedirectAfterAuthState(UserRepository $userRepository, array $u
 {
     pixelwarRefreshSessionUser($user);
 
+    if (pixelwarAdminNeedsSetup($userRepository, $user)) {
+        pixelwarRedirect('profile-setup');
+    }
+
+    if ((int) ($user['role_id'] ?? 0) === pixelwarAdminRoleId() && (int) ($user['is_verified'] ?? 0) !== 1) {
+        pixelwarRedirect('email-verification');
+    }
+
+    if ((int) ($user['role_id'] ?? 0) === pixelwarTeacherRoleId() && (int) ($user['is_verified'] ?? 0) !== 1) {
+        pixelwarRedirect('email-verification');
+    }
+
     if (pixelwarTeacherNeedsSetup($userRepository, $user)) {
         pixelwarRedirect('profile-setup');
     }
@@ -230,6 +262,14 @@ function pixelwarRedirectAfterAuthState(UserRepository $userRepository, array $u
 
     if (!pixelwarUserDetailsExist($userRepository, (int) $user['user_id'])) {
         pixelwarRedirect('profile-setup');
+    }
+
+    if (pixelwarStudentRejected($user)) {
+        pixelwarRedirect('review-rejected');
+    }
+
+    if (pixelwarStudentUnderReview($user)) {
+        pixelwarRedirect('review-pending');
     }
 
     pixelwarRedirectToRoleHome($user);
@@ -267,6 +307,21 @@ function pixelwarRegisterVerificationAttempt(int $userId): int
     $_SESSION[$key] = (int) ($_SESSION[$key] ?? 0) + 1;
 
     return (int) $_SESSION[$key];
+}
+
+function pixelwarVerificationResendAvailableAt(): int
+{
+    return (int) ($_SESSION['verification_resend_available_at'] ?? 0);
+}
+
+function pixelwarSetVerificationResendCooldown(int $seconds = 60): void
+{
+    $_SESSION['verification_resend_available_at'] = time() + max(1, $seconds);
+}
+
+function pixelwarClearVerificationResendCooldown(): void
+{
+    unset($_SESSION['verification_resend_available_at']);
 }
 
 function pixelwarHashVerificationToken(string $token): string
@@ -362,6 +417,9 @@ function pixelwarPrepareAccountVerification(VerificationRepository $verification
     $_SESSION['pending_verification_user_id'] = $userId;
     $_SESSION['pending_verification_email'] = $email;
     $_SESSION['pending_verification_mail_sent'] = pixelwarSendVerificationToken($tools, $email, $username, $token);
+    if (!empty($_SESSION['pending_verification_mail_sent'])) {
+        pixelwarSetVerificationResendCooldown(60);
+    }
     pixelwarResetVerificationAttempts($userId);
 }
 

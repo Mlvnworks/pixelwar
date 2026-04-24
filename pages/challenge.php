@@ -3,13 +3,38 @@ require_once __DIR__ . '/../classes/challenge-catalog.php';
 
 $challengeId = (int) ($_GET['id'] ?? 0);
 $challengeSlug = isset($_GET['slug']) ? trim((string) $_GET['slug']) : '';
+$currentStudentId = (int) ($_SESSION['user_id'] ?? 0);
 $dbChallenge = $challengeId > 0 && $challengeRepository instanceof ChallengeRepository
     ? $challengeRepository->findCreatedChallenge($challengeId)
     : null;
+$studentHasChallengeRecord = $challengeId > 0
+    && $userChallengeRepository instanceof UserChallengeRepository
+    && $currentStudentId > 0
+    ? $userChallengeRepository->hasAnyRecordForChallenge($currentStudentId, $challengeId)
+    : false;
+$challengeVisibilityWarning = '';
+$challengeUnavailableMessage = '';
+
+if ($dbChallenge !== null && (int) ($dbChallenge['status'] ?? 0) !== 1) {
+    $challengeUnavailableMessage = $studentHasChallengeRecord
+        ? 'This challenge is private right now, so the full challenge page is hidden. You can continue from your existing run or history instead.'
+        : 'This challenge is not available publicly right now. Check back later or pick another challenge from the library.';
+    $dbChallenge = null;
+} elseif ($dbChallenge === null && $challengeId > 0 && $challengeSlug === '') {
+    $challengeUnavailableMessage = $studentHasChallengeRecord
+        ? 'This challenge is no longer available, so the full challenge page is hidden. Your previous activity is still saved in your history.'
+        : 'This challenge is no longer available. Pick another challenge from the library.';
+}
+
 $isDatabaseChallenge = $dbChallenge !== null;
-$catalogChallenge = $isDatabaseChallenge ? null : (ChallengeCatalog::find($challengeSlug) ?? ChallengeCatalog::first());
+$catalogChallenge = $isDatabaseChallenge
+    ? null
+    : (($challengeId > 0 && $challengeSlug === '') ? null : (ChallengeCatalog::find($challengeSlug) ?? ChallengeCatalog::first()));
 $ongoingChallengeLookup = $userChallengeRepository instanceof UserChallengeRepository && isset($_SESSION['user_id'])
     ? $userChallengeRepository->ongoingChallengeIdLookup((int) $_SESSION['user_id'])
+    : [];
+$completedChallengeLookup = $userChallengeRepository instanceof UserChallengeRepository && isset($_SESSION['user_id'])
+    ? $userChallengeRepository->completedChallengeIdLookup((int) $_SESSION['user_id'])
     : [];
 $challengeCompletedCount = 0;
 
@@ -21,6 +46,8 @@ if ($isDatabaseChallenge) {
     $firstname = trim((string) ($dbChallenge['firstname'] ?? ''));
     $lastname = trim((string) ($dbChallenge['lastname'] ?? ''));
     $author = trim($firstname . ' ' . $lastname) ?: (string) ($dbChallenge['author'] ?? 'Teacher');
+    $authorAvatarUrl = trim((string) ($dbChallenge['author_avatar_url'] ?? ''));
+    $authorInitials = strtoupper(substr(preg_replace('/[^a-z0-9]+/i', '', $author) ?: 'TR', 0, 2));
     $challenge = [
         'id' => (int) $dbChallenge['challenge_id'],
         'title' => (string) $dbChallenge['name'],
@@ -28,11 +55,14 @@ if ($isDatabaseChallenge) {
         'levelClass' => 'challenge-difficulty--' . strtolower($difficulty),
         'reward' => '+' . (int) ($dbChallenge['points'] ?? 0) . ' pts',
         'author' => $author,
+        'authorAvatarUrl' => $authorAvatarUrl,
+        'authorInitials' => $authorInitials,
         'description' => (string) $dbChallenge['instruction'],
         'objective' => (string) $dbChallenge['instruction'],
         'htmlSource' => (string) $dbChallenge['html_source'],
         'cssSource' => (string) $dbChallenge['css_source'],
         'isOngoing' => isset($ongoingChallengeLookup[(int) $dbChallenge['challenge_id']]),
+        'isCompleted' => isset($completedChallengeLookup[(int) $dbChallenge['challenge_id']]),
     ];
     $challengeStartUrl = './?c=pixelwar&intro=1&challenge_id=' . (int) $challenge['id'];
     $comments = [
@@ -41,7 +71,7 @@ if ($isDatabaseChallenge) {
         ['player' => 'SelectorMage', 'posted' => '2 days ago', 'body' => 'Good practice for reading the design before placing properties.'],
     ];
     $moreChallengeRows = $challengeRepository instanceof ChallengeRepository
-        ? array_filter($challengeRepository->listLatestCreated(6), static fn (array $row): bool => (int) $row['challenge_id'] !== (int) $challenge['id'])
+        ? array_filter($challengeRepository->listLatestPublicCreated(6), static fn (array $row): bool => (int) $row['challenge_id'] !== (int) $challenge['id'])
         : [];
     $moreChallenges = array_map(static function (array $row) use ($ongoingChallengeLookup): array {
         $rowDifficulty = ucfirst(strtolower((string) ($row['difficulty_name'] ?? 'Easy')));
@@ -54,26 +84,38 @@ if ($isDatabaseChallenge) {
             'description' => (string) $row['instruction'],
             'href' => './?c=challenge&id=' . $rowChallengeId,
             'isOngoing' => isset($ongoingChallengeLookup[$rowChallengeId]),
+            'isCompleted' => isset($completedChallengeLookup[$rowChallengeId]),
         ];
     }, $moreChallengeRows);
 } else {
-    $challenge = $catalogChallenge;
-    $challenge['isOngoing'] = false;
-    $challengeStartUrl = './?c=pixelwar&intro=1&challenge=' . urlencode($challenge['slug']);
-    $comments = $challenge['comments'];
-    $moreChallenges = array_map(static function (array $catalogItem): array {
-        return [
-            'title' => $catalogItem['title'],
-            'level' => $catalogItem['level'],
-            'levelClass' => $catalogItem['levelClass'],
-            'author' => $catalogItem['author'],
-            'description' => $catalogItem['description'],
-            'href' => './?c=challenge&slug=' . urlencode((string) $catalogItem['slug']),
-            'isOngoing' => false,
-        ];
-    }, array_filter(ChallengeCatalog::all(), static function (array $catalogItem) use ($challenge): bool {
-        return $catalogItem['slug'] !== $challenge['slug'];
-    }));
+    if ($catalogChallenge !== null) {
+        $challenge = $catalogChallenge;
+        $challenge['isOngoing'] = false;
+        $challenge['isCompleted'] = false;
+        $challenge['authorAvatarUrl'] = '';
+        $challenge['authorInitials'] = strtoupper(substr(preg_replace('/[^a-z0-9]+/i', '', (string) ($challenge['author'] ?? 'TR')) ?: 'TR', 0, 2));
+        $challengeStartUrl = './?c=pixelwar&intro=1&challenge=' . urlencode($challenge['slug']);
+        $comments = $challenge['comments'];
+        $moreChallenges = array_map(static function (array $catalogItem): array {
+            return [
+                'title' => $catalogItem['title'],
+                'level' => $catalogItem['level'],
+                'levelClass' => $catalogItem['levelClass'],
+                'author' => $catalogItem['author'],
+                'description' => $catalogItem['description'],
+                'href' => './?c=challenge&slug=' . urlencode((string) $catalogItem['slug']),
+                'isOngoing' => false,
+                'isCompleted' => false,
+            ];
+        }, array_filter(ChallengeCatalog::all(), static function (array $catalogItem) use ($challenge): bool {
+            return $catalogItem['slug'] !== $challenge['slug'];
+        }));
+    } else {
+        $challenge = null;
+        $challengeStartUrl = './?c=challenges';
+        $comments = [];
+        $moreChallenges = [];
+    }
 }
 
 $previewSrcdoc = <<<'HTML'
@@ -98,6 +140,25 @@ $previewSrcdoc = <<<'HTML'
 HTML;
 ?>
 
+<?php if ($challenge === null) : ?>
+<main class="challenge-detail-page relative overflow-hidden bg-arcade-cream px-4 py-8 text-arcade-ink md:py-10">
+    <div class="absolute inset-0 bg-[radial-gradient(circle_at_12%_16%,rgba(255,209,102,0.28),transparent_24%),radial-gradient(circle_at_90%_12%,rgba(76,201,240,0.22),transparent_25%),linear-gradient(135deg,rgba(249,115,115,0.12),transparent_42%)]"></div>
+    <div class="challenge-detail-grid absolute inset-0"></div>
+    <section class="container relative">
+        <a href="./?c=challenges" class="inline-flex items-center gap-2 rounded-xl bg-white px-3 py-2 text-sm font-bold text-arcade-ink no-underline transition hover:bg-arcade-yellow/60">
+            <span aria-hidden="true">&larr;</span>
+            Back to Challenges
+        </a>
+        <article class="challenge-detail-card mt-5 rounded-[28px] border-4 border-arcade-ink bg-arcade-panel p-5 shadow-[8px_8px_0_#26190f] md:p-7">
+            <p class="font-arcade text-[10px] uppercase tracking-[0.28em] text-arcade-coral">Unavailable</p>
+            <h1 class="mt-3 text-4xl font-bold leading-tight md:text-5xl">This challenge is not available publicly right now.</h1>
+            <p class="mt-4 max-w-2xl text-base leading-8 text-arcade-ink/70">
+                <?= htmlspecialchars($challengeUnavailableMessage !== '' ? $challengeUnavailableMessage : 'This challenge is currently only visible to the teacher who created it.', ENT_QUOTES, 'UTF-8') ?>
+            </p>
+        </article>
+    </section>
+</main>
+<?php else : ?>
 <main class="challenge-detail-page relative overflow-hidden bg-arcade-cream px-4 py-8 text-arcade-ink md:py-10">
     <div class="absolute inset-0 bg-[radial-gradient(circle_at_12%_16%,rgba(255,209,102,0.28),transparent_24%),radial-gradient(circle_at_90%_12%,rgba(76,201,240,0.22),transparent_25%),linear-gradient(135deg,rgba(249,115,115,0.12),transparent_42%)]"></div>
     <div class="challenge-detail-grid absolute inset-0"></div>
@@ -111,6 +172,11 @@ HTML;
         <article class="challenge-detail-card mt-5 rounded-[28px] border-4 border-arcade-ink bg-arcade-panel p-5 shadow-[8px_8px_0_#26190f] md:p-7">
             <div class="challenge-detail-layout grid gap-7 xl:grid-cols-[1.05fr_0.95fr]">
                 <section>
+                    <?php if ($challengeVisibilityWarning !== '') : ?>
+                        <div class="mb-4 rounded-2xl border-2 border-arcade-coral/45 bg-arcade-coral/12 px-4 py-3 text-sm font-bold leading-6 text-arcade-ink">
+                            <?= htmlspecialchars($challengeVisibilityWarning, ENT_QUOTES, 'UTF-8') ?>
+                        </div>
+                    <?php endif; ?>
                     <div class="flex flex-wrap items-center gap-2">
                         <span class="challenge-difficulty <?= htmlspecialchars($challenge['levelClass'], ENT_QUOTES, 'UTF-8') ?> rounded-full px-3 py-1 text-xs font-bold">
                             <?= htmlspecialchars($challenge['level'], ENT_QUOTES, 'UTF-8') ?>
@@ -119,16 +185,28 @@ HTML;
                         <?php if (!empty($challenge['isOngoing'])) : ?>
                             <span class="rounded-full border-2 border-arcade-ink bg-arcade-cyan px-3 py-1 text-xs font-bold text-arcade-ink">Ongoing</span>
                         <?php endif; ?>
+                        <?php if (!empty($challenge['isCompleted'])) : ?>
+                            <span class="rounded-full border-2 border-arcade-ink bg-arcade-yellow px-3 py-1 text-xs font-bold text-arcade-ink">Completed</span>
+                        <?php endif; ?>
                     </div>
 
                     <p class="mt-6 font-arcade text-[10px] uppercase tracking-[0.28em] text-arcade-orange">Challenge Brief</p>
                     <h1 class="mt-3 text-4xl font-bold leading-tight md:text-6xl"><?= htmlspecialchars($challenge['title'], ENT_QUOTES, 'UTF-8') ?></h1>
-                    <p class="mt-4 max-w-3xl text-base leading-8 text-arcade-ink/70"><?= htmlspecialchars($challenge['objective'], ENT_QUOTES, 'UTF-8') ?></p>
+                    <div class="mt-4 max-w-3xl text-base leading-8 text-arcade-ink/70"><?= $tools->formatRichText($challenge['objective']) ?></div>
 
                     <div class="challenge-meta-grid mt-6 grid gap-3 md:grid-cols-2">
                         <div class="rounded-2xl border-2 border-arcade-ink/15 bg-white/75 p-4">
                             <p class="text-xs font-bold uppercase tracking-[0.18em] text-arcade-ink/55">Author</p>
-                            <p class="mt-1 text-lg font-extrabold"><?= htmlspecialchars($challenge['author'], ENT_QUOTES, 'UTF-8') ?></p>
+                            <div class="mt-1 flex items-center gap-2">
+                                <span class="grid h-8 w-8 shrink-0 place-items-center overflow-hidden rounded-full border-2 border-arcade-ink bg-arcade-yellow text-[11px] font-extrabold text-arcade-ink">
+                                    <?php if (!empty($challenge['authorAvatarUrl'])) : ?>
+                                        <img src="<?= htmlspecialchars((string) $challenge['authorAvatarUrl'], ENT_QUOTES, 'UTF-8') ?>" alt="" class="h-full w-full object-cover">
+                                    <?php else : ?>
+                                        <?= htmlspecialchars((string) ($challenge['authorInitials'] ?? 'TR'), ENT_QUOTES, 'UTF-8') ?>
+                                    <?php endif; ?>
+                                </span>
+                                <p class="text-lg font-extrabold"><?= htmlspecialchars($challenge['author'], ENT_QUOTES, 'UTF-8') ?></p>
+                            </div>
                         </div>
                         <div class="rounded-2xl border-2 border-arcade-ink/15 bg-white/75 p-4">
                             <p class="text-xs font-bold uppercase tracking-[0.18em] text-arcade-ink/55">Goal</p>
@@ -147,7 +225,7 @@ HTML;
                             </span>
                         </button>
                         <a href="<?= htmlspecialchars($challengeStartUrl, ENT_QUOTES, 'UTF-8') ?>" class="inline-flex w-full justify-center rounded-xl border-2 border-arcade-ink bg-arcade-orange px-6 py-3 text-sm font-bold text-white no-underline shadow-[0_4px_0_#26190f] transition hover:-translate-y-0.5 hover:bg-arcade-yellow hover:text-arcade-ink sm:flex-1">
-                            Start Challenge
+                            <?= !empty($challenge['isCompleted']) ? 'Train Again' : 'Start Challenge' ?>
                         </a>
                     </div>
                     <?php if ($isDatabaseChallenge) : ?>
@@ -237,12 +315,15 @@ HTML;
                             <?php if (!empty($moreChallenge['isOngoing'])) : ?>
                                 <span class="rounded-full border-2 border-arcade-ink bg-arcade-cyan px-3 py-1 text-xs font-bold text-arcade-ink">Ongoing</span>
                             <?php endif; ?>
+                            <?php if (!empty($moreChallenge['isCompleted'])) : ?>
+                                <span class="rounded-full border-2 border-arcade-ink bg-arcade-yellow px-3 py-1 text-xs font-bold text-arcade-ink">Completed</span>
+                            <?php endif; ?>
                         </div>
                         <h3 class="mt-3 text-xl font-bold"><?= htmlspecialchars($moreChallenge['title'], ENT_QUOTES, 'UTF-8') ?></h3>
-                        <p class="mt-2 text-sm leading-6 text-arcade-ink/70"><?= htmlspecialchars($moreChallenge['description'], ENT_QUOTES, 'UTF-8') ?></p>
+                        <p class="mt-2 text-sm leading-6 text-arcade-ink/70"><?= $tools->formatExcerpt($moreChallenge['description']) ?></p>
                         <div class="challenge-more-card__footer mt-4 flex flex-wrap items-center justify-between gap-3">
                             <p class="text-xs font-bold uppercase tracking-[0.16em] text-arcade-ink/50">By <?= htmlspecialchars($moreChallenge['author'], ENT_QUOTES, 'UTF-8') ?></p>
-                            <a href="<?= htmlspecialchars($moreChallenge['href'], ENT_QUOTES, 'UTF-8') ?>" class="challenge-more-card__action rounded-xl border-2 border-arcade-ink bg-arcade-orange px-3 py-1.5 text-sm font-bold text-white no-underline shadow-[0_3px_0_#26190f] transition hover:-translate-y-0.5 hover:bg-arcade-yellow hover:text-arcade-ink">Train</a>
+                            <a href="<?= htmlspecialchars($moreChallenge['href'], ENT_QUOTES, 'UTF-8') ?>" class="challenge-more-card__action rounded-xl border-2 border-arcade-ink bg-arcade-orange px-3 py-1.5 text-sm font-bold text-white no-underline shadow-[0_3px_0_#26190f] transition hover:-translate-y-0.5 hover:bg-arcade-yellow hover:text-arcade-ink"><?= !empty($moreChallenge['isCompleted']) ? 'Train Again' : 'Train' ?></a>
                         </div>
                     </article>
                 <?php endforeach; ?>
@@ -471,3 +552,4 @@ ${css}
     renderPage();
 })();
 </script>
+<?php endif; ?>

@@ -11,7 +11,13 @@ $pageStyleFile = $adminBasePath . '/styling/page/' . $normalizedContent . '.css'
 $adminTitles = [
     'dashboard' => 'Admin Dashboard | ' . APP_NAME,
     'teachers' => 'Teacher Management | ' . APP_NAME,
+    'teacher-view' => 'Teacher Overview | ' . APP_NAME,
+    'teacher-activity' => 'Teacher Activity | ' . APP_NAME,
+    'challenge-view' => 'Challenge Details | ' . APP_NAME,
+    'challenge-completions' => 'Challenge Completion Records | ' . APP_NAME,
     'students' => 'Student Management | ' . APP_NAME,
+    'student-view' => 'Student Overview | ' . APP_NAME,
+    'student-verification' => 'Pending Student Verification | ' . APP_NAME,
     'logs' => 'Activity Logs | ' . APP_NAME,
     'settings' => 'Admin Settings | ' . APP_NAME,
 ];

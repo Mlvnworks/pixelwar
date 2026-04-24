@@ -37,11 +37,25 @@ class UserAccountService
         });
     }
 
-    public function createProfileDetails(int $userId, string $avatarUrl, string $firstname, string $lastname): int
+    public function createProfileDetails(
+        int $userId,
+        string $avatarUrl,
+        string $firstname,
+        string $lastname,
+        ?string $idPictureUrl = null,
+        ?string $studentNumber = null
+    ): int
     {
-        return $this->transaction(function () use ($userId, $avatarUrl, $firstname, $lastname): int {
+        return $this->transaction(function () use ($userId, $avatarUrl, $firstname, $lastname, $idPictureUrl, $studentNumber): int {
             $imageId = $this->users->insertImage($avatarUrl);
-            $this->users->upsertUserDetails($userId, $imageId, $firstname, $lastname);
+            $idPictureImageId = null;
+
+            if ($idPictureUrl !== null && $idPictureUrl !== '') {
+                $idPictureImageId = $this->users->insertImage($idPictureUrl);
+            }
+
+            $this->users->upsertUserDetails($userId, $imageId, $firstname, $lastname, $idPictureImageId, $studentNumber);
+            $this->users->updateActiveState($userId, 0);
 
             return $imageId;
         });
@@ -69,6 +83,25 @@ class UserAccountService
             }
 
             $this->users->upsertUserDetails($userId, $imageId, $firstname, $lastname);
+
+            return $imageId;
+        });
+    }
+
+    public function completeAdminSetup(
+        int $userId,
+        string $username,
+        string $email,
+        string $password,
+        string $avatarUrl,
+        string $firstname,
+        string $lastname
+    ): int {
+        return $this->transaction(function () use ($userId, $username, $email, $password, $avatarUrl, $firstname, $lastname): int {
+            $imageId = $this->users->insertImage($avatarUrl);
+            $this->users->upsertUserDetails($userId, $imageId, $firstname, $lastname);
+            $this->users->updateAdminSetupCredentials($userId, $username, $email, password_hash($password, PASSWORD_DEFAULT), 0);
+            $this->verifications->expirePending($userId, 'account verification');
 
             return $imageId;
         });

@@ -3,6 +3,13 @@ $teacherId = (int) ($_SESSION['user_id'] ?? 0);
 $teacherActivityLogs = $activityLogRepository instanceof ActivityLogRepository && $teacherId > 0
     ? $activityLogRepository->listLatestForUser($teacherId, 50)
     : [];
+$teacherActivityLogs = array_values(array_filter(
+    $teacherActivityLogs,
+    static function (array $activityLog): bool {
+        $category = strtolower(trim((string) ($activityLog['category'] ?? '')));
+        return $category === 'room' || str_contains($category, 'challenge');
+    }
+));
 ?>
 
 <main class="teacher-shell relative overflow-hidden px-4 py-6 text-arcade-ink md:py-8">

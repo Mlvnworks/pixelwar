@@ -4,10 +4,14 @@ $adminUsername = trim((string) ($_SESSION['username'] ?? 'Admin')) ?: 'Admin';
 $adminEmail = trim((string) ($_SESSION['email'] ?? 'admin@pixelwar.local')) ?: 'admin@pixelwar.local';
 $adminInitials = strtoupper(substr(preg_replace('/[^a-z0-9]+/i', '', (string) ($_SESSION['avatar_initials'] ?? $adminUsername)) ?: 'AD', 0, 2));
 $adminAvatarUrl = trim((string) ($_SESSION['avatar_url'] ?? ''));
+$adminPendingReviewCount = $userRepository instanceof UserRepository
+    ? $userRepository->countPendingStudentReviews('', 0)
+    : 0;
 $adminNavItems = [
     'dashboard' => ['label' => 'Dashboard', 'icon' => 'layout-dashboard'],
     'teachers' => ['label' => 'Teachers', 'icon' => 'graduation-cap'],
     'students' => ['label' => 'Students', 'icon' => 'users'],
+    'student-verification' => ['label' => 'Reviews', 'icon' => 'badge-check', 'badge' => $adminPendingReviewCount],
     'logs' => ['label' => 'Logs', 'icon' => 'history'],
     'settings' => ['label' => 'Settings', 'icon' => 'settings'],
 ];
@@ -44,6 +48,11 @@ $adminNavItems = [
                 <a class="teacher-nav__link <?= $adminCurrentPage === $adminPage ? 'teacher-nav__link--active' : '' ?>" href="./?c=<?= htmlspecialchars($adminPage, ENT_QUOTES, 'UTF-8') ?>">
                     <i data-lucide="<?= htmlspecialchars($adminItem['icon'], ENT_QUOTES, 'UTF-8') ?>" class="h-4 w-4" aria-hidden="true"></i>
                     <span><?= htmlspecialchars($adminItem['label'], ENT_QUOTES, 'UTF-8') ?></span>
+                    <?php if (isset($adminItem['badge']) && (int) $adminItem['badge'] > 0) : ?>
+                        <span class="ml-auto inline-flex min-w-[1.45rem] items-center justify-center rounded-full border border-arcade-ink/10 bg-arcade-yellow px-1.5 py-0.5 text-[10px] font-bold leading-none text-arcade-ink">
+                            <?= (int) $adminItem['badge'] ?>
+                        </span>
+                    <?php endif; ?>
                 </a>
             <?php endforeach; ?>
         </nav>

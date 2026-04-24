@@ -1,11 +1,9 @@
 <?php
 $challengeSearch = trim((string) ($_GET['search'] ?? ''));
 $challengeDifficulty = strtolower(trim((string) ($_GET['difficulty'] ?? '')));
-$challengeScope = strtolower(trim((string) ($_GET['scope'] ?? 'all')));
 $teacherId = (int) ($_SESSION['user_id'] ?? 0);
-$filterUserId = $challengeScope === 'mine' ? $teacherId : null;
 $createdChallenges = $challengeRepository instanceof ChallengeRepository
-    ? $challengeRepository->searchCreatedChallenges($challengeSearch, $challengeDifficulty, $filterUserId, 60)
+    ? $challengeRepository->searchCreatedChallenges($challengeSearch, $challengeDifficulty, $teacherId, 60)
     : [];
 ?>
 
@@ -17,7 +15,7 @@ $createdChallenges = $challengeRepository instanceof ChallengeRepository
                 <div>
                     <p class="font-arcade text-[10px] uppercase tracking-[0.26em] text-arcade-orange">Challenges</p>
                     <h1 class="mt-3 text-3xl font-black md:text-4xl">Teacher Challenge Library</h1>
-                    <p class="mt-2 max-w-2xl text-sm font-bold leading-7 text-arcade-ink/62">Search, filter, and review teacher-created Pixelwar challenges.</p>
+                    <p class="mt-2 max-w-2xl text-sm font-bold leading-7 text-arcade-ink/62">Search, filter, and review your teacher-created Pixelwar challenges.</p>
                 </div>
                 <a href="./?c=create-challenge" class="teacher-button teacher-button--primary">New Challenge</a>
             </div>
@@ -44,13 +42,6 @@ $createdChallenges = $challengeRepository instanceof ChallengeRepository
                             <option value="easy" <?= $challengeDifficulty === 'easy' ? 'selected' : '' ?>>Easy</option>
                             <option value="medium" <?= $challengeDifficulty === 'medium' ? 'selected' : '' ?>>Medium</option>
                             <option value="hard" <?= $challengeDifficulty === 'hard' ? 'selected' : '' ?>>Hard</option>
-                        </select>
-                    </label>
-                    <label>
-                        <span>Scope</span>
-                        <select name="scope">
-                            <option value="all" <?= $challengeScope !== 'mine' ? 'selected' : '' ?>>All challenges</option>
-                            <option value="mine" <?= $challengeScope === 'mine' ? 'selected' : '' ?>>My challenges</option>
                         </select>
                     </label>
                     <button type="submit" class="teacher-button teacher-button--primary gap-2">
@@ -81,7 +72,7 @@ $createdChallenges = $challengeRepository instanceof ChallengeRepository
                                         <span class="teacher-pill bg-arcade-yellow"><?= (int) $challenge['points'] ?> points</span>
                                     </div>
                                     <h3 class="mt-3 text-xl font-black"><?= htmlspecialchars((string) $challenge['name'], ENT_QUOTES, 'UTF-8') ?></h3>
-                                    <p class="teacher-card-description mt-2 text-sm font-bold leading-6 text-arcade-ink/60"><?= htmlspecialchars((string) $challenge['instruction'], ENT_QUOTES, 'UTF-8') ?></p>
+                                    <p class="teacher-card-description mt-2 text-sm font-bold leading-6 text-arcade-ink/60"><?= $tools->formatExcerpt((string) $challenge['instruction']) ?></p>
                                     <div class="mt-3 flex flex-wrap gap-2 text-xs font-black text-arcade-ink/52">
                                         <span>By <?= htmlspecialchars((string) $challenge['author'], ENT_QUOTES, 'UTF-8') ?></span>
                                         <span><?= htmlspecialchars(date('M j, Y', strtotime((string) $challenge['date_created'])), ENT_QUOTES, 'UTF-8') ?></span>

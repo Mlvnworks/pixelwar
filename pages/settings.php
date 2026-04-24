@@ -5,11 +5,12 @@ $profileAvatarInitials = strtoupper(substr(preg_replace('/[^a-z0-9]+/i', '', (st
 $profileAvatarUrl = trim((string) ($_SESSION['avatar_url'] ?? ''));
 $profileFirstname = trim((string) ($_SESSION['firstname'] ?? ''));
 $profileLastname = trim((string) ($_SESSION['lastname'] ?? ''));
+$profileStudentNumber = '';
 
 if (isset($connection) && $connection instanceof mysqli && isset($_SESSION['user_id'])) {
     $settingsUserId = (int) $_SESSION['user_id'];
     $settingsProfile = $connection->prepare(
-        'SELECT users.username, users.email, user_details.firstname, user_details.lastname, images.source AS avatar_url
+        'SELECT users.username, users.email, user_details.firstname, user_details.lastname, user_details.student_number, images.source AS avatar_url
          FROM users
          LEFT JOIN user_details ON user_details.user_id = users.user_id
          LEFT JOIN images ON images.img_id = user_details.image_id
@@ -29,6 +30,7 @@ if (isset($connection) && $connection instanceof mysqli && isset($_SESSION['user
         $profileLastname = $settingsLastname;
         $profileName = $settingsFullName !== '' ? $settingsFullName : trim((string) $settingsProfileRow['username']);
         $profileEmail = trim((string) $settingsProfileRow['email']);
+        $profileStudentNumber = trim((string) ($settingsProfileRow['student_number'] ?? ''));
         $profileAvatarUrl = trim((string) ($settingsProfileRow['avatar_url'] ?? ''));
         $profileAvatarInitials = strtoupper(substr($settingsFirstname, 0, 1) . substr($settingsLastname, 0, 1)) ?: $profileAvatarInitials;
     }
@@ -136,6 +138,14 @@ if (isset($connection) && $connection instanceof mysqli && isset($_SESSION['user
                             data-current-email="<?= htmlspecialchars($profileEmail, ENT_QUOTES, 'UTF-8') ?>"
                             placeholder="player@example.com" required>
                         <small id="settings-email-message" class="settings-field-message" aria-live="polite"></small>
+                    </label>
+
+                    <label class="settings-field sm:col-span-2" for="settings-student-number">
+                        <span>Student ID</span>
+                        <input id="settings-student-number" type="text"
+                            value="<?= htmlspecialchars($profileStudentNumber !== '' ? $profileStudentNumber : 'Not assigned yet', ENT_QUOTES, 'UTF-8') ?>"
+                            readonly
+                            class="cursor-not-allowed bg-black/[0.03] text-arcade-ink/72">
                     </label>
                 </div>
 

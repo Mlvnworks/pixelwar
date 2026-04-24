@@ -212,13 +212,7 @@ final class ChallengeCreationService
             $errors[] = 'HTML must not link stylesheets.';
         }
 
-        if (preg_match('/<script\b[\s\S]*?>[\s\S]*?<\/script>/i', $html) === 1) {
-            $errors[] = 'HTML must not contain scripts.';
-        }
-
-        if (preg_match('/<\/?(?:html|head|body|meta|title)\b/i', $html) === 1) {
-            $errors[] = 'HTML must contain target markup only, not full document tags.';
-        }
+        $errors = array_merge($errors, $this->htmlSecurityErrors($html));
 
         if (preg_match('/<\/?[a-z][\s\S]*?>/i', $css) === 1) {
             $errors[] = 'CSS must not contain HTML tags.';
@@ -231,6 +225,34 @@ final class ChallengeCreationService
         if ($errors !== []) {
             throw new InvalidArgumentException(implode(' ', $errors));
         }
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function htmlSecurityErrors(string $html): array
+    {
+        $errors = [];
+        $checks = [
+            '/<script\b[\s\S]*?>[\s\S]*?<\/script>/i' => 'HTML must not contain scripts.',
+            '/<\/?(?:html|head|body|meta|title)\b/i' => 'HTML must contain target markup only, not full document tags.',
+            '/\son[a-z]+\s*=\s*(?:"[^"]*"|\'[^\']*\'|[^\s>]+)/i' => 'HTML must not contain inline event handlers.',
+            '/(?:href|src|action|formaction)\s*=\s*(["\'])\s*javascript:[\s\S]*?\1/i' => 'HTML must not contain javascript: URLs.',
+            '/\ssrcdoc\s*=/i' => 'HTML must not use srcdoc attributes.',
+            '/<\/?(?:iframe|object|embed|applet|frame|frameset)\b/i' => 'HTML must not embed active external content.',
+            '/<svg\b[\s\S]*?>/i' => 'HTML must not contain SVG markup.',
+            '/<math\b[\s\S]*?>/i' => 'HTML must not contain MathML markup.',
+            '/<base\b/i' => 'HTML must not redefine the document base URL.',
+            '/<form\b/i' => 'HTML must not contain form elements.',
+        ];
+
+        foreach ($checks as $pattern => $message) {
+            if (preg_match($pattern, $html) === 1) {
+                $errors[] = $message;
+            }
+        }
+
+        return $errors;
     }
 
     private function slug(string $value): string

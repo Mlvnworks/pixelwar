@@ -2,11 +2,41 @@
 $allLogs = $activityLogRepository instanceof ActivityLogRepository
     ? $activityLogRepository->listLatestOverall(500)
     : [];
+$selectedCategory = strtolower(trim((string) ($_GET['category'] ?? 'all')));
 $roleLabels = [
     1 => 'Admin',
     2 => 'Teacher',
     3 => 'Student',
 ];
+$categoryCounts = [];
+$allLogsTotal = count($allLogs);
+
+foreach ($allLogs as $log) {
+    $categoryKey = strtolower(trim((string) ($log['category'] ?? 'general')));
+    if ($categoryKey === '') {
+        $categoryKey = 'general';
+    }
+
+    $categoryCounts[$categoryKey] = (int) ($categoryCounts[$categoryKey] ?? 0) + 1;
+}
+
+ksort($categoryCounts);
+
+if ($selectedCategory !== 'all' && isset($categoryCounts[$selectedCategory])) {
+    $allLogs = array_values(array_filter(
+        $allLogs,
+        static fn(array $log): bool => strtolower(trim((string) ($log['category'] ?? 'general'))) === $selectedCategory
+    ));
+}
+
+$logBuildQuery = static function (string $category): string {
+    $query = ['c' => 'logs'];
+    if ($category !== 'all') {
+        $query['category'] = $category;
+    }
+
+    return './?' . http_build_query($query);
+};
 ?>
 
 <main class="teacher-shell relative overflow-hidden px-4 py-6 text-arcade-ink md:py-8">
@@ -24,6 +54,27 @@ $roleLabels = [
                 <i data-lucide="arrow-left" class="h-4 w-4" aria-hidden="true"></i>
                 <span>Back to Dashboard</span>
             </a>
+        </section>
+
+        <section class="teacher-panel p-5 md:p-6">
+            <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                <div>
+                    <p class="text-xs font-semibold uppercase tracking-[0.08em] text-arcade-ink/55">Categorization</p>
+                    <h2 class="mt-1 text-xl font-bold">Filter by category</h2>
+                </div>
+                <div class="flex flex-wrap gap-2">
+                    <a href="<?= htmlspecialchars($logBuildQuery('all'), ENT_QUOTES, 'UTF-8') ?>" class="teacher-button gap-2 <?= $selectedCategory === 'all' ? 'teacher-button--primary' : 'teacher-button--light' ?>">
+                        <span>All</span>
+                        <span class="teacher-pill bg-white/70"><?= (int) $allLogsTotal ?></span>
+                    </a>
+                    <?php foreach ($categoryCounts as $categoryName => $categoryTotal) : ?>
+                        <a href="<?= htmlspecialchars($logBuildQuery($categoryName), ENT_QUOTES, 'UTF-8') ?>" class="teacher-button gap-2 <?= $selectedCategory === $categoryName ? 'teacher-button--primary' : 'teacher-button--light' ?>">
+                            <span><?= htmlspecialchars(ucfirst($categoryName), ENT_QUOTES, 'UTF-8') ?></span>
+                            <span class="teacher-pill bg-white/70"><?= (int) $categoryTotal ?></span>
+                        </a>
+                    <?php endforeach; ?>
+                </div>
+            </div>
         </section>
 
         <section class="teacher-panel p-0 overflow-hidden">

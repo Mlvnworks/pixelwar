@@ -10,8 +10,8 @@ if ($editChallengeId > 0) {
     if (!$challengeRepository instanceof ChallengeRepository) {
         $editAccessDenied = true;
     } else {
-        $editingChallenge = $challengeRepository->findCreatedChallenge($editChallengeId);
-        $editAccessDenied = $editingChallenge === null || (int) $editingChallenge['user_id'] !== $teacherId;
+        $editingChallenge = $challengeRepository->findCreatedChallengeForOwner($editChallengeId, $teacherId);
+        $editAccessDenied = $editingChallenge === null;
     }
 
     if (!$editAccessDenied) {
@@ -224,9 +224,9 @@ foreach ($difficultyRows as $difficultyRow) {
                     <p class="mt-2 inline-flex rounded-full border-2 border-arcade-ink/12 bg-arcade-yellow/35 px-3 py-1 text-xs font-black text-arcade-ink/70">
                         Teacher: <?= htmlspecialchars($teacherName, ENT_QUOTES, 'UTF-8') ?>
                     </p>
-                    <p id="info-preview-instruction" class="mt-3 text-sm font-bold leading-7 text-arcade-ink/65">
-                        Add clear instructions so players know what visual details to match.
-                    </p>
+                    <div id="info-preview-instruction" class="mt-3 text-sm font-bold leading-7 text-arcade-ink/65">
+                        <?= $tools->formatRichText($oldChallengeInstruction !== '' ? $oldChallengeInstruction : 'Add clear instructions so players know what visual details to match.') ?>
+                    </div>
                     <div class="create-example-meta mt-4 grid gap-2 sm:grid-cols-2">
                         <span><strong>Difficulty</strong><em id="info-preview-difficulty">Not Set</em></span>
                         <span><strong>Status</strong><em><?= $isEditing ? 'Editing' : 'Draft' ?></em></span>
@@ -241,9 +241,9 @@ foreach ($difficultyRows as $difficultyRow) {
                     <div>
                         <p class="font-arcade text-[10px] uppercase tracking-[0.22em] text-arcade-cyan">Challenge Info</p>
                         <h2 id="source-summary-name" class="mt-2 text-2xl font-black">Challenge name pending</h2>
-                        <p id="source-summary-instruction" class="mt-2 max-w-4xl text-sm font-bold leading-7 text-arcade-ink/65">
-                            Add clear instructions so players know what visual details to match.
-                        </p>
+                        <div id="source-summary-instruction" class="mt-2 max-w-4xl text-sm font-bold leading-7 text-arcade-ink/65">
+                            <?= $tools->formatRichText($oldChallengeInstruction !== '' ? $oldChallengeInstruction : 'Add clear instructions so players know what visual details to match.') ?>
+                        </div>
                     </div>
                     <span id="source-summary-difficulty" class="create-difficulty-badge create-difficulty-badge--unset">Not Set</span>
                 </div>
@@ -339,7 +339,7 @@ foreach ($difficultyRows as $difficultyRow) {
                         </div>
                         <div>
                             <strong>Instruction</strong>
-                            <span id="confirm-instruction">Add clear instructions so players know what visual details to match.</span>
+                            <span id="confirm-instruction"><?= $tools->formatRichText($oldChallengeInstruction !== '' ? $oldChallengeInstruction : 'Add clear instructions so players know what visual details to match.') ?></span>
                         </div>
                         <div>
                             <strong>Source Status</strong>
@@ -436,6 +436,23 @@ foreach ($difficultyRows as $difficultyRow) {
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#039;');
 
+    const formatRichTextHtml = (value) => {
+        const safeValue = (value || '').trim();
+        if (!safeValue) {
+            return '';
+        }
+
+        const escaped = escapeHtml(safeValue);
+        const linked = escaped.replace(/((?:https?:\/\/|www\.)[^\s<]+)/gi, (match) => {
+            const label = match.replace(/[.,;:!?)\]}]+$/g, '');
+            const trailing = match.slice(label.length);
+            const href = /^https?:\/\//i.test(label) ? label : `https://${label}`;
+            return `<a href="${escapeHtml(href)}" target="_blank" rel="noopener noreferrer" class="font-bold underline break-all">${label}</a>${trailing}`;
+        });
+
+        return linked.replace(/\n/g, '<br>');
+    };
+
     const setLines = (editor, gutter) => {
         const total = Math.max(1, editor.value.split('\n').length);
         gutter.textContent = Array.from({ length: total }, (_, index) => index + 1).join('\n');
@@ -472,12 +489,12 @@ foreach ($difficultyRows as $difficultyRow) {
         const safeDifficulty = info.difficulty || 'Not Set';
 
         document.getElementById('info-preview-name').textContent = safeName;
-        document.getElementById('info-preview-instruction').textContent = safeInstruction;
+        document.getElementById('info-preview-instruction').innerHTML = formatRichTextHtml(safeInstruction);
         document.getElementById('info-preview-difficulty').textContent = safeDifficulty;
         document.getElementById('source-summary-name').textContent = safeName;
-        document.getElementById('source-summary-instruction').textContent = safeInstruction;
+        document.getElementById('source-summary-instruction').innerHTML = formatRichTextHtml(safeInstruction);
         document.getElementById('confirm-name').textContent = safeName;
-        document.getElementById('confirm-instruction').textContent = safeInstruction;
+        document.getElementById('confirm-instruction').innerHTML = formatRichTextHtml(safeInstruction);
         document.getElementById('confirm-difficulty').textContent = safeDifficulty;
 
         const difficultyBadge = document.getElementById('source-summary-difficulty');
@@ -508,6 +525,27 @@ foreach ($difficultyRows as $difficultyRow) {
         }
         if (/<\/?(?:html|head|body|meta|title)\b/i.test(code)) {
             errors.push('Use target markup only. Full document tags are not needed here.');
+        }
+        if (/\son[a-z]+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/i.test(code)) {
+            errors.push('Inline event handlers are not allowed.');
+        }
+        if (/(?:href|src|action|formaction)\s*=\s*(["'])\s*javascript:[\s\S]*?\1/i.test(code)) {
+            errors.push('javascript: URLs are not allowed.');
+        }
+        if (/\ssrcdoc\s*=/i.test(code)) {
+            errors.push('srcdoc attributes are not allowed.');
+        }
+        if (/<\/?(?:iframe|object|embed|applet|frame|frameset)\b/i.test(code)) {
+            errors.push('Embedded active content is not allowed.');
+        }
+        if (/<svg\b[\s\S]*?>/i.test(code) || /<math\b[\s\S]*?>/i.test(code)) {
+            errors.push('SVG and MathML markup are not allowed.');
+        }
+        if (/<base\b/i.test(code)) {
+            errors.push('Base tags are not allowed.');
+        }
+        if (/<form\b/i.test(code)) {
+            errors.push('Form elements are not allowed in the target HTML.');
         }
         return errors;
     };

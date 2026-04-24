@@ -3,6 +3,8 @@ $verificationErrors = $_SESSION['verification_errors'] ?? [];
 $verificationNotices = $_SESSION['verification_notices'] ?? [];
 $pendingEmail = (string) ($_SESSION['pending_verification_email'] ?? '');
 $mailWasSent = !empty($_SESSION['pending_verification_mail_sent']);
+$resendAvailableAt = (int) ($_SESSION['verification_resend_available_at'] ?? 0);
+$resendSecondsLeft = max(0, $resendAvailableAt - time());
 $maskedEmail = $pendingEmail !== '' && isset($tools) ? $tools->maskEmail($pendingEmail) : $pendingEmail;
 unset($_SESSION['verification_errors'], $_SESSION['verification_notices']);
 ?>
@@ -80,7 +82,14 @@ unset($_SESSION['verification_errors'], $_SESSION['verification_notices']);
             </form>
             <form class="absolute bottom-5 left-1/2 w-full max-w-[23rem] -translate-x-1/2 px-4 text-center sm:px-0" action="./?c=email-verification" method="post">
                 <?= pixelwarCsrfField() ?>
-                <button type="submit" name="resend_verification" value="1" class="text-xs font-extrabold text-arcade-orange underline decoration-2 underline-offset-4 transition hover:text-arcade-coral">
+                <button
+                    type="submit"
+                    name="resend_verification"
+                    value="1"
+                    class="text-xs font-extrabold text-arcade-orange underline decoration-2 underline-offset-4 transition hover:text-arcade-coral disabled:cursor-not-allowed disabled:text-arcade-ink/40 disabled:no-underline"
+                    data-verification-resend-button
+                    data-resend-available-at="<?= htmlspecialchars((string) $resendAvailableAt, ENT_QUOTES, 'UTF-8') ?>"
+                    <?= $resendSecondsLeft > 0 ? 'disabled' : '' ?>>
                     Send another code
                 </button>
             </form>
@@ -342,5 +351,32 @@ unset($_SESSION['verification_errors'], $_SESSION['verification_notices']);
 
         form.submit();
     });
+})();
+
+(() => {
+    const button = document.querySelector('[data-verification-resend-button]');
+
+    if (!button) {
+        return;
+    }
+
+    const availableAt = Number(button.dataset.resendAvailableAt || '0');
+    const defaultLabel = 'Send another code';
+
+    const updateState = () => {
+        const secondsLeft = Math.max(0, availableAt - Math.floor(Date.now() / 1000));
+
+        if (secondsLeft <= 0) {
+            button.disabled = false;
+            button.textContent = defaultLabel;
+            return;
+        }
+
+        button.disabled = true;
+        button.textContent = `Send another code in ${secondsLeft}s`;
+        window.setTimeout(updateState, 1000);
+    };
+
+    updateState();
 })();
 </script>

@@ -3,6 +3,8 @@ $currentPage = $requestedPage !== '' ? $requestedPage : 'landing';
 $publicPages = ['landing', 'login', 'signup', 'forgot-password'];
 $guestOnlyPages = ['login', 'signup', 'forgot-password'];
 $onboardingPages = ['email-verification', 'profile-setup'];
+$reviewPage = 'review-pending';
+$rejectedPage = 'review-rejected';
 $isPublicPage = in_array($currentPage, $publicPages, true);
 $isOnboardingPage = in_array($currentPage, $onboardingPages, true);
 $sessionUser = null;
@@ -28,6 +30,43 @@ if (
     $sessionUser !== null
     && (int) ($sessionUser['role_id'] ?? 0) === pixelwarStudentRoleId()
     && (int) $sessionUser['is_verified'] !== 1
+    && (
+        empty($_SESSION['pending_verification_user_id'])
+        || (int) $_SESSION['pending_verification_user_id'] !== (int) $sessionUser['user_id']
+    )
+) {
+    pixelwarPrepareAccountVerification(
+        pixelwarRequireVerificationRepository($verificationRepository),
+        $tools,
+        (int) $sessionUser['user_id'],
+        (string) $sessionUser['email'],
+        (string) $sessionUser['username']
+    );
+}
+
+if (
+    $sessionUser !== null
+    && (int) ($sessionUser['role_id'] ?? 0) === pixelwarAdminRoleId()
+    && !pixelwarAdminNeedsSetup(pixelwarRequireUserRepository($userRepository), $sessionUser)
+    && (int) $sessionUser['is_verified'] !== 1
+    && (
+        empty($_SESSION['pending_verification_user_id'])
+        || (int) $_SESSION['pending_verification_user_id'] !== (int) $sessionUser['user_id']
+    )
+) {
+    pixelwarPrepareAccountVerification(
+        pixelwarRequireVerificationRepository($verificationRepository),
+        $tools,
+        (int) $sessionUser['user_id'],
+        (string) $sessionUser['email'],
+        (string) $sessionUser['username']
+    );
+}
+
+if (
+    $sessionUser !== null
+    && (int) ($sessionUser['role_id'] ?? 0) === pixelwarTeacherRoleId()
+    && (int) ($sessionUser['is_verified'] ?? 0) !== 1
     && (
         empty($_SESSION['pending_verification_user_id'])
         || (int) $_SESSION['pending_verification_user_id'] !== (int) $sessionUser['user_id']
@@ -97,12 +136,80 @@ if (
 
 if (
     $sessionUser !== null
+    && pixelwarStudentRejected($sessionUser)
+    && $currentPage !== $rejectedPage
+    && $currentPage !== 'logout'
+) {
+    pixelwarRedirect($rejectedPage);
+}
+
+if (
+    $sessionUser !== null
+    && pixelwarStudentUnderReview($sessionUser)
+    && $currentPage !== $reviewPage
+    && $currentPage !== 'logout'
+) {
+    pixelwarRedirect($reviewPage);
+}
+
+if (
+    $sessionUser !== null
+    && (int) ($sessionUser['role_id'] ?? 0) === pixelwarAdminRoleId()
+    && pixelwarAdminNeedsSetup(pixelwarRequireUserRepository($userRepository), $sessionUser)
+    && $currentPage !== 'profile-setup'
+    && $currentPage !== 'logout'
+) {
+    pixelwarRedirect('profile-setup');
+}
+
+if (
+    $sessionUser !== null
+    && (int) ($sessionUser['role_id'] ?? 0) === pixelwarAdminRoleId()
+    && !pixelwarAdminNeedsSetup(pixelwarRequireUserRepository($userRepository), $sessionUser)
+    && (int) $sessionUser['is_verified'] !== 1
+    && $currentPage !== 'email-verification'
+) {
+    pixelwarRedirect('email-verification');
+}
+
+if (
+    $sessionUser !== null
+    && (int) ($sessionUser['role_id'] ?? 0) === pixelwarTeacherRoleId()
+    && (int) $sessionUser['is_verified'] !== 1
+    && $currentPage !== 'email-verification'
+) {
+    pixelwarRedirect('email-verification');
+}
+
+if (
+    $sessionUser !== null
     && pixelwarTeacherNeedsSetup(pixelwarRequireUserRepository($userRepository), $sessionUser)
     && $currentPage !== 'profile-setup'
     && $currentPage !== 'login'
     && $currentPage !== 'landing'
 ) {
     pixelwarRedirect('profile-setup');
+}
+
+if (
+    $requestMethod === 'GET'
+    && $sessionUser !== null
+    && (int) ($sessionUser['role_id'] ?? 0) === pixelwarAdminRoleId()
+    && !pixelwarAdminNeedsSetup(pixelwarRequireUserRepository($userRepository), $sessionUser)
+    && (int) $sessionUser['is_verified'] === 1
+    && $currentPage === 'email-verification'
+) {
+    pixelwarRedirectAfterAuthState(pixelwarRequireUserRepository($userRepository), $sessionUser);
+}
+
+if (
+    $requestMethod === 'GET'
+    && $sessionUser !== null
+    && (int) ($sessionUser['role_id'] ?? 0) === pixelwarTeacherRoleId()
+    && (int) $sessionUser['is_verified'] === 1
+    && $currentPage === 'email-verification'
+) {
+    pixelwarRedirectAfterAuthState(pixelwarRequireUserRepository($userRepository), $sessionUser);
 }
 
 if (
@@ -124,6 +231,34 @@ if (
     && pixelwarUserDetailsExist(pixelwarRequireUserRepository($userRepository), (int) $sessionUser['user_id'])
 ) {
     pixelwarRedirect('home');
+}
+
+if (
+    $requestMethod === 'GET'
+    && $sessionUser !== null
+    && !pixelwarStudentRejected($sessionUser)
+    && $currentPage === $rejectedPage
+) {
+    pixelwarRedirectAfterAuthState(pixelwarRequireUserRepository($userRepository), $sessionUser);
+}
+
+if (
+    $requestMethod === 'GET'
+    && $sessionUser !== null
+    && !pixelwarStudentUnderReview($sessionUser)
+    && $currentPage === $reviewPage
+) {
+    pixelwarRedirectAfterAuthState(pixelwarRequireUserRepository($userRepository), $sessionUser);
+}
+
+if (
+    $requestMethod === 'GET'
+    && $sessionUser !== null
+    && (int) ($sessionUser['role_id'] ?? 0) === pixelwarAdminRoleId()
+    && !pixelwarAdminNeedsSetup(pixelwarRequireUserRepository($userRepository), $sessionUser)
+    && $currentPage === 'profile-setup'
+) {
+    pixelwarRedirectAfterAuthState(pixelwarRequireUserRepository($userRepository), $sessionUser);
 }
 
 if (

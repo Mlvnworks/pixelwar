@@ -12,7 +12,7 @@ $pageStyleFile = __DIR__ . '/../styling/page/' . $normalizedContent . '.css';
 $appName = isset($pageMeta) ? $pageMeta->titleFor($normalizedContent) : APP_NAME;
 $appDescription = isset($pageMeta) ? $pageMeta->descriptionFor($normalizedContent) : 'Gamified CSS game for students';
 $headerlessPages = ['landing', 'pixelwar'];
-$footerlessPages = ['landing', 'login', 'forgot-password', 'signup', 'email-verification', 'profile-setup', 'pixelwar'];
+$footerlessPages = ['landing', 'login', 'forgot-password', 'signup', 'email-verification', 'profile-setup', 'review-pending', 'review-rejected', 'pixelwar'];
 $hidesHeader = in_array($normalizedContent, $headerlessPages, true);
 $hidesFooter = in_array($normalizedContent, $footerlessPages, true);
 ?>

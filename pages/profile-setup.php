@@ -2,14 +2,26 @@
 $profileSetupErrors = $_SESSION['profile_setup_errors'] ?? [];
 $profileSetupOld = $_SESSION['profile_setup_old'] ?? [];
 $setupUsername = (string) ($_SESSION['username'] ?? 'Player');
+$setupEmail = (string) ($_SESSION['email'] ?? '');
 $setupRoleId = (int) ($_SESSION['role_id'] ?? 0);
 $isTeacherSetup = $setupRoleId === 2;
-$profileTitle = $isTeacherSetup ? 'Finish your teacher setup.' : 'Finish your profile.';
-$profileEyebrow = $isTeacherSetup ? 'Teacher Setup' : 'Player Setup';
+$isAdminSetup = $setupRoleId === 1;
+$isStaffSetup = $isTeacherSetup || $isAdminSetup;
+$profileTitle = $isTeacherSetup
+    ? 'Finish your teacher setup.'
+    : ($isAdminSetup ? 'Finish your admin setup.' : 'Finish your profile.');
+$profileEyebrow = $isTeacherSetup
+    ? 'Teacher Setup'
+    : ($isAdminSetup ? 'Admin Setup' : 'Player Setup');
 $profileDescription = $isTeacherSetup
     ? 'Welcome ' . htmlspecialchars($setupUsername, ENT_QUOTES, 'UTF-8') . '. Set your final access credentials and profile before entering the teacher panel.'
-    : 'Welcome ' . htmlspecialchars($setupUsername, ENT_QUOTES, 'UTF-8') . '. Add your details before entering the arena.';
-$submitLabel = $isTeacherSetup ? 'Finish Teacher Setup' : 'Enter Pixelwar';
+    : ($isAdminSetup
+        ? 'Welcome ' . htmlspecialchars($setupUsername, ENT_QUOTES, 'UTF-8') . '. Set your final admin account details first. We will verify your email before opening the admin panel.'
+        : 'Welcome ' . htmlspecialchars($setupUsername, ENT_QUOTES, 'UTF-8') . '. Add your details before entering the arena.');
+$submitLabel = $isTeacherSetup
+    ? 'Finish Teacher Setup'
+    : ($isAdminSetup ? 'Save Admin Setup' : 'Enter Pixelwar');
+$profileCardWidthClass = $isStaffSetup ? 'max-w-[25rem]' : 'max-w-[31rem]';
 unset($_SESSION['profile_setup_errors'], $_SESSION['profile_setup_old']);
 ?>
 <main class="auth-page relative min-h-[calc(100vh-4.25rem)] overflow-hidden bg-arcade-cream px-4 py-4 text-arcade-ink">
@@ -20,11 +32,19 @@ unset($_SESSION['profile_setup_errors'], $_SESSION['profile_setup_old']);
     <div class="auth-token auth-token--three">OK</div>
 
     <section class="container relative flex min-h-[calc(100vh-7.25rem)] items-center justify-center">
-        <form id="profile-setup-form" class="auth-card w-full max-w-[25rem] rounded-[24px] border-4 border-arcade-ink bg-arcade-panel p-4 shadow-[8px_8px_0_#26190f] md:p-5" action="./?c=profile-setup" method="post" enctype="multipart/form-data" novalidate>
+        <form id="profile-setup-logout-form" action="./?c=logout" method="post" class="hidden">
+            <?= pixelwarCsrfField() ?>
+        </form>
+
+        <form id="profile-setup-form" class="auth-card w-full <?= htmlspecialchars($profileCardWidthClass, ENT_QUOTES, 'UTF-8') ?> rounded-[24px] border-4 border-arcade-ink bg-arcade-panel p-4 shadow-[8px_8px_0_#26190f] md:p-5" action="./?c=profile-setup" method="post" enctype="multipart/form-data" novalidate>
             <?= pixelwarCsrfField() ?>
             <p class="font-arcade text-[10px] uppercase tracking-[0.28em] text-arcade-orange"><?= htmlspecialchars($profileEyebrow, ENT_QUOTES, 'UTF-8') ?></p>
             <h1 class="mt-2 text-[1.35rem] font-bold leading-tight"><?= htmlspecialchars($profileTitle, ENT_QUOTES, 'UTF-8') ?></h1>
             <p class="mt-1 text-sm leading-5 text-arcade-ink/68"><?= $profileDescription ?></p>
+            <button type="submit" form="profile-setup-logout-form" class="mt-3 inline-flex items-center gap-2 rounded-xl border-2 border-arcade-ink bg-white px-3 py-2 text-xs font-extrabold uppercase tracking-[0.14em] text-arcade-ink shadow-[0_3px_0_#26190f] transition hover:-translate-y-0.5 hover:bg-arcade-yellow">
+                <span aria-hidden="true">&larr;</span>
+                Logout
+            </button>
 
             <?php if ($profileSetupErrors !== []) : ?>
                 <div class="mt-3 rounded-2xl border-2 border-arcade-coral bg-arcade-coral/10 px-3 py-2 text-sm font-bold leading-5 text-arcade-ink" role="alert">
@@ -34,39 +54,7 @@ unset($_SESSION['profile_setup_errors'], $_SESSION['profile_setup_old']);
                 </div>
             <?php endif; ?>
 
-            <?php if ($isTeacherSetup) : ?>
-                <div class="mt-4 grid gap-3 sm:grid-cols-2">
-                    <label class="block text-sm font-bold sm:col-span-2" for="profile-username">
-                        Final Username
-                        <input id="profile-username" name="username" type="text" autocomplete="username" required maxlength="32" value="<?= htmlspecialchars((string) ($profileSetupOld['username'] ?? $setupUsername), ENT_QUOTES, 'UTF-8') ?>" class="mt-1 w-full rounded-xl border-2 border-arcade-ink/15 bg-white px-3 py-2 outline-none transition focus:border-arcade-orange" placeholder="teacher_username" data-teacher-setup-username>
-                        <span id="profile-username-feedback" class="mt-1 block min-h-5 text-xs font-bold leading-5 text-arcade-ink/55"></span>
-                    </label>
-
-                    <label class="block text-sm font-bold" for="profile-password">
-                        Final Password
-                        <input id="profile-password" name="password" type="password" autocomplete="new-password" required minlength="8" class="mt-1 w-full rounded-xl border-2 border-arcade-ink/15 bg-white px-3 py-2 outline-none transition focus:border-arcade-orange" placeholder="Minimum 8 characters">
-                    </label>
-
-                    <label class="block text-sm font-bold" for="profile-confirm-password">
-                        Confirm Password
-                        <input id="profile-confirm-password" name="confirm_password" type="password" autocomplete="new-password" required minlength="8" class="mt-1 w-full rounded-xl border-2 border-arcade-ink/15 bg-white px-3 py-2 outline-none transition focus:border-arcade-orange" placeholder="Repeat password">
-                    </label>
-                </div>
-            <?php endif; ?>
-
-            <div class="mt-4 grid gap-3 sm:grid-cols-2">
-                <label class="block text-sm font-bold" for="profile-firstname">
-                    First Name
-                    <input id="profile-firstname" name="firstname" type="text" autocomplete="given-name" required maxlength="80" value="<?= htmlspecialchars((string) ($profileSetupOld['firstname'] ?? ''), ENT_QUOTES, 'UTF-8') ?>" class="mt-1 w-full rounded-xl border-2 border-arcade-ink/15 bg-white px-3 py-2 outline-none transition focus:border-arcade-orange" placeholder="Mika">
-                </label>
-
-                <label class="block text-sm font-bold" for="profile-lastname">
-                    Last Name
-                    <input id="profile-lastname" name="lastname" type="text" autocomplete="family-name" required maxlength="80" value="<?= htmlspecialchars((string) ($profileSetupOld['lastname'] ?? ''), ENT_QUOTES, 'UTF-8') ?>" class="mt-1 w-full rounded-xl border-2 border-arcade-ink/15 bg-white px-3 py-2 outline-none transition focus:border-arcade-orange" placeholder="Reyes">
-                </label>
-            </div>
-
-            <label class="mt-3 block text-sm font-bold" for="profile-image">Profile Image</label>
+            <label class="mt-4 block text-sm font-bold" for="profile-image">Profile Image</label>
             <div id="profile-upload-dropzone" class="profile-upload-dropzone mt-1 rounded-[22px] border-2 border-dashed border-arcade-ink/25 bg-white/75 p-3 transition">
                 <div class="flex items-center gap-3">
                     <div class="profile-upload-preview grid h-16 w-16 shrink-0 place-items-center overflow-hidden rounded-2xl border-2 border-arcade-ink bg-arcade-yellow text-arcade-ink">
@@ -82,6 +70,100 @@ unset($_SESSION['profile_setup_errors'], $_SESSION['profile_setup_old']);
                 <input id="profile-image" name="profile_image" type="file" accept="image/png,image/jpeg,image/webp,image/gif" required class="sr-only">
             </div>
             <p id="profile-upload-message" class="mt-1 min-h-4 text-xs font-bold leading-5 text-arcade-coral" aria-live="polite"></p>
+
+            <div class="mt-4 grid gap-3 sm:grid-cols-2">
+                <label class="block text-sm font-bold" for="profile-firstname">
+                    First Name
+                    <input id="profile-firstname" name="firstname" type="text" autocomplete="given-name" required maxlength="80" value="<?= htmlspecialchars((string) ($profileSetupOld['firstname'] ?? ''), ENT_QUOTES, 'UTF-8') ?>" class="mt-1 w-full rounded-xl border-2 border-arcade-ink/15 bg-white px-3 py-2 outline-none transition focus:border-arcade-orange" placeholder="Mika">
+                </label>
+
+                <label class="block text-sm font-bold" for="profile-lastname">
+                    Last Name
+                    <input id="profile-lastname" name="lastname" type="text" autocomplete="family-name" required maxlength="80" value="<?= htmlspecialchars((string) ($profileSetupOld['lastname'] ?? ''), ENT_QUOTES, 'UTF-8') ?>" class="mt-1 w-full rounded-xl border-2 border-arcade-ink/15 bg-white px-3 py-2 outline-none transition focus:border-arcade-orange" placeholder="Reyes">
+                </label>
+            </div>
+
+            <?php if ($isStaffSetup) : ?>
+                <div class="mt-4 grid gap-3 sm:grid-cols-2">
+                    <label class="block text-sm font-bold sm:col-span-2" for="profile-username">
+                        Final Username
+                        <input id="profile-username" name="username" type="text" autocomplete="username" required maxlength="32" value="<?= htmlspecialchars((string) ($profileSetupOld['username'] ?? $setupUsername), ENT_QUOTES, 'UTF-8') ?>" class="mt-1 w-full rounded-xl border-2 border-arcade-ink/15 bg-white px-3 py-2 outline-none transition focus:border-arcade-orange" placeholder="teacher_username" data-teacher-setup-username>
+                        <span id="profile-username-feedback" class="mt-1 block min-h-5 text-xs font-bold leading-5 text-arcade-ink/55"></span>
+                    </label>
+
+                    <?php if ($isAdminSetup) : ?>
+                        <label class="block text-sm font-bold sm:col-span-2" for="profile-email">
+                            Email
+                            <input id="profile-email" name="email" type="email" autocomplete="email" required maxlength="255" value="<?= htmlspecialchars((string) ($profileSetupOld['email'] ?? $setupEmail), ENT_QUOTES, 'UTF-8') ?>" class="mt-1 w-full rounded-xl border-2 border-arcade-ink/15 bg-white px-3 py-2 outline-none transition focus:border-arcade-orange" placeholder="admin@example.com">
+                            <span id="profile-email-feedback" class="mt-1 block min-h-5 text-xs font-bold leading-5 text-arcade-ink/55"></span>
+                        </label>
+                    <?php endif; ?>
+
+                    <label class="block text-sm font-bold" for="profile-password">
+                        Final Password
+                        <input id="profile-password" name="password" type="password" autocomplete="new-password" required minlength="8" class="mt-1 w-full rounded-xl border-2 border-arcade-ink/15 bg-white px-3 py-2 outline-none transition focus:border-arcade-orange" placeholder="Minimum 8 characters">
+                    </label>
+
+                    <label class="block text-sm font-bold" for="profile-confirm-password">
+                        Confirm Password
+                        <input id="profile-confirm-password" name="confirm_password" type="password" autocomplete="new-password" required minlength="8" class="mt-1 w-full rounded-xl border-2 border-arcade-ink/15 bg-white px-3 py-2 outline-none transition focus:border-arcade-orange" placeholder="Repeat password">
+                    </label>
+                </div>
+            <?php endif; ?>
+
+            <?php if (!$isStaffSetup) : ?>
+                <div class="mt-4 rounded-[22px] border-2 border-arcade-ink/12 bg-white/70 p-4">
+                    <div class="flex items-start justify-between gap-3">
+                        <div>
+                            <p class="text-sm font-extrabold text-arcade-ink">Student Details</p>
+                            <p class="mt-1 text-xs font-bold leading-5 text-arcade-ink/55">Add your student number and upload a clear ID image before entering the homepage.</p>
+                        </div>
+                        <span class="inline-flex rounded-full border-2 border-arcade-ink bg-arcade-yellow px-2 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-arcade-ink">Required</span>
+                    </div>
+
+                    <div class="mt-4 space-y-4">
+                        <label class="block text-sm font-bold" for="student-number">
+                            Student Number
+                            <input id="student-number" name="student_number" type="text" autocomplete="off" required maxlength="40" value="<?= htmlspecialchars((string) ($profileSetupOld['student_number'] ?? ''), ENT_QUOTES, 'UTF-8') ?>" class="mt-1 w-full rounded-xl border-2 border-arcade-ink/15 bg-white px-3 py-2 outline-none transition focus:border-arcade-orange" placeholder="2026-000123">
+                            <span id="student-number-message" class="mt-1 block min-h-4 text-xs font-bold leading-5 text-arcade-coral" aria-live="polite"></span>
+                            <span class="mt-1 block text-xs font-bold leading-5 text-arcade-ink/55">Use the number printed on your active school record or ID.</span>
+                        </label>
+
+                        <div>
+                            <label class="block text-sm font-bold" for="id-picture">ID Picture</label>
+                            <div id="id-upload-dropzone" class="profile-upload-dropzone profile-upload-dropzone--compact mt-1 rounded-[20px] border-2 border-dashed border-arcade-ink/25 bg-white/80 p-3 transition">
+                                <div class="flex items-center gap-3">
+                                    <div class="profile-upload-preview profile-upload-preview--id grid h-14 w-20 shrink-0 place-items-center overflow-hidden rounded-2xl border-2 border-arcade-ink bg-white text-arcade-ink">
+                                        <span id="id-upload-placeholder" class="text-[10px] font-black uppercase tracking-[0.18em] text-arcade-ink/42">ID</span>
+                                        <img id="id-upload-preview-image" src="" alt="ID picture preview" class="hidden h-full w-full object-cover">
+                                    </div>
+                                    <div class="min-w-0 flex-1">
+                                        <p class="text-sm font-extrabold text-arcade-ink">Upload your school ID</p>
+                                        <p id="id-upload-file-name" class="mt-1 truncate text-xs font-bold text-arcade-ink/55">Front side image. Max 2MB.</p>
+                                    </div>
+                                </div>
+                                <input id="id-picture" name="id_picture" type="file" accept="image/png,image/jpeg,image/webp,image/gif" required class="sr-only">
+                            </div>
+                            <p id="id-upload-message" class="mt-1 min-h-4 text-xs font-bold leading-5 text-arcade-coral" aria-live="polite"></p>
+                        </div>
+                    </div>
+
+                    <div class="mt-4 rounded-[20px] border-2 border-arcade-ink bg-arcade-cream/75 p-3">
+                        <div class="flex items-center justify-between gap-2">
+                            <p class="text-xs font-black uppercase tracking-[0.18em] text-arcade-ink/58">ID Preview</p>
+                            <span class="rounded-full bg-white px-2 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-arcade-ink/55">Front</span>
+                        </div>
+                        <div class="mt-3 overflow-hidden rounded-2xl border-2 border-dashed border-arcade-ink/25 bg-white">
+                            <div class="relative min-h-[16rem] sm:min-h-[18rem]">
+                                <div id="id-preview-empty" class="absolute inset-0 grid place-items-center px-4 text-center text-xs font-bold leading-5 text-arcade-ink/45">
+                                    Select an ID image to preview it here.
+                                </div>
+                                <img id="id-upload-preview-panel" src="" alt="Selected ID image preview" class="hidden h-full w-full object-contain p-3">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            <?php endif; ?>
 
             <div id="profile-upload-progress" class="profile-upload-progress mt-4 hidden" aria-live="polite">
                 <div class="flex items-center justify-between gap-3 text-xs font-extrabold uppercase tracking-[0.16em] text-arcade-ink/60">
@@ -148,6 +230,14 @@ unset($_SESSION['profile_setup_errors'], $_SESSION['profile_setup_old']);
 
 .profile-upload-preview {
     box-shadow: 4px 4px 0 rgba(38, 25, 15, 0.18);
+}
+
+.profile-upload-dropzone--compact .profile-upload-preview {
+    box-shadow: 3px 3px 0 rgba(38, 25, 15, 0.14);
+}
+
+.profile-upload-preview--id {
+    background: linear-gradient(135deg, rgba(255, 209, 102, 0.22), rgba(76, 201, 240, 0.14));
 }
 
 .profile-submit-button.is-loading {
@@ -288,6 +378,10 @@ unset($_SESSION['profile_setup_errors'], $_SESSION['profile_setup_old']);
     .auth-card {
         box-shadow: 8px 8px 0 #26190f;
     }
+
+    #profile-setup-form {
+        max-width: min(100%, 31rem);
+    }
 }
 </style>
 
@@ -306,8 +400,20 @@ unset($_SESSION['profile_setup_errors'], $_SESSION['profile_setup_old']);
     const progressBar = document.querySelector('#profile-upload-progress-bar');
     const submitButton = document.querySelector('#profile-submit-button');
     const submitLabel = document.querySelector('#profile-submit-label');
+    const idDropzone = document.querySelector('#id-upload-dropzone');
+    const idInput = document.querySelector('#id-picture');
+    const idPreview = document.querySelector('#id-upload-preview-image');
+    const idPanelPreview = document.querySelector('#id-upload-preview-panel');
+    const idPreviewEmpty = document.querySelector('#id-preview-empty');
+    const idPlaceholder = document.querySelector('#id-upload-placeholder');
+    const idFileName = document.querySelector('#id-upload-file-name');
+    const idMessage = document.querySelector('#id-upload-message');
+    const studentNumberInput = document.querySelector('#student-number');
+    const studentNumberMessage = document.querySelector('#student-number-message');
     const usernameInput = document.querySelector('#profile-username');
     const usernameFeedback = document.querySelector('#profile-username-feedback');
+    const emailInput = document.querySelector('#profile-email');
+    const emailFeedback = document.querySelector('#profile-email-feedback');
     const defaultSubmitLabel = submitLabel ? submitLabel.textContent : 'Continue';
 
     if (!form || !dropzone || !input || !preview || !initials || !fileName || !message || !progress || !progressLabel || !progressValue || !progressBar || !submitButton || !submitLabel) {
@@ -317,15 +423,36 @@ unset($_SESSION['profile_setup_errors'], $_SESSION['profile_setup_old']);
     const allowedTypes = ['image/png', 'image/jpeg', 'image/webp', 'image/gif'];
     const maxSize = 2 * 1024 * 1024;
     const requiresTeacherUsernameCheck = Boolean(usernameInput && usernameFeedback);
+    const requiresAdminEmailCheck = Boolean(emailInput && emailFeedback);
     const teacherUsernameState = {
         valid: !requiresTeacherUsernameCheck,
         available: !requiresTeacherUsernameCheck,
         pending: false,
     };
+    const adminEmailState = {
+        valid: !requiresAdminEmailCheck,
+        available: !requiresAdminEmailCheck,
+        pending: false,
+    };
+    let selectedProfileFile = null;
+    let selectedIdFile = null;
 
-    const setError = (text) => {
-        message.textContent = text;
-        dropzone.classList.toggle('is-invalid', text !== '');
+    const setError = (text, targetMessage = message, targetDropzone = dropzone) => {
+        if (!targetMessage || !targetDropzone) {
+            return;
+        }
+
+        targetMessage.textContent = text;
+        targetDropzone.classList.toggle('is-invalid', text !== '');
+    };
+
+    const setStudentNumberError = (text) => {
+        if (!studentNumberInput || !studentNumberMessage) {
+            return;
+        }
+
+        studentNumberMessage.textContent = text;
+        studentNumberInput.classList.toggle('border-arcade-coral', text !== '');
     };
 
     const setProgress = (value, label = 'Uploading avatar') => {
@@ -351,7 +478,12 @@ unset($_SESSION['profile_setup_errors'], $_SESSION['profile_setup_old']);
             return;
         }
 
-        submitButton.disabled = !teacherUsernameState.valid || !teacherUsernameState.available || teacherUsernameState.pending;
+        submitButton.disabled = !teacherUsernameState.valid
+            || !teacherUsernameState.available
+            || teacherUsernameState.pending
+            || !adminEmailState.valid
+            || !adminEmailState.available
+            || adminEmailState.pending;
     };
 
     const applyUsernameFeedback = (messageText, tone) => {
@@ -379,6 +511,7 @@ unset($_SESSION['profile_setup_errors'], $_SESSION['profile_setup_old']);
     };
 
     let usernameCheckTimer = null;
+    let emailCheckTimer = null;
 
     const runTeacherUsernameCheck = () => {
         if (!usernameInput) {
@@ -426,24 +559,140 @@ unset($_SESSION['profile_setup_errors'], $_SESSION['profile_setup_old']);
             });
     };
 
-    const showPreview = (file) => {
+    const applyEmailFeedback = (messageText, tone) => {
+        if (!emailInput || !emailFeedback) {
+            return;
+        }
+
+        emailInput.classList.remove('border-arcade-coral', 'border-arcade-mint', 'border-arcade-yellow');
+        emailFeedback.classList.remove('text-arcade-coral', 'text-arcade-mint', 'text-arcade-orange', 'text-arcade-ink/55');
+
+        if (tone === 'invalid') {
+            emailInput.classList.add('border-arcade-coral');
+            emailFeedback.classList.add('text-arcade-coral');
+        } else if (tone === 'valid') {
+            emailInput.classList.add('border-arcade-mint');
+            emailFeedback.classList.add('text-arcade-mint');
+        } else if (tone === 'loading') {
+            emailInput.classList.add('border-arcade-yellow');
+            emailFeedback.classList.add('text-arcade-orange');
+        } else {
+            emailFeedback.classList.add('text-arcade-ink/55');
+        }
+
+        emailFeedback.textContent = messageText;
+    };
+
+    const runAdminEmailCheck = () => {
+        if (!emailInput) {
+            return;
+        }
+
+        const value = emailInput.value.trim();
+
+        if (value === '') {
+            adminEmailState.valid = false;
+            adminEmailState.available = false;
+            adminEmailState.pending = false;
+            applyEmailFeedback('', 'idle');
+            updateSubmitAvailability();
+            return;
+        }
+
+        if (!emailInput.validity.valid) {
+            adminEmailState.valid = false;
+            adminEmailState.available = false;
+            adminEmailState.pending = false;
+            applyEmailFeedback('Enter a valid email address.', 'invalid');
+            updateSubmitAvailability();
+            return;
+        }
+
+        adminEmailState.pending = true;
+        updateSubmitAvailability();
+        applyEmailFeedback('Checking email...', 'loading');
+
+        const url = new URL('./?c=profile-setup', window.location.href);
+        url.searchParams.set('check_email', '1');
+        url.searchParams.set('email', value);
+
+        fetch(url.toString(), {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+        })
+            .then((response) => response.json())
+            .then((payload) => {
+                adminEmailState.valid = Boolean(payload.valid);
+                adminEmailState.available = Boolean(payload.available);
+                adminEmailState.pending = false;
+
+                const tone = payload.valid && payload.available ? 'valid' : 'invalid';
+                applyEmailFeedback(payload.message || '', tone);
+                updateSubmitAvailability();
+            })
+            .catch(() => {
+                adminEmailState.valid = false;
+                adminEmailState.available = false;
+                adminEmailState.pending = false;
+                applyEmailFeedback('Unable to check email right now.', 'invalid');
+                updateSubmitAvailability();
+            });
+    };
+
+    const showPreview = (file, config = {}) => {
+        const targetInput = config.input || input;
+        const targetPreview = config.preview || preview;
+        const targetInitials = config.initials || initials;
+        const targetFileName = config.fileName || fileName;
+        const targetMessage = config.message || message;
+        const targetDropzone = config.dropzone || dropzone;
+        const targetPanelPreview = config.panelPreview || null;
+        const targetPanelEmpty = config.panelEmpty || null;
+        const stateKey = config.stateKey || 'profile';
+
         if (!allowedTypes.includes(file.type)) {
-            setError('Profile image must be JPG, PNG, WEBP, or GIF.');
-            input.value = '';
+            setError('Image must be JPG, PNG, WEBP, or GIF.', targetMessage, targetDropzone);
+            targetInput.value = '';
+            if (stateKey === 'profile') {
+                selectedProfileFile = null;
+            } else if (stateKey === 'id') {
+                selectedIdFile = null;
+            }
             return false;
         }
 
         if (file.size > maxSize) {
-            setError('Profile image must be 2MB or smaller.');
-            input.value = '';
+            setError('Image must be 2MB or smaller.', targetMessage, targetDropzone);
+            targetInput.value = '';
+            if (stateKey === 'profile') {
+                selectedProfileFile = null;
+            } else if (stateKey === 'id') {
+                selectedIdFile = null;
+            }
             return false;
         }
 
-        setError('');
-        fileName.textContent = `${file.name} - ${(file.size / 1024).toFixed(0)}KB`;
-        preview.src = URL.createObjectURL(file);
-        preview.classList.remove('hidden');
-        initials.classList.add('hidden');
+        setError('', targetMessage, targetDropzone);
+        targetFileName.textContent = `${file.name} - ${(file.size / 1024).toFixed(0)}KB`;
+        targetPreview.src = URL.createObjectURL(file);
+        targetPreview.classList.remove('hidden');
+        if (targetPanelPreview) {
+            targetPanelPreview.src = targetPreview.src;
+            targetPanelPreview.classList.remove('hidden');
+        }
+        if (targetPanelEmpty) {
+            targetPanelEmpty.classList.add('hidden');
+        }
+
+        if (targetInitials) {
+            targetInitials.classList.add('hidden');
+        }
+
+        if (stateKey === 'profile') {
+            selectedProfileFile = file;
+        } else if (stateKey === 'id') {
+            selectedIdFile = file;
+        }
+
         return true;
     };
 
@@ -462,13 +711,58 @@ unset($_SESSION['profile_setup_errors'], $_SESSION['profile_setup_old']);
         }
 
         input.files = event.dataTransfer.files;
-        showPreview(event.dataTransfer.files[0]);
+        showPreview(event.dataTransfer.files[0], { stateKey: 'profile' });
     });
     input.addEventListener('change', () => {
         if (input.files.length > 0) {
-            showPreview(input.files[0]);
+            showPreview(input.files[0], { stateKey: 'profile' });
         }
     });
+
+    if (idDropzone && idInput && idPreview && idFileName && idMessage) {
+        idDropzone.addEventListener('click', () => idInput.click());
+        idDropzone.addEventListener('dragover', (event) => {
+            event.preventDefault();
+            idDropzone.classList.add('is-dragging');
+        });
+        idDropzone.addEventListener('dragleave', () => idDropzone.classList.remove('is-dragging'));
+        idDropzone.addEventListener('drop', (event) => {
+            event.preventDefault();
+            idDropzone.classList.remove('is-dragging');
+
+            if (event.dataTransfer.files.length === 0) {
+                return;
+            }
+
+            idInput.files = event.dataTransfer.files;
+            showPreview(event.dataTransfer.files[0], {
+                input: idInput,
+                preview: idPreview,
+                initials: idPlaceholder,
+                fileName: idFileName,
+                message: idMessage,
+                dropzone: idDropzone,
+                panelPreview: idPanelPreview,
+                panelEmpty: idPreviewEmpty,
+                stateKey: 'id',
+            });
+        });
+        idInput.addEventListener('change', () => {
+            if (idInput.files.length > 0) {
+                showPreview(idInput.files[0], {
+                    input: idInput,
+                    preview: idPreview,
+                    initials: idPlaceholder,
+                    fileName: idFileName,
+                    message: idMessage,
+                    dropzone: idDropzone,
+                    panelPreview: idPanelPreview,
+                    panelEmpty: idPreviewEmpty,
+                    stateKey: 'id',
+                });
+            }
+        });
+    }
 
     if (requiresTeacherUsernameCheck && usernameInput) {
         usernameInput.addEventListener('input', () => {
@@ -488,21 +782,53 @@ unset($_SESSION['profile_setup_errors'], $_SESSION['profile_setup_old']);
         }
     }
 
+    if (requiresAdminEmailCheck && emailInput) {
+        emailInput.addEventListener('input', () => {
+            window.clearTimeout(emailCheckTimer);
+            emailCheckTimer = window.setTimeout(runAdminEmailCheck, 320);
+        });
+
+        emailInput.addEventListener('blur', () => {
+            window.clearTimeout(emailCheckTimer);
+            runAdminEmailCheck();
+        });
+
+        if (emailInput.value.trim() !== '') {
+            runAdminEmailCheck();
+        } else {
+            updateSubmitAvailability();
+        }
+    }
+
+    if (studentNumberInput) {
+        studentNumberInput.addEventListener('input', () => {
+            setStudentNumberError('');
+        });
+    }
+
     const submitWithProgress = () => {
         const request = new XMLHttpRequest();
         const formData = new FormData(form);
 
+        if (selectedProfileFile) {
+            formData.set('profile_image', selectedProfileFile, selectedProfileFile.name);
+        }
+
+        if (selectedIdFile) {
+            formData.set('id_picture', selectedIdFile, selectedIdFile.name);
+        }
+
         setError('');
         setLoading(true);
-        setProgress(0, 'Preparing upload');
+        setProgress(0, 'Preparing uploads');
 
         request.upload.addEventListener('progress', (event) => {
             if (!event.lengthComputable) {
-                setProgress(12, 'Uploading avatar');
+                setProgress(12, 'Uploading files');
                 return;
             }
 
-            setProgress((event.loaded / event.total) * 90, 'Uploading avatar');
+            setProgress((event.loaded / event.total) * 90, 'Uploading files');
         });
 
         request.addEventListener('load', () => {
@@ -524,7 +850,15 @@ unset($_SESSION['profile_setup_errors'], $_SESSION['profile_setup_old']);
             setLoading(false);
             setProgress(0, 'Upload stopped');
             progress.classList.add('hidden');
-            setError(response && response.message ? response.message : 'Profile setup failed. Please try again.');
+            const responseMessage = response && response.message ? response.message : 'Profile setup failed. Please try again.';
+
+            if (responseMessage.includes('Enter a valid student number.')) {
+                setStudentNumberError('Enter a valid student number.');
+                studentNumberInput?.focus();
+                return;
+            }
+
+            setError(responseMessage);
         });
 
         request.addEventListener('error', () => {
@@ -547,13 +881,68 @@ unset($_SESSION['profile_setup_errors'], $_SESSION['profile_setup_old']);
             return;
         }
 
+        if (requiresAdminEmailCheck && (!adminEmailState.valid || !adminEmailState.available || adminEmailState.pending)) {
+            applyEmailFeedback('Use a valid and available email before continuing.', 'invalid');
+            updateSubmitAvailability();
+            emailInput?.focus();
+            return;
+        }
+
         if (input.files.length === 0) {
+            if (!selectedProfileFile) {
+                setError('Upload a profile image before continuing.');
+                return;
+            }
+        }
+
+        if (!selectedProfileFile && input.files.length > 0) {
+            selectedProfileFile = input.files[0];
+        }
+
+        if (selectedProfileFile === null) {
             setError('Upload a profile image before continuing.');
             return;
         }
 
-        if (!showPreview(input.files[0])) {
+        setStudentNumberError('');
+
+        if (!showPreview(selectedProfileFile, { stateKey: 'profile' })) {
             return;
+        }
+
+        if (studentNumberInput && !/^[A-Za-z0-9-]{4,40}$/.test(studentNumberInput.value.trim())) {
+            setStudentNumberError('Enter a valid student number.');
+            studentNumberInput.focus();
+            return;
+        }
+
+        if (idInput) {
+            if (!selectedIdFile && idInput.files.length > 0) {
+                selectedIdFile = idInput.files[0];
+            }
+
+            if (!selectedIdFile) {
+                setError('Upload your ID picture before continuing.', idMessage, idDropzone);
+                return;
+            }
+        }
+
+        if (idInput && selectedIdFile) {
+            const idIsValid = showPreview(selectedIdFile, {
+                input: idInput,
+                preview: idPreview,
+                initials: idPlaceholder,
+                fileName: idFileName,
+                message: idMessage,
+                dropzone: idDropzone,
+                panelPreview: idPanelPreview,
+                panelEmpty: idPreviewEmpty,
+                stateKey: 'id',
+            });
+
+            if (!idIsValid) {
+                return;
+            }
         }
 
         submitWithProgress();

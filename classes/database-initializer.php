@@ -35,7 +35,6 @@ final class DatabaseInitializer
         $this->seedRoles($connection);
         $this->seedDifficulties($connection);
         $this->seedDefaultAdmin($connection);
-        $this->seedDefaultTeacher($connection);
 
         return $connection;
     }
@@ -75,6 +74,7 @@ final class DatabaseInitializer
                 `email` VARCHAR(255) NOT NULL,
                 `password` VARCHAR(255) NOT NULL,
                 `is_verified` INT NOT NULL DEFAULT 0,
+                `is_active` INT NOT NULL DEFAULT 0,
                 `registration_date` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 `date_deleted` TIMESTAMP NULL DEFAULT NULL,
                 PRIMARY KEY (`user_id`),
@@ -99,13 +99,17 @@ final class DatabaseInitializer
                 `ud_id` INT NOT NULL AUTO_INCREMENT,
                 `user_id` INT NOT NULL,
                 `image_id` INT NOT NULL,
+                `id_picture` INT NULL DEFAULT NULL,
                 `firstname` VARCHAR(100) NOT NULL,
                 `lastname` VARCHAR(100) NOT NULL,
+                `student_number` VARCHAR(100) NULL DEFAULT NULL,
                 PRIMARY KEY (`ud_id`),
                 UNIQUE KEY `user_details_user_id_unique` (`user_id`),
                 KEY `user_details_image_id_index` (`image_id`),
+                KEY `user_details_id_picture_index` (`id_picture`),
                 CONSTRAINT `user_details_user_id_foreign` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`),
-                CONSTRAINT `user_details_image_id_foreign` FOREIGN KEY (`image_id`) REFERENCES `images` (`img_id`)
+                CONSTRAINT `user_details_image_id_foreign` FOREIGN KEY (`image_id`) REFERENCES `images` (`img_id`),
+                CONSTRAINT `user_details_id_picture_foreign` FOREIGN KEY (`id_picture`) REFERENCES `images` (`img_id`)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci',
             'CREATE TABLE IF NOT EXISTS `difficulties` (
                 `difficulty_id` INT NOT NULL AUTO_INCREMENT,
@@ -125,6 +129,7 @@ final class DatabaseInitializer
                 `css_source` VARCHAR(255) NOT NULL,
                 `status` INT NOT NULL DEFAULT 0,
                 `date_created` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                `date_deleted` TIMESTAMP NULL DEFAULT NULL,
                 PRIMARY KEY (`challenge_id`),
                 KEY `challenges_user_id_index` (`user_id`),
                 KEY `challenges_difficulty_id_index` (`difficulty_id`),
@@ -183,6 +188,84 @@ final class DatabaseInitializer
             $connection->query("ALTER TABLE `activity_logs` ADD `category` VARCHAR(50) NOT NULL DEFAULT 'general' AFTER `user_id`");
             $connection->query('ALTER TABLE `activity_logs` ADD KEY `activity_logs_category_index` (`category`)');
         }
+
+        if ($this->tableExists($connection, 'challenges') && !$this->columnExists($connection, 'challenges', 'date_deleted')) {
+            $connection->query('ALTER TABLE `challenges` ADD `date_deleted` TIMESTAMP NULL DEFAULT NULL AFTER `date_created`');
+        }
+
+        if ($this->tableExists($connection, 'users') && !$this->columnExists($connection, 'users', 'is_active')) {
+            $connection->query('ALTER TABLE `users` ADD `is_active` INT NOT NULL DEFAULT 0 AFTER `is_verified`');
+        }
+
+        if ($this->tableExists($connection, 'user_details') && !$this->columnExists($connection, 'user_details', 'id_picture')) {
+            $connection->query('ALTER TABLE `user_details` ADD `id_picture` INT NULL DEFAULT NULL AFTER `image_id`');
+        }
+
+        if ($this->tableExists($connection, 'user_details') && !$this->columnExists($connection, 'user_details', 'student_number')) {
+            $connection->query('ALTER TABLE `user_details` ADD `student_number` VARCHAR(100) NULL DEFAULT NULL AFTER `lastname`');
+        }
+
+        if (
+            $this->tableExists($connection, 'user_details')
+            && $this->columnExists($connection, 'user_details', 'id_picture')
+            && !$this->indexExists($connection, 'user_details', 'user_details_id_picture_index')
+        ) {
+            $connection->query('ALTER TABLE `user_details` ADD KEY `user_details_id_picture_index` (`id_picture`)');
+        }
+
+        if (
+            $this->tableExists($connection, 'user_details')
+            && $this->columnExists($connection, 'user_details', 'id_picture')
+            && !$this->constraintExists($connection, 'user_details', 'user_details_id_picture_foreign')
+        ) {
+            $connection->query('ALTER TABLE `user_details` ADD CONSTRAINT `user_details_id_picture_foreign` FOREIGN KEY (`id_picture`) REFERENCES `images` (`img_id`)');
+        }
+
+        if (
+            $this->tableExists($connection, 'users')
+            && $this->tableExists($connection, 'user_details')
+            && $this->columnExists($connection, 'users', 'id_picture')
+            && $this->columnExists($connection, 'user_details', 'id_picture')
+        ) {
+            $connection->query(
+                'UPDATE `user_details`
+                 INNER JOIN `users` ON `users`.`user_id` = `user_details`.`user_id`
+                 SET `user_details`.`id_picture` = `users`.`id_picture`
+                 WHERE `users`.`id_picture` IS NOT NULL
+                    AND `user_details`.`id_picture` IS NULL'
+            );
+        }
+
+        if (
+            $this->tableExists($connection, 'users')
+            && $this->tableExists($connection, 'user_details')
+            && $this->columnExists($connection, 'users', 'student_number')
+            && $this->columnExists($connection, 'user_details', 'student_number')
+        ) {
+            $connection->query(
+                'UPDATE `user_details`
+                 INNER JOIN `users` ON `users`.`user_id` = `user_details`.`user_id`
+                 SET `user_details`.`student_number` = `users`.`student_number`
+                 WHERE `users`.`student_number` IS NOT NULL
+                    AND (`user_details`.`student_number` IS NULL OR `user_details`.`student_number` = \'\')'
+            );
+        }
+
+        if ($this->tableExists($connection, 'users') && $this->constraintExists($connection, 'users', 'users_id_picture_foreign')) {
+            $connection->query('ALTER TABLE `users` DROP FOREIGN KEY `users_id_picture_foreign`');
+        }
+
+        if ($this->tableExists($connection, 'users') && $this->indexExists($connection, 'users', 'users_id_picture_index')) {
+            $connection->query('ALTER TABLE `users` DROP INDEX `users_id_picture_index`');
+        }
+
+        if ($this->tableExists($connection, 'users') && $this->columnExists($connection, 'users', 'id_picture')) {
+            $connection->query('ALTER TABLE `users` DROP COLUMN `id_picture`');
+        }
+
+        if ($this->tableExists($connection, 'users') && $this->columnExists($connection, 'users', 'student_number')) {
+            $connection->query('ALTER TABLE `users` DROP COLUMN `student_number`');
+        }
     }
 
     private function tableExists(mysqli $connection, string $table): bool
@@ -199,6 +282,40 @@ final class DatabaseInitializer
         $statement->close();
 
         return (int) ($row['table_count'] ?? 0) > 0;
+    }
+
+    private function indexExists(mysqli $connection, string $table, string $index): bool
+    {
+        $statement = $connection->prepare(
+            'SELECT COUNT(*) AS index_count
+             FROM information_schema.STATISTICS
+             WHERE TABLE_SCHEMA = DATABASE()
+                AND TABLE_NAME = ?
+                AND INDEX_NAME = ?'
+        );
+        $statement->bind_param('ss', $table, $index);
+        $statement->execute();
+        $row = $statement->get_result()->fetch_assoc();
+        $statement->close();
+
+        return (int) ($row['index_count'] ?? 0) > 0;
+    }
+
+    private function constraintExists(mysqli $connection, string $table, string $constraint): bool
+    {
+        $statement = $connection->prepare(
+            'SELECT COUNT(*) AS constraint_count
+             FROM information_schema.TABLE_CONSTRAINTS
+             WHERE TABLE_SCHEMA = DATABASE()
+                AND TABLE_NAME = ?
+                AND CONSTRAINT_NAME = ?'
+        );
+        $statement->bind_param('ss', $table, $constraint);
+        $statement->execute();
+        $row = $statement->get_result()->fetch_assoc();
+        $statement->close();
+
+        return (int) ($row['constraint_count'] ?? 0) > 0;
     }
 
     private function seedRoles(mysqli $connection): void
@@ -247,36 +364,30 @@ final class DatabaseInitializer
 
     private function seedDefaultAdmin(mysqli $connection): void
     {
-        $username = 'admin';
-        $email = 'admin@pixelwar.local';
-        $passwordHash = password_hash('admin123', PASSWORD_DEFAULT);
+        $existingAdmins = $connection->query("SELECT COUNT(*) AS total FROM `users` WHERE `role_id` = 1 AND `date_deleted` IS NULL");
+        $existingAdminsRow = $existingAdmins ? $existingAdmins->fetch_assoc() : null;
+        if ((int) ($existingAdminsRow['total'] ?? 0) > 0) {
+            return;
+        }
+
+        $username = defined('BOOTSTRAP_ADMIN_USERNAME') ? BOOTSTRAP_ADMIN_USERNAME : 'admin';
+        $email = defined('BOOTSTRAP_ADMIN_EMAIL') ? BOOTSTRAP_ADMIN_EMAIL : 'admin@pixelwar.local';
+        $bootstrapPassword = defined('BOOTSTRAP_ADMIN_PASSWORD') ? BOOTSTRAP_ADMIN_PASSWORD : 'admin123';
+
+        if ($username === '' || $email === '' || $bootstrapPassword === '') {
+            throw new RuntimeException('Bootstrap admin credentials are incomplete. Set BOOTSTRAP_ADMIN_USERNAME, BOOTSTRAP_ADMIN_EMAIL, and BOOTSTRAP_ADMIN_PASSWORD.');
+        }
+
+        $passwordHash = password_hash($bootstrapPassword, PASSWORD_DEFAULT);
         $roleId = 1;
-        $isVerified = 1;
+        $isVerified = 0;
+        $isActive = 1;
 
         $statement = $connection->prepare(
-            'INSERT INTO `users` (`role_id`, `username`, `email`, `password`, `is_verified`)
-             VALUES (?, ?, ?, ?, ?)
-             ON DUPLICATE KEY UPDATE `role_id` = VALUES(`role_id`), `is_verified` = VALUES(`is_verified`)'
+            'INSERT INTO `users` (`role_id`, `username`, `email`, `password`, `is_verified`, `is_active`)
+             VALUES (?, ?, ?, ?, ?, ?)'
         );
-        $statement->bind_param('isssi', $roleId, $username, $email, $passwordHash, $isVerified);
-        $statement->execute();
-        $statement->close();
-    }
-
-    private function seedDefaultTeacher(mysqli $connection): void
-    {
-        $username = 'teacher';
-        $email = 'teacher@pixelwar.local';
-        $passwordHash = password_hash('teacher123', PASSWORD_DEFAULT);
-        $roleId = 2;
-        $isVerified = 1;
-
-        $statement = $connection->prepare(
-            'INSERT INTO `users` (`role_id`, `username`, `email`, `password`, `is_verified`)
-             VALUES (?, ?, ?, ?, ?)
-             ON DUPLICATE KEY UPDATE `role_id` = VALUES(`role_id`), `is_verified` = VALUES(`is_verified`)'
-        );
-        $statement->bind_param('isssi', $roleId, $username, $email, $passwordHash, $isVerified);
+        $statement->bind_param('isssii', $roleId, $username, $email, $passwordHash, $isVerified, $isActive);
         $statement->execute();
         $statement->close();
     }

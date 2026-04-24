@@ -12,7 +12,7 @@
     display: flex;
     flex-direction: column;
     gap: 1rem;
-    border-bottom: 4px solid #26190f;
+    border-bottom: 2px solid #26190f;
     background: linear-gradient(180deg, #fffdf6 0%, #fff7e8 100%);
     padding: 1rem;
     box-shadow: 0 5px 0 rgba(38, 25, 15, 0.14);
@@ -176,6 +176,23 @@
 .teacher-shell > .container,
 .teacher-footer > .container {
     max-width: 1440px;
+}
+
+.teacher-hero,
+.teacher-panel,
+.teacher-page-card,
+.teacher-log-card,
+.teacher-student-card,
+.teacher-settings-card,
+.teacher-challenge-card,
+.teacher-list-card,
+.teacher-activity-card,
+.teacher-top-challenge,
+.teacher-stat-card {
+    border: 2px solid rgba(38, 25, 15, 0.12);
+    border-radius: 1.45rem;
+    background: linear-gradient(180deg, rgba(255, 253, 246, 0.96) 0%, rgba(255, 247, 232, 0.96) 100%);
+    box-shadow: 8px 8px 0 rgba(38, 25, 15, 0.12);
 }
 
 .create-challenge-shell > .container {
@@ -935,7 +952,7 @@ body.pixelwar-dark-mode .teacher-sidebar__role {
         position: fixed;
         inset: 0 auto 0 0;
         width: 17.5rem;
-        border-right: 4px solid #26190f;
+        border-right: 2px solid #26190f;
         border-bottom: 0;
         padding: 1.15rem;
         box-shadow: 6px 0 0 rgba(38, 25, 15, 0.18);

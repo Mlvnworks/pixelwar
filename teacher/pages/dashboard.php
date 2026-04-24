@@ -26,7 +26,7 @@ for ($dayIndex = 0, $totalDays = (int) $yearStart->diff($yearEnd)->days + 1; $da
 }
 
 $latestCreatedChallenges = $challengeRepository instanceof ChallengeRepository
-    ? $challengeRepository->listLatestCreated(10)
+    ? $challengeRepository->searchCreatedChallenges('', '', $teacherId, 10)
     : [];
 ?>
 
@@ -37,7 +37,7 @@ $latestCreatedChallenges = $challengeRepository instanceof ChallengeRepository
             <p class="font-arcade text-[10px] uppercase tracking-[0.26em] text-arcade-orange">Teacher Dashboard</p>
             <div class="mt-3 grid gap-4 lg:grid-cols-[1fr_auto] lg:items-end">
                 <div>
-                    <h1 class="text-3xl font-black leading-tight md:text-5xl">Welcome <?= htmlspecialchars($teacherName, ENT_QUOTES, 'UTF-8') ?>,</h1>
+                    <h1 class="text-3xl font-black leading-tight md:text-5xl">Hello, Teacher <?= htmlspecialchars($teacherName, ENT_QUOTES, 'UTF-8') ?></h1>
                     <p class="mt-3 max-w-3xl text-sm font-bold leading-7 text-arcade-ink/65 md:text-base">
                         Track creation activity, room activity, and the challenges that are getting the most classroom attention.
                     </p>
@@ -113,9 +113,9 @@ $latestCreatedChallenges = $challengeRepository instanceof ChallengeRepository
                 </div>
 
                 <div class="teacher-created-grid teacher-created-grid--compact mt-4">
-                    <?php if ($latestCreatedChallenges === []) : ?>
+                        <?php if ($latestCreatedChallenges === []) : ?>
                         <div class="rounded-2xl border-2 border-dashed border-arcade-ink/18 bg-white/80 p-5">
-                            <p class="text-sm font-black text-arcade-ink/58">No teacher-created challenges yet.</p>
+                            <p class="text-sm font-black text-arcade-ink/58">You have not created any challenges yet.</p>
                             <a href="./?c=create-challenge" class="teacher-link-button mt-3">Create Challenge</a>
                         </div>
                     <?php endif; ?>
@@ -139,7 +139,7 @@ $latestCreatedChallenges = $challengeRepository instanceof ChallengeRepository
                                         <span>By <?= htmlspecialchars((string) $challenge['author'], ENT_QUOTES, 'UTF-8') ?></span>
                                         <span>Created <?= htmlspecialchars($createdLabel, ENT_QUOTES, 'UTF-8') ?></span>
                                     </div>
-                                    <p class="teacher-card-description mt-1.5 text-sm leading-6 text-arcade-ink/68"><?= htmlspecialchars((string) $challenge['instruction'], ENT_QUOTES, 'UTF-8') ?></p>
+                                    <p class="teacher-card-description mt-1.5 text-sm leading-6 text-arcade-ink/68"><?= $tools->formatExcerpt((string) $challenge['instruction']) ?></p>
                                 </div>
                                 <a href="./?c=challenge-view&id=<?= (int) $challenge['challenge_id'] ?>" class="teacher-small-button mt-auto">Open</a>
                             </div>

@@ -46,16 +46,19 @@ foreach ($attemptHistoryRows as $attemptRow) {
             'date' => $completedAt,
             'title' => (string) $attemptRow['name'],
             'result' => 'Completed',
-            'points' => (int) ($attemptRow['points'] ?? 0),
+            'points' => (int) ($attemptRow['awarded_points'] ?? 0),
         ];
     }
 }
 
 $createdChallengeRows = $challengeRepository instanceof ChallengeRepository
-    ? $challengeRepository->listLatestCreated(6)
+    ? $challengeRepository->listLatestPublicCreated(6)
     : [];
 $ongoingChallengeLookup = $userChallengeRepository instanceof UserChallengeRepository
     ? $userChallengeRepository->ongoingChallengeIdLookup($currentStudentId)
+    : [];
+$completedChallengeLookup = $userChallengeRepository instanceof UserChallengeRepository
+    ? $userChallengeRepository->completedChallengeIdLookup($currentStudentId)
     : [];
 $recommendedChallenges = [];
 
@@ -72,6 +75,7 @@ foreach ($createdChallengeRows as $challengeRow) {
         'description' => (string) $challengeRow['instruction'],
         'href' => './?c=challenge&id=' . $challengeId,
         'isOngoing' => isset($ongoingChallengeLookup[$challengeId]),
+        'isCompleted' => isset($completedChallengeLookup[$challengeId]),
     ];
 }
 
@@ -86,6 +90,7 @@ if ($recommendedChallenges === []) {
             'description' => $catalogChallenge['description'],
             'href' => './?c=challenge&slug=' . urlencode((string) $catalogChallenge['slug']),
             'isOngoing' => false,
+            'isCompleted' => false,
         ];
     }
 }
@@ -108,7 +113,7 @@ $joinRoomAvatarUrl = trim((string) ($_SESSION['avatar_url'] ?? ''));
             <div class="mt-3 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
                 <div>
                     <h1 class="home-welcome-title text-3xl font-bold leading-tight md:text-5xl">
-                        Welcome <span class="home-welcome-name"><?= htmlspecialchars($username, ENT_QUOTES, 'UTF-8') ?></span>,
+                        Hello, <span class="home-welcome-name"><?= htmlspecialchars($username, ENT_QUOTES, 'UTF-8') ?></span>
                     </h1>
                     <p class="mt-2 max-w-2xl text-sm leading-7 text-arcade-ink/70">
                         Keep your streak alive, climb the ranks, and clear recommended CSS challenges one design at a time.
@@ -292,15 +297,18 @@ $joinRoomAvatarUrl = trim((string) ($_SESSION['avatar_url'] ?? ''));
                                         <?php if (!empty($challenge['isOngoing'])) : ?>
                                             <span class="rounded-full border-2 border-arcade-ink bg-arcade-cyan px-3 py-1 text-xs font-bold text-arcade-ink">Ongoing</span>
                                         <?php endif; ?>
+                                        <?php if (!empty($challenge['isCompleted'])) : ?>
+                                            <span class="rounded-full border-2 border-arcade-ink bg-arcade-yellow px-3 py-1 text-xs font-bold text-arcade-ink">Completed</span>
+                                        <?php endif; ?>
                                     </div>
                                     <h3 class="mt-3 text-xl font-bold"><?= htmlspecialchars($challenge['title'], ENT_QUOTES, 'UTF-8') ?></h3>
                                     <div class="mt-2 flex flex-wrap items-center gap-2 text-xs font-bold text-arcade-ink/55">
                                         <span>By <?= htmlspecialchars($challenge['author'], ENT_QUOTES, 'UTF-8') ?></span>
                                     </div>
-                                    <p class="mt-1.5 text-sm leading-6 text-arcade-ink/68"><?= htmlspecialchars($challenge['description'], ENT_QUOTES, 'UTF-8') ?></p>
+                                    <p class="mt-1.5 text-sm leading-6 text-arcade-ink/68"><?= $tools->formatExcerpt($challenge['description']) ?></p>
                                 </div>
                                 <a href="<?= htmlspecialchars($challenge['href'], ENT_QUOTES, 'UTF-8') ?>" class="inline-flex shrink-0 justify-center rounded-xl border-2 border-arcade-ink bg-arcade-orange px-4 py-2 text-sm font-bold text-white no-underline shadow-[0_3px_0_#26190f] transition hover:-translate-y-0.5 hover:bg-arcade-yellow hover:text-arcade-ink">
-                                    Train
+                                    <?= !empty($challenge['isCompleted']) ? 'Train Again' : 'Train' ?>
                                 </a>
                             </div>
                         </article>

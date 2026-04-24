@@ -76,12 +76,19 @@ if ($requestMethod === 'POST' && $requestedPage === 'email-verification') {
                 $_SESSION['user_id'] = $userId;
                 $_SESSION['username'] = (string) $verificationUser['username'];
                 $_SESSION['email'] = (string) $verificationUser['email'];
-                pixelwarRedirectAfterAuthState($users, [
-                    'user_id' => $userId,
-                    'username' => (string) $verificationUser['username'],
-                    'email' => (string) $verificationUser['email'],
-                    'is_verified' => 1,
-                ]);
+                $verifiedSessionUser = $users->findSessionUser($userId);
+                if ($verifiedSessionUser !== null) {
+                    pixelwarRedirectAfterAuthState($users, $verifiedSessionUser);
+                }
+
+                pixelwarRedirect('login');
+            }
+
+            $resendAvailableAt = pixelwarVerificationResendAvailableAt();
+            if ($resendAvailableAt > time()) {
+                $secondsLeft = max(1, $resendAvailableAt - time());
+                $_SESSION['verification_errors'] = ['Please wait ' . $secondsLeft . ' seconds before requesting another code.'];
+                pixelwarRedirect('email-verification');
             }
 
             pixelwarPrepareAccountVerification(
@@ -150,25 +157,41 @@ if ($requestMethod === 'POST' && $requestedPage === 'email-verification') {
 
         $user = $accounts->verifyUserEmail($userId, $verificationId);
         pixelwarLogActivity($activityLogRepository ?? null, $userId, 'account', 'Verified email address.');
+        pixelwarClearVerificationResendCooldown();
 
         $_SESSION['user_id'] = $userId;
         $_SESSION['username'] = (string) ($user['username'] ?? 'Player');
         $_SESSION['email'] = (string) ($user['email'] ?? ($_SESSION['pending_verification_email'] ?? ''));
-        $_SESSION['alert'] = [
-            'error' => false,
-            'content' => 'Email verified. Set up your player profile next.'
-        ];
+        $_SESSION['role_id'] = (int) ($user['role_id'] ?? ($_SESSION['role_id'] ?? 0));
 
         unset(
             $_SESSION['pending_verification_user_id'],
             $_SESSION['pending_verification_email'],
             $_SESSION['pending_verification_mail_sent'],
+            $_SESSION['verification_resend_available_at'],
             $_SESSION['verification_errors'],
             $_SESSION['verification_notices']
         );
         pixelwarResetVerificationAttempts($userId);
+        $verifiedSessionUser = $users->findSessionUser($userId);
+        if ($verifiedSessionUser) {
+            pixelwarRefreshSessionUser($verifiedSessionUser);
+            $_SESSION['alert'] = [
+                'error' => false,
+                'content' => (int) ($verifiedSessionUser['role_id'] ?? 0) === pixelwarTeacherRoleId()
+                    ? 'Email verified. You can continue to your teacher panel.'
+                    : ((int) ($verifiedSessionUser['role_id'] ?? 0) === pixelwarAdminRoleId()
+                        ? 'Email verified. You can continue to your admin panel.'
+                        : 'Email verified. Set up your player profile next.'),
+            ];
+            pixelwarRedirectAfterAuthState($users, $verifiedSessionUser);
+        }
 
-        pixelwarRedirect('profile-setup');
+        $_SESSION['alert'] = [
+            'error' => false,
+            'content' => 'Email verified.',
+        ];
+        pixelwarRedirect('login');
     } catch (Throwable $err) {
         error_log('Pixelwar verification error: ' . $err->getMessage());
         $_SESSION['verification_errors'] = ['Verification failed. Please try again.'];

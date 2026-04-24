@@ -1,7 +1,8 @@
 <?php
 $challengeId = (int) ($_GET['id'] ?? 0);
+$teacherId = (int) ($_SESSION['user_id'] ?? 0);
 $challenge = $challengeRepository instanceof ChallengeRepository
-    ? $challengeRepository->findCreatedChallenge($challengeId)
+    ? $challengeRepository->findCreatedChallengeForOwner($challengeId, $teacherId)
     : null;
 $solvedPlayerCount = $userChallengeRepository instanceof UserChallengeRepository
     ? $userChallengeRepository->countCompletedByChallenge($challengeId)
@@ -42,21 +43,31 @@ $dummyComments = [
                     <div>
                         <p class="font-arcade text-[10px] uppercase tracking-[0.26em] text-arcade-orange">Challenge Details</p>
                         <h1 class="mt-3 text-3xl font-black leading-tight md:text-5xl"><?= htmlspecialchars((string) $challenge['name'], ENT_QUOTES, 'UTF-8') ?></h1>
-                        <p class="mt-3 max-w-4xl text-sm font-bold leading-7 text-arcade-ink/65 md:text-base">
-                            <?= htmlspecialchars((string) $challenge['instruction'], ENT_QUOTES, 'UTF-8') ?>
-                        </p>
+                        <div class="mt-3 max-w-4xl text-sm font-bold leading-7 text-arcade-ink/65 md:text-base">
+                            <?= $tools->formatRichText((string) $challenge['instruction']) ?>
+                        </div>
                     </div>
                     <div class="flex flex-wrap gap-2 lg:justify-end">
                         <?php if ($isOwner) : ?>
+                            <form action="./?c=challenge-view&id=<?= (int) $challenge['challenge_id'] ?>" method="post" class="contents">
+                                <?= teacherPanelCsrfField() ?>
+                                <input type="hidden" name="challenge_id" value="<?= (int) $challenge['challenge_id'] ?>">
+                                <input type="hidden" name="challenge_action" value="set_visibility">
+                                <input type="hidden" name="status" value="<?= (int) $challenge['status'] === 1 ? 0 : 1 ?>">
+                                <button type="submit" class="teacher-button teacher-button--light gap-2">
+                                    <i data-lucide="<?= (int) $challenge['status'] === 1 ? 'lock' : 'globe-2' ?>" class="h-4 w-4" aria-hidden="true"></i>
+                                    <span><?= (int) $challenge['status'] === 1 ? 'Make Only Me' : 'Make Public' ?></span>
+                                </button>
+                            </form>
                             <a href="./?c=create-challenge&edit=<?= (int) $challenge['challenge_id'] ?>" class="teacher-button teacher-button--primary gap-2">
                                 <i data-lucide="pencil" class="h-4 w-4" aria-hidden="true"></i>
                                 <span>Edit Challenge</span>
                             </a>
+                            <button type="button" class="teacher-button teacher-button--light gap-2" data-bs-toggle="modal" data-bs-target="#challenge-delete-modal">
+                                <i data-lucide="trash-2" class="h-4 w-4" aria-hidden="true"></i>
+                                <span>Delete</span>
+                            </button>
                         <?php endif; ?>
-                        <a href="./?c=dashboard" class="teacher-button teacher-button--light gap-2">
-                            <i data-lucide="arrow-left" class="h-4 w-4" aria-hidden="true"></i>
-                            <span>Dashboard</span>
-                        </a>
                     </div>
                 </div>
 
@@ -80,8 +91,15 @@ $dummyComments = [
                                 <strong><?= htmlspecialchars($createdLabel, ENT_QUOTES, 'UTF-8') ?></strong>
                             </span>
                             <span>
+                                <small>Visibility</small>
+                                <strong><?= (int) $challenge['status'] === 1 ? 'Public' : 'Only Me' ?></strong>
+                            </span>
+                            <span>
                                 <small>Solved</small>
-                                <strong><?= (int) $solvedPlayerCount ?> players</strong>
+                                <div class="mt-1 flex flex-wrap items-center gap-2">
+                                    <strong><?= (int) $solvedPlayerCount ?> players</strong>
+                                    <a href="./?c=challenge-completions&id=<?= (int) $challenge['challenge_id'] ?>" class="teacher-mini-link">View Records</a>
+                                </div>
                             </span>
                         </div>
 
@@ -146,6 +164,43 @@ $dummyComments = [
         <?php endif; ?>
     </section>
 </main>
+
+<?php if ($challenge !== null && $isOwner) : ?>
+    <div class="modal fade" id="challenge-delete-modal" tabindex="-1" aria-labelledby="challenge-delete-modal-label" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content rounded-[24px] border-4 border-arcade-ink bg-arcade-panel shadow-[8px_8px_0_rgba(38,25,15,0.28)]">
+                <form action="./?c=challenge-view&id=<?= (int) $challenge['challenge_id'] ?>" method="post" id="challenge-delete-form">
+                    <div class="modal-header border-b-2 border-arcade-ink/10 px-4 py-3">
+                        <div>
+                            <p class="mb-1 font-arcade text-[9px] uppercase tracking-[0.18em] text-arcade-coral">Delete Challenge</p>
+                            <h2 id="challenge-delete-modal-label" class="mb-0 text-xl font-black">Confirm deletion</h2>
+                        </div>
+                        <button type="button" class="btn-close m-0" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body px-4 py-4">
+                        <?= teacherPanelCsrfField() ?>
+                        <input type="hidden" name="challenge_id" value="<?= (int) $challenge['challenge_id'] ?>">
+                        <input type="hidden" name="challenge_action" value="delete">
+                        <p class="mb-3 text-sm font-bold leading-6 text-arcade-ink/70">
+                            This will remove <strong><?= htmlspecialchars((string) $challenge['name'], ENT_QUOTES, 'UTF-8') ?></strong> from your challenge list. Enter your password to continue.
+                        </p>
+                        <label class="block text-sm font-bold" for="teacher-delete-password">
+                            Teacher password
+                            <input id="teacher-delete-password" name="teacher_password" type="password" required class="mt-2 w-full rounded-xl border-2 border-arcade-ink/15 bg-white px-3 py-2.5 outline-none transition focus:border-arcade-orange">
+                        </label>
+                    </div>
+                    <div class="modal-footer border-t-2 border-arcade-ink/10 px-4 py-3">
+                        <button type="button" class="teacher-button teacher-button--light" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="teacher-button teacher-button--primary gap-2" id="challenge-delete-submit">
+                            <i data-lucide="trash-2" class="h-4 w-4" aria-hidden="true"></i>
+                            <span>Delete Challenge</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+<?php endif; ?>
 
 <script>
 window.addEventListener('load', () => {
@@ -250,5 +305,19 @@ ${html}
     }
 
     window.addEventListener('resize', () => fitPreviewFrame(preview));
+
+    const deleteForm = document.getElementById('challenge-delete-form');
+    const deleteSubmit = document.getElementById('challenge-delete-submit');
+
+    if (deleteForm && deleteSubmit) {
+        deleteForm.addEventListener('submit', () => {
+            deleteSubmit.disabled = true;
+            deleteSubmit.classList.add('opacity-70', 'pointer-events-none');
+            deleteSubmit.innerHTML = `
+                <span class="inline-block h-4 w-4 animate-spin rounded-full border-2 border-arcade-ink/25 border-t-arcade-ink" aria-hidden="true"></span>
+                <span>Deleting...</span>
+            `;
+        });
+    }
 });
 </script>

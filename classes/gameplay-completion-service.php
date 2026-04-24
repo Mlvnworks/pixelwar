@@ -17,6 +17,8 @@ final class GameplayCompletionService
      *     challenge_name:string,
      *     difficulty:string,
      *     points:int,
+     *     challenge_points:int,
+     *     awarded_once:bool,
      *     started_at:string,
      *     completed_at:string,
      *     duration_seconds:int
@@ -37,8 +39,18 @@ final class GameplayCompletionService
         $challenge = $this->challenges->findCreatedChallenge($challengeId);
 
         if ($challenge === null) {
-            throw new RuntimeException('Challenge not found.');
+            $this->userChallenges->deleteOngoingForUser($userChallengeId, $userId);
+            throw new RuntimeException('This challenge is no longer available. Your run was ended.');
         }
+
+        if ((int) ($challenge['status'] ?? 0) !== 1) {
+            $this->userChallenges->deleteOngoingForUser($userChallengeId, $userId);
+            throw new RuntimeException('This challenge is not available publicly right now. Your run was ended.');
+        }
+
+        $alreadyRewarded = $this->userChallenges->hasCompletedRecordForChallenge($userId, $challengeId, $userChallengeId);
+        $challengePoints = (int) ($challenge['points'] ?? 0);
+        $awardedPoints = $alreadyRewarded ? 0 : $challengePoints;
 
         try {
             $this->connection->begin_transaction();
@@ -73,7 +85,9 @@ final class GameplayCompletionService
             'challenge_id' => (int) $challenge['challenge_id'],
             'challenge_name' => (string) $challenge['name'],
             'difficulty' => ucfirst(strtolower((string) ($challenge['difficulty_name'] ?? 'Easy'))),
-            'points' => (int) ($challenge['points'] ?? 0),
+            'points' => $awardedPoints,
+            'challenge_points' => $challengePoints,
+            'awarded_once' => !$alreadyRewarded,
             'started_at' => $startedAt->format(DATE_ATOM),
             'completed_at' => $completedAt->format(DATE_ATOM),
             'duration_seconds' => max(0, $completedAt->getTimestamp() - $startedAt->getTimestamp()),

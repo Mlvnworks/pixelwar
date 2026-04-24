@@ -147,6 +147,31 @@ final class ActivityLogRepository
         return (int) ($row['total'] ?? 0);
     }
 
+    public function countForUserByCategory(int $userId, string $category, ?string $logPrefix = null): int
+    {
+        $normalizedCategory = strtolower(trim($category));
+        $sql = 'SELECT COUNT(*) AS total
+                FROM activity_logs
+                WHERE user_id = ?
+                    AND category = ?';
+        $types = 'is';
+        $params = [$userId, $normalizedCategory];
+
+        if ($logPrefix !== null && $logPrefix !== '') {
+            $sql .= ' AND log_text LIKE ?';
+            $types .= 's';
+            $params[] = $logPrefix . '%';
+        }
+
+        $statement = $this->connection->prepare($sql);
+        $statement->bind_param($types, ...$params);
+        $statement->execute();
+        $row = $statement->get_result()->fetch_assoc();
+        $statement->close();
+
+        return (int) ($row['total'] ?? 0);
+    }
+
     /**
      * @return array<string, int>
      */

@@ -22,6 +22,11 @@ if ($gameChallengeId > 0) {
             throw new RuntimeException('Login required to start this challenge.');
         }
 
+        $gameChallengeIsPublic = (int) ($gameChallenge['status'] ?? 0) === 1;
+        if (!$gameChallengeIsPublic) {
+            throw new RuntimeException('This challenge is not available publicly right now.');
+        }
+
         $gameUserChallenge = $userChallengeRepository->startOrFindOngoing($gameUserId, $gameChallengeId);
 
         if (!empty($gameUserChallenge['was_created']) && $activityLogRepository instanceof ActivityLogRepository) {
@@ -33,7 +38,15 @@ if ($gameChallengeId > 0) {
         }
     } catch (Throwable $err) {
         error_log('Pixelwar gameplay challenge start error: ' . $err->getMessage());
-        $gameChallengeError = APP_DEBUG ? $err->getMessage() : 'Unable to start this challenge. Please try another one.';
+        $message = $err->getMessage();
+
+        if ($message === 'Challenge not found.') {
+            $gameChallengeError = 'This challenge is no longer available. Please choose another one from the library.';
+        } elseif ($message === 'This challenge is not available publicly right now.') {
+            $gameChallengeError = $message;
+        } else {
+            $gameChallengeError = APP_DEBUG ? $message : 'Unable to start this challenge. Please try another one.';
+        }
     }
 }
 
@@ -73,7 +86,7 @@ $gameUserChallengeId = $gameUserChallenge !== null ? (int) $gameUserChallenge['u
                     <span id="game-status">Waiting for your first move.</span>
                     <?php if ($gameUserChallenge !== null) : ?>
                         <span class="gameplay-time" id="gameplay-time" data-started-at="<?= htmlspecialchars($gameStartedAtIso, ENT_QUOTES, 'UTF-8') ?>">00:00</span>
-                        <form id="give-up-form" class="give-up-form" action="./?c=pixelwar&challenge_id=<?= (int) $gameChallengeId ?>" method="post">
+                        <form id="give-up-form" class="give-up-form" action="./?c=pixelwar" method="post">
                             <?= pixelwarCsrfField() ?>
                             <input type="hidden" name="gameplay_action" value="give_up">
                             <input type="hidden" name="challenge_id" value="<?= (int) $gameChallengeId ?>">
@@ -259,6 +272,16 @@ $gameUserChallengeId = $gameUserChallenge !== null ? (int) $gameUserChallenge['u
 
 <script>
 (() => {
+    if (window.history?.replaceState) {
+        const sanitizedUrl = new URL(window.location.href);
+        if (sanitizedUrl.searchParams.has('challenge_id')) {
+            sanitizedUrl.searchParams.delete('challenge_id');
+            const sanitizedQuery = sanitizedUrl.searchParams.toString();
+            const nextUrl = `${sanitizedUrl.pathname}${sanitizedQuery !== '' ? `?${sanitizedQuery}` : ''}${sanitizedUrl.hash}`;
+            window.history.replaceState({}, '', nextUrl);
+        }
+    }
+
     const challengeConfig = {
         htmlSource: <?= json_encode($gameChallengeHtmlSource, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?: "''" ?>,
         cssSource: <?= json_encode($gameChallengeCssSource, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?: "''" ?>,
@@ -317,7 +340,10 @@ $gameUserChallengeId = $gameUserChallenge !== null ? (int) $gameUserChallenge['u
         isCompletionSubmitting: false,
         isCompleted: false,
         skipUnloadWarning: false,
+        isUnavailable: false,
     };
+
+    let gameplayAudioContext = null;
 
     const escapeHtml = (value) => String(value)
         .replace(/&/g, '&amp;')
@@ -325,6 +351,50 @@ $gameUserChallengeId = $gameUserChallenge !== null ? (int) $gameUserChallenge['u
         .replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#039;');
+
+    const gameplaySoundIsOn = () => {
+        try {
+            return localStorage.getItem('pixelwarSound') !== 'off';
+        } catch (error) {
+            return false;
+        }
+    };
+
+    const playGameplaySound = (type) => {
+        if (!gameplaySoundIsOn()) {
+            return;
+        }
+
+        try {
+            const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+            if (!AudioContextClass) {
+                return;
+            }
+
+            gameplayAudioContext = gameplayAudioContext || new AudioContextClass();
+            if (gameplayAudioContext.state === 'suspended') {
+                gameplayAudioContext.resume();
+            }
+
+            const now = gameplayAudioContext.currentTime;
+            const oscillator = gameplayAudioContext.createOscillator();
+            const gain = gameplayAudioContext.createGain();
+
+            oscillator.type = type === 'pickup' ? 'square' : 'triangle';
+            oscillator.frequency.setValueAtTime(type === 'pickup' ? 420 : 540, now);
+            oscillator.frequency.exponentialRampToValueAtTime(type === 'pickup' ? 620 : 820, now + (type === 'pickup' ? 0.03 : 0.04));
+            gain.gain.setValueAtTime(0.0001, now);
+            gain.gain.exponentialRampToValueAtTime(type === 'pickup' ? 0.08 : 0.1, now + 0.012);
+            gain.gain.exponentialRampToValueAtTime(0.0001, now + (type === 'pickup' ? 0.07 : 0.11));
+
+            oscillator.connect(gain);
+            gain.connect(gameplayAudioContext.destination);
+            oscillator.start(now);
+            oscillator.stop(now + (type === 'pickup' ? 0.08 : 0.12));
+        } catch (error) {
+            return;
+        }
+    };
 
     const buildPreviewDocument = (html, css) => `<!doctype html>
 <html lang="en">
@@ -511,7 +581,7 @@ ${css}
     };
 
     const submitCompletion = async () => {
-        if (state.isCompletionSubmitting || state.isCompleted || !challengeConfig.challengeId || !challengeConfig.userChallengeId) {
+        if (state.isCompletionSubmitting || state.isCompleted || state.isUnavailable || !challengeConfig.challengeId || !challengeConfig.userChallengeId) {
             return;
         }
 
@@ -526,7 +596,7 @@ ${css}
                 user_challenge_id: String(challengeConfig.userChallengeId),
             });
 
-            const response = await fetch(`./?c=pixelwar&challenge_id=${encodeURIComponent(challengeConfig.challengeId)}`, {
+            const response = await fetch('./?c=pixelwar', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
@@ -555,6 +625,58 @@ ${css}
             console.error(error);
             state.isCompletionSubmitting = false;
             setStatus(error instanceof Error ? error.message : 'Unable to complete this challenge right now.');
+        }
+    };
+
+    const handleChallengeUnavailable = (message) => {
+        if (state.isUnavailable) {
+            return;
+        }
+
+        state.isUnavailable = true;
+        state.skipUnloadWarning = true;
+        state.isCompletionSubmitting = false;
+        setStatus(message || 'Challenge unavailable');
+        exitModal?.hide();
+
+        window.setTimeout(() => {
+            window.location.href = './?c=challenges';
+        }, 1400);
+    };
+
+    const validateChallengeAvailability = async () => {
+        if (!challengeConfig.hasChallenge || !challengeConfig.challengeId || !challengeConfig.userChallengeId) {
+            return;
+        }
+
+        if (state.isCompleted || state.isCompletionSubmitting || state.isUnavailable) {
+            return;
+        }
+
+        try {
+            const body = new URLSearchParams({
+                _csrf_token: challengeConfig.csrfToken,
+                gameplay_action: 'validate_availability',
+                challenge_id: String(challengeConfig.challengeId),
+                user_challenge_id: String(challengeConfig.userChallengeId),
+            });
+
+            const response = await fetch('./?c=pixelwar', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                body: body.toString(),
+            });
+
+            const payload = await response.json().catch(() => null);
+
+            if (!response.ok || !payload?.success || payload?.available === false) {
+                handleChallengeUnavailable(payload?.message || 'This challenge is no longer available.');
+            }
+        } catch (error) {
+            console.error(error);
         }
     };
 
@@ -795,6 +917,7 @@ ${css}
         }
 
         if (moveOne(payload.propertyKey, payload.sourceKey, destination)) {
+            playGameplaySound('drop');
             clearSelectedPayload();
             state.pinnedSelectorKey = null;
             state.hoveredSelectorKey = null;
@@ -846,6 +969,13 @@ ${css}
             chip.append(countBadge);
         }
 
+        chip.addEventListener('pointerdown', () => {
+            if (state.isCompleted || state.isCompletionSubmitting) {
+                return;
+            }
+            playGameplaySound('pickup');
+        });
+
         chip.addEventListener('dragstart', (event) => {
             if (state.isCompleted || state.isCompletionSubmitting) {
                 event.preventDefault();
@@ -876,9 +1006,8 @@ ${css}
             if (state.isCompleted || state.isCompletionSubmitting) {
                 return;
             }
-            if (sourceKey !== 'pool' && moveOne(propertyKey, sourceKey, 'pool')) {
-                clearSelectedPayload();
-                render();
+            if (sourceKey !== 'pool') {
+                movePayloadTo({ propertyKey, sourceKey }, 'pool');
             }
         });
 
@@ -1213,7 +1342,7 @@ ${css}
     });
 
     const resetGame = () => {
-        if (state.isCompleted || state.isCompletionSubmitting) {
+        if (state.isCompleted || state.isCompletionSubmitting || state.isUnavailable) {
             return;
         }
 
@@ -1343,7 +1472,7 @@ ${css}
         exitModal?.show();
     });
     confirmGiveUpButton?.addEventListener('click', () => {
-        if (!giveUpForm || state.isCompleted || state.isCompletionSubmitting) {
+        if (!giveUpForm || state.isCompleted || state.isCompletionSubmitting || state.isUnavailable) {
             return;
         }
 
@@ -1352,6 +1481,11 @@ ${css}
         giveUpForm.submit();
     });
     window.addEventListener('beforeunload', beforeUnloadHandler);
+    document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) {
+            validateChallengeAvailability();
+        }
+    });
     previewModal?.addEventListener('shown.bs.modal', () => requestAnimationFrame(() => targetPreviews.forEach((frame) => fitPreviewFrame(frame))));
     if (allPreviewFrames.length > 0 && 'ResizeObserver' in window) {
         const previewObserver = new ResizeObserver(() => allPreviewFrames.forEach((frame) => fitPreviewFrame(frame)));
@@ -1361,5 +1495,12 @@ ${css}
     initResizeHandle();
     startGameplayTimer();
     boot();
+    validateChallengeAvailability();
+    const availabilityInterval = window.setInterval(() => {
+        validateChallengeAvailability();
+        if (state.isCompleted || state.isUnavailable) {
+            window.clearInterval(availabilityInterval);
+        }
+    }, 15000);
 })();
 </script>

@@ -2,10 +2,13 @@
 require_once __DIR__ . '/../classes/challenge-catalog.php';
 
 $createdChallengeRows = $challengeRepository instanceof ChallengeRepository
-    ? $challengeRepository->searchCreatedChallenges('', '', null, 100)
+    ? $challengeRepository->searchPublicCreatedChallenges('', '', 100)
     : [];
 $ongoingChallengeLookup = $userChallengeRepository instanceof UserChallengeRepository && isset($_SESSION['user_id'])
     ? $userChallengeRepository->ongoingChallengeIdLookup((int) $_SESSION['user_id'])
+    : [];
+$completedChallengeLookup = $userChallengeRepository instanceof UserChallengeRepository && isset($_SESSION['user_id'])
+    ? $userChallengeRepository->completedChallengeIdLookup((int) $_SESSION['user_id'])
     : [];
 $challenges = [];
 
@@ -25,6 +28,7 @@ foreach ($createdChallengeRows as $challengeRow) {
         'description' => (string) $challengeRow['instruction'],
         'href' => './?c=challenge&id=' . $challengeId,
         'isOngoing' => isset($ongoingChallengeLookup[$challengeId]),
+        'isCompleted' => isset($completedChallengeLookup[$challengeId]),
         'completionCount' => $completionCount,
     ];
 }
@@ -41,6 +45,7 @@ if ($challenges === []) {
             'description' => $catalogChallenge['description'],
             'href' => './?c=challenge&slug=' . urlencode((string) $catalogChallenge['slug']),
             'isOngoing' => false,
+            'isCompleted' => false,
             'completionCount' => 0,
         ];
     }
@@ -99,14 +104,17 @@ $difficulties = array_values(array_unique(array_map(static fn (array $challenge)
                         <?php if (!empty($challenge['isOngoing'])) : ?>
                             <span class="rounded-full border-2 border-arcade-ink bg-arcade-cyan px-3 py-1 text-xs font-bold text-arcade-ink">Ongoing</span>
                         <?php endif; ?>
+                        <?php if (!empty($challenge['isCompleted'])) : ?>
+                            <span class="rounded-full border-2 border-arcade-ink bg-arcade-yellow px-3 py-1 text-xs font-bold text-arcade-ink">Completed</span>
+                        <?php endif; ?>
                     </div>
                     <h2 class="mt-3 text-xl font-bold"><?= htmlspecialchars($challenge['title'], ENT_QUOTES, 'UTF-8') ?></h2>
-                    <p class="mt-2 text-sm leading-6 text-arcade-ink/70"><?= htmlspecialchars($challenge['description'], ENT_QUOTES, 'UTF-8') ?></p>
+                    <p class="mt-2 text-sm leading-6 text-arcade-ink/70"><?= $tools->formatExcerpt($challenge['description']) ?></p>
                     <div class="challenge-library-card__footer mt-4 flex flex-wrap items-center justify-between gap-3">
                         <p class="text-xs font-bold uppercase tracking-[0.16em] text-arcade-ink/50">By <?= htmlspecialchars($challenge['author'], ENT_QUOTES, 'UTF-8') ?></p>
                         <div class="challenge-library-card__action text-right">
                             <p class="mb-2 text-[10px] font-bold uppercase tracking-[0.14em] text-arcade-ink/45"><?= (int) ($challenge['completionCount'] ?? 0) ?> completed</p>
-                            <a href="<?= htmlspecialchars($challenge['href'], ENT_QUOTES, 'UTF-8') ?>" class="rounded-xl border-2 border-arcade-ink bg-arcade-orange px-4 py-2 text-sm font-bold text-white no-underline shadow-[0_3px_0_#26190f] transition hover:-translate-y-0.5 hover:bg-arcade-yellow hover:text-arcade-ink">Train</a>
+                            <a href="<?= htmlspecialchars($challenge['href'], ENT_QUOTES, 'UTF-8') ?>" class="rounded-xl border-2 border-arcade-ink bg-arcade-orange px-4 py-2 text-sm font-bold text-white no-underline shadow-[0_3px_0_#26190f] transition hover:-translate-y-0.5 hover:bg-arcade-yellow hover:text-arcade-ink"><?= !empty($challenge['isCompleted']) ? 'Train Again' : 'Train' ?></a>
                         </div>
                     </div>
                 </article>

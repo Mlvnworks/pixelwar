@@ -23,6 +23,14 @@ try {
         adminPanelRootRedirect('home');
     }
 
+    if (adminPanelAdminNeedsSetup($users, $adminSessionUser)) {
+        adminPanelRootRedirect('profile-setup');
+    }
+
+    if ((int) ($adminSessionUser['is_verified'] ?? 0) !== 1) {
+        adminPanelRootRedirect('email-verification');
+    }
+
     adminPanelRefreshSession($adminSessionUser);
 } catch (Throwable $err) {
     error_log('Pixelwar admin auth error: ' . $err->getMessage());

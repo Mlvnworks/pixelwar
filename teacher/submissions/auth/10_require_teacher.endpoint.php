@@ -24,7 +24,24 @@ try {
         teacherPanelRootRedirect('home');
     }
 
-    if ((int) ($teacherSessionUser['is_verified'] ?? 0) !== 1 || !$users->userDetailsExist((int) $teacherSessionUser['user_id'])) {
+    if ((int) ($teacherSessionUser['is_verified'] ?? 0) !== 1) {
+        if (
+            empty($_SESSION['pending_verification_user_id'])
+            || (int) $_SESSION['pending_verification_user_id'] !== (int) $teacherSessionUser['user_id']
+        ) {
+            teacherPanelPrepareAccountVerification(
+                teacherPanelRequireVerificationRepository($verificationRepository ?? null),
+                $tools,
+                (int) $teacherSessionUser['user_id'],
+                (string) $teacherSessionUser['email'],
+                (string) $teacherSessionUser['username']
+            );
+        }
+
+        teacherPanelRootRedirect('email-verification');
+    }
+
+    if (!$users->userDetailsExist((int) $teacherSessionUser['user_id'])) {
         teacherPanelRootRedirect('profile-setup');
     }
 

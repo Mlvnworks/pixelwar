@@ -27,6 +27,52 @@ class Tools
         return htmlspecialchars($this->sanitizeInput($input), ENT_QUOTES, 'UTF-8');
     }
 
+    public function formatRichText($input): string
+    {
+        $sanitized = $this->sanitizeInput($input);
+        if ($sanitized === '') {
+            return '';
+        }
+
+        $escaped = htmlspecialchars($sanitized, ENT_QUOTES, 'UTF-8');
+        $linked = preg_replace_callback(
+            '/((?:https?:\/\/|www\.)[^\s<]+)/i',
+            static function (array $matches): string {
+                $label = rtrim($matches[1], ".,;:!?)]}");
+                $trailing = substr($matches[1], strlen($label));
+                $href = preg_match('/^https?:\/\//i', $label) === 1 ? $label : 'https://' . $label;
+
+                return '<a href="' . htmlspecialchars($href, ENT_QUOTES, 'UTF-8') . '" target="_blank" rel="noopener noreferrer" class="font-bold underline break-all">'
+                    . $label
+                    . '</a>'
+                    . $trailing;
+            },
+            $escaped
+        );
+
+        return nl2br($linked ?? $escaped, false);
+    }
+
+    public function formatExcerpt($input, int $maxLength = 140): string
+    {
+        $sanitized = preg_replace('/\s+/u', ' ', $this->sanitizeInput($input)) ?? '';
+        $sanitized = trim($sanitized);
+
+        if ($sanitized === '') {
+            return '';
+        }
+
+        if (function_exists('mb_strlen') && function_exists('mb_substr')) {
+            if (mb_strlen($sanitized, 'UTF-8') > $maxLength) {
+                $sanitized = rtrim(mb_substr($sanitized, 0, max(1, $maxLength - 1), 'UTF-8')) . '…';
+            }
+        } elseif (strlen($sanitized) > $maxLength) {
+            $sanitized = rtrim(substr($sanitized, 0, max(1, $maxLength - 1))) . '...';
+        }
+
+        return htmlspecialchars($sanitized, ENT_QUOTES, 'UTF-8');
+    }
+
     public function escapeForSql($input)
     {
         if (!$this->connection instanceof mysqli) {

@@ -25,6 +25,18 @@ if (!defined('APP_TIMEZONE')) {
     define('APP_TIMEZONE', Env::get('APP_TIMEZONE', 'Asia/Manila'));
 }
 
+if (!defined('BOOTSTRAP_ADMIN_USERNAME')) {
+    define('BOOTSTRAP_ADMIN_USERNAME', Env::get('BOOTSTRAP_ADMIN_USERNAME', 'admin'));
+}
+
+if (!defined('BOOTSTRAP_ADMIN_EMAIL')) {
+    define('BOOTSTRAP_ADMIN_EMAIL', Env::get('BOOTSTRAP_ADMIN_EMAIL', 'admin@pixelwar.local'));
+}
+
+if (!defined('BOOTSTRAP_ADMIN_PASSWORD')) {
+    define('BOOTSTRAP_ADMIN_PASSWORD', Env::get('BOOTSTRAP_ADMIN_PASSWORD', 'admin123'));
+}
+
 if (!defined('DB_HOST')) {
     define('DB_HOST', Env::get('DB_HOST'));
 }
@@ -87,6 +99,10 @@ if (!defined('SUPABASE_STORAGE_BUCKET')) {
 
 if (!defined('SUPABASE_STORAGE_AVATAR_FOLDER')) {
     define('SUPABASE_STORAGE_AVATAR_FOLDER', Env::get('SUPABASE_STORAGE_AVATAR_FOLDER', 'avatars'));
+}
+
+if (!defined('SUPABASE_STORAGE_ID_PICTURE_FOLDER')) {
+    define('SUPABASE_STORAGE_ID_PICTURE_FOLDER', Env::get('SUPABASE_STORAGE_ID_PICTURE_FOLDER', 'id-pictures'));
 }
 
 if (!defined('SUPABASE_STORAGE_CHALLENGE_HTML_FOLDER')) {
