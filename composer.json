@@ -1,6 +1,5 @@
 {
     "require": {
-        "phpmailer/phpmailer": "^6.10",
-        "kelvinmo/simplejwt": "1.1.0"
+        "phpmailer/phpmailer": "^6.10"
     }
 }

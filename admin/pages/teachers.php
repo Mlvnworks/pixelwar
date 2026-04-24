@@ -129,8 +129,8 @@ $teacherBuildQuery = static function (array $overrides = []) use ($teacherSearch
                                     $initials = strtoupper(substr(preg_replace('/[^a-z0-9]+/i', '', $displayName) ?: 'TR', 0, 2));
                                     $hasProfile = (int) ($teacher['user_details_id'] ?? 0) > 0;
                                     $isVerified = (int) ($teacher['is_verified'] ?? 0) === 1;
-                                    $statusLabel = $isVerified ? 'Profile ready' : 'Pending setup';
-                                    $statusClass = $isVerified ? 'bg-arcade-mint' : 'bg-arcade-yellow/40';
+                                    $statusLabel = $isVerified ? 'Profile ready' : ($hasProfile ? 'Not set' : 'Pending setup');
+                                    $statusClass = $isVerified ? 'bg-arcade-mint' : ($hasProfile ? 'bg-arcade-cyan/30' : 'bg-arcade-yellow/40');
                                     ?>
                                     <tr class="border-b border-arcade-ink/10 align-top last:border-b-0">
                                         <td class="px-4 py-3">

@@ -137,6 +137,7 @@ if (
 if (
     $sessionUser !== null
     && pixelwarStudentRejected($sessionUser)
+    && pixelwarUserDetailsExist(pixelwarRequireUserRepository($userRepository), (int) $sessionUser['user_id'])
     && $currentPage !== $rejectedPage
     && $currentPage !== 'logout'
 ) {
@@ -146,6 +147,7 @@ if (
 if (
     $sessionUser !== null
     && pixelwarStudentUnderReview($sessionUser)
+    && pixelwarUserDetailsExist(pixelwarRequireUserRepository($userRepository), (int) $sessionUser['user_id'])
     && $currentPage !== $reviewPage
     && $currentPage !== 'logout'
 ) {
@@ -230,6 +232,14 @@ if (
     && $currentPage === 'profile-setup'
     && pixelwarUserDetailsExist(pixelwarRequireUserRepository($userRepository), (int) $sessionUser['user_id'])
 ) {
+    if (pixelwarStudentRejected($sessionUser)) {
+        pixelwarRedirect($rejectedPage);
+    }
+
+    if (pixelwarStudentUnderReview($sessionUser)) {
+        pixelwarRedirect($reviewPage);
+    }
+
     pixelwarRedirect('home');
 }
 
@@ -245,7 +255,10 @@ if (
 if (
     $requestMethod === 'GET'
     && $sessionUser !== null
-    && !pixelwarStudentUnderReview($sessionUser)
+    && (
+        !pixelwarStudentUnderReview($sessionUser)
+        || !pixelwarUserDetailsExist(pixelwarRequireUserRepository($userRepository), (int) $sessionUser['user_id'])
+    )
     && $currentPage === $reviewPage
 ) {
     pixelwarRedirectAfterAuthState(pixelwarRequireUserRepository($userRepository), $sessionUser);

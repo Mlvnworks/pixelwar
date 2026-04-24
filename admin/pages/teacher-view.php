@@ -56,8 +56,12 @@ $teacherUsername = trim((string) ($teacherViewProfile['username'] ?? ''));
 $teacherRegisteredAt = trim((string) ($teacherViewProfile['registration_date'] ?? ''));
 $teacherVerified = (int) ($teacherViewProfile['is_verified'] ?? 0) === 1;
 $teacherHasProfile = $teacherViewDetails !== null;
-$teacherStatusLabel = $teacherVerified ? 'Profile ready' : 'Pending setup';
-$teacherStatusClass = $teacherVerified ? 'bg-arcade-mint/35' : 'bg-arcade-yellow/35';
+$teacherStatusLabel = $teacherVerified
+    ? 'Profile ready'
+    : ($teacherHasProfile ? 'Not set' : 'Pending setup');
+$teacherStatusClass = $teacherVerified
+    ? 'bg-arcade-mint/35'
+    : ($teacherHasProfile ? 'bg-arcade-cyan/25' : 'bg-arcade-yellow/35');
 
 $teacherViewBuildQuery = static function (array $overrides = []) use ($teacherViewId, $teacherLogPage): string {
     $query = [

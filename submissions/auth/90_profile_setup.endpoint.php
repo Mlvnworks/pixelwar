@@ -62,7 +62,7 @@ if ($requestMethod === 'POST' && $requestedPage === 'profile-setup') {
             pixelwarRedirect('login');
         }
 
-        if (!$isTeacherSetup && (int) $sessionUser['is_verified'] !== 1) {
+        if (!$isStaffSetup && (int) $sessionUser['is_verified'] !== 1) {
             if ($profileSetupWantsJson) {
                 pixelwarJsonResponse([
                     'success' => false,
@@ -111,7 +111,7 @@ if ($requestMethod === 'POST' && $requestedPage === 'profile-setup') {
             $errors[] = 'Enter a valid last name.';
         }
 
-        if (!$isTeacherSetup) {
+        if (!$isStaffSetup) {
             if (!preg_match('/^[A-Za-z0-9-]{4,40}$/', $studentNumber)) {
                 $errors[] = 'Enter a valid student number.';
             }
@@ -147,7 +147,7 @@ if ($requestMethod === 'POST' && $requestedPage === 'profile-setup') {
         $profileImage = $supabaseStorage->uploadProfileImage($profileImageFile, $userId);
         $idPictureImage = null;
 
-        if (!$isTeacherSetup) {
+        if (!$isStaffSetup) {
             $idPictureStorage = new SupabaseStorage(
                 SUPABASE_URL,
                 SUPABASE_SERVICE_ROLE_KEY,
