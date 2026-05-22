@@ -108,6 +108,26 @@ class UserRepository
         return $user ?: null;
     }
 
+    public function findUserByIdentity(string $identity): ?array
+    {
+        $statement = $this->connection->prepare(
+            'SELECT user_id, role_id, username, email, password, is_verified, is_active
+             FROM users
+             WHERE date_deleted IS NULL
+                AND (
+                    LOWER(TRIM(username)) = LOWER(TRIM(?))
+                    OR LOWER(TRIM(email)) = LOWER(TRIM(?))
+                )
+             LIMIT 1'
+        );
+        $statement->bind_param('ss', $identity, $identity);
+        $statement->execute();
+        $user = $statement->get_result()->fetch_assoc();
+        $statement->close();
+
+        return $user ?: null;
+    }
+
     public function findAuthUserById(int $userId): ?array
     {
         $statement = $this->connection->prepare(
@@ -731,6 +751,18 @@ class UserRepository
         $statement->close();
     }
 
+    public function updatePassword(int $userId, string $passwordHash): void
+    {
+        $statement = $this->connection->prepare(
+            'UPDATE users
+             SET password = ?
+             WHERE user_id = ? AND date_deleted IS NULL'
+        );
+        $statement->bind_param('si', $passwordHash, $userId);
+        $statement->execute();
+        $statement->close();
+    }
+
     public function updateTeacherSetupCredentials(int $userId, string $username, string $passwordHash, int $isVerified): void
     {
         $statement = $this->connection->prepare(
@@ -820,6 +852,46 @@ class UserRepository
         $statement->close();
 
         return $imageId;
+    }
+
+    public function clearStudentIdPicture(int $userId): ?string
+    {
+        $statement = $this->connection->prepare(
+            'SELECT user_details.id_picture, images.source AS id_picture_url
+             FROM user_details
+             LEFT JOIN images ON images.img_id = user_details.id_picture
+             WHERE user_details.user_id = ?
+             LIMIT 1'
+        );
+        $statement->bind_param('i', $userId);
+        $statement->execute();
+        $details = $statement->get_result()->fetch_assoc();
+        $statement->close();
+
+        if (!$details) {
+            return null;
+        }
+
+        $imageId = (int) ($details['id_picture'] ?? 0);
+        $idPictureUrl = trim((string) ($details['id_picture_url'] ?? ''));
+
+        $statement = $this->connection->prepare(
+            'UPDATE user_details
+             SET id_picture = NULL
+             WHERE user_id = ?'
+        );
+        $statement->bind_param('i', $userId);
+        $statement->execute();
+        $statement->close();
+
+        if ($imageId > 0) {
+            $statement = $this->connection->prepare('DELETE FROM images WHERE img_id = ? LIMIT 1');
+            $statement->bind_param('i', $imageId);
+            $statement->execute();
+            $statement->close();
+        }
+
+        return $idPictureUrl !== '' ? $idPictureUrl : null;
     }
 
     public function upsertUserDetails(

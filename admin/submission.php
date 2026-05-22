@@ -9,6 +9,8 @@ require_once $rootPath . '/classes/page-meta.php';
 require_once $rootPath . '/classes/tools.php';
 require_once $rootPath . '/classes/challenge-catalog.php';
 require_once $rootPath . '/classes/challenge-repository.php';
+require_once $rootPath . '/classes/room-repository.php';
+require_once $rootPath . '/classes/room-player-repository.php';
 require_once $rootPath . '/classes/activity-log-repository.php';
 require_once $rootPath . '/classes/teacher-account-service.php';
 require_once $rootPath . '/classes/user-repository.php';
@@ -20,6 +22,8 @@ $pageMeta = new PageMeta();
 $tools = new Tools($connection);
 $activityLogRepository = $connection instanceof mysqli ? new ActivityLogRepository($connection) : null;
 $challengeRepository = $connection instanceof mysqli ? new ChallengeRepository($connection) : null;
+$roomRepository = $connection instanceof mysqli ? new RoomRepository($connection) : null;
+$roomPlayerRepository = $connection instanceof mysqli ? new RoomPlayerRepository($connection) : null;
 $userRepository = $connection instanceof mysqli ? new UserRepository($connection) : null;
 $userChallengeRepository = $connection instanceof mysqli ? new UserChallengeRepository($connection) : null;
 $teacherAccountService = $connection instanceof mysqli && $userRepository instanceof UserRepository

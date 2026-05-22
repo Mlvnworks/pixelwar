@@ -330,6 +330,84 @@
     font-weight: 900;
 }
 
+.teacher-chart-shell {
+    border: 2px solid rgba(38, 25, 15, 0.12);
+    border-radius: 1.25rem;
+    background: linear-gradient(180deg, rgba(255, 253, 246, 0.92), rgba(255, 247, 232, 0.82));
+    padding: 1rem;
+}
+
+.teacher-chart-stage {
+    position: relative;
+    height: 14rem;
+    width: 100%;
+}
+
+.teacher-range-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.55rem;
+}
+
+.teacher-range-chip {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid rgba(38, 25, 15, 0.12);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.9);
+    padding: 0.5rem 0.9rem;
+    color: #26190f;
+    font-size: 0.76rem;
+    font-weight: 900;
+    letter-spacing: 0.08em;
+    text-decoration: none;
+    text-transform: uppercase;
+    transition: transform 160ms ease, background-color 160ms ease, border-color 160ms ease;
+}
+
+.teacher-range-chip:hover {
+    transform: translateY(-1px);
+    background: rgba(255, 209, 102, 0.4);
+}
+
+.teacher-range-chip.is-active {
+    border-color: #26190f;
+    background: #ffd166;
+    box-shadow: 3px 3px 0 rgba(38, 25, 15, 0.18);
+}
+
+.teacher-export-date-field {
+    display: grid;
+    gap: 0.45rem;
+}
+
+.teacher-export-date-field span {
+    font-size: 0.76rem;
+    font-weight: 900;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: rgba(38, 25, 15, 0.62);
+}
+
+.teacher-export-date-field input {
+    width: 100%;
+    border: 2px solid rgba(38, 25, 15, 0.16);
+    border-radius: 1rem;
+    background: rgba(255, 255, 255, 0.92);
+    padding: 0.8rem 0.95rem;
+    color: #26190f;
+    font-size: 0.92rem;
+    font-weight: 800;
+    outline: none;
+    transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.teacher-export-date-field input:focus {
+    border-color: #ff8c42;
+    box-shadow: 0 0 0 4px rgba(255, 140, 66, 0.16);
+}
+
 .teacher-activity-grid {
     display: grid;
     grid-auto-flow: column;
@@ -838,6 +916,23 @@ body.pixelwar-dark-mode .teacher-pill {
     border-color: rgba(255, 247, 232, 0.28);
 }
 
+body.pixelwar-dark-mode .teacher-chart-shell {
+    border-color: rgba(255, 247, 232, 0.14);
+    background: linear-gradient(180deg, rgba(31, 22, 15, 0.96), rgba(19, 14, 10, 0.94));
+}
+
+body.pixelwar-dark-mode .teacher-range-chip {
+    border-color: rgba(255, 247, 232, 0.12);
+    background: rgba(255, 247, 232, 0.04);
+    color: rgba(255, 247, 232, 0.74);
+}
+
+body.pixelwar-dark-mode .teacher-range-chip.is-active {
+    border-color: rgba(255, 247, 232, 0.28);
+    background: #ffd166;
+    color: #26190f;
+}
+
 body.pixelwar-dark-mode .teacher-activity-cell {
     border-color: rgba(255, 247, 232, 0.2);
     background: rgba(255, 247, 232, 0.08);
@@ -868,6 +963,16 @@ body.pixelwar-dark-mode .teacher-mini-link {
     border-color: rgba(255, 247, 232, 0.34);
     background: #1f160f;
     color: #fff7e8;
+}
+
+@media (max-width: 640px) {
+    .teacher-chart-shell {
+        padding: 0.85rem;
+    }
+
+    .teacher-chart-stage {
+        height: 12rem;
+    }
 }
 
 body.pixelwar-dark-mode .teacher-profile__item,

@@ -1,0 +1,217 @@
+.create-room-shell .create-room-field {
+    display: grid;
+    gap: 0.45rem;
+}
+
+.create-room-shell .create-room-field span {
+    font-size: 0.82rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: rgba(38, 25, 15, 0.6);
+}
+
+.create-room-shell .create-room-field input,
+.create-room-shell .create-room-field select,
+.create-room-shell .create-room-field textarea {
+    min-height: 3rem;
+    border: 1px solid rgba(15, 23, 42, 0.12);
+    border-radius: 1rem;
+    background: rgba(255, 255, 255, 0.96);
+    padding: 0.8rem 0.95rem;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #0f172a;
+    outline: none;
+    transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.create-room-shell .create-room-field input:focus,
+.create-room-shell .create-room-field select:focus,
+.create-room-shell .create-room-field textarea:focus {
+    border-color: rgba(255, 140, 66, 0.75);
+    box-shadow: 0 0 0 4px rgba(255, 140, 66, 0.16);
+}
+
+.create-room-shell .create-room-field textarea {
+    min-height: 10rem;
+    resize: vertical;
+}
+
+.create-room-pill {
+    display: inline-flex;
+    align-items: center;
+    border: 2px solid rgba(38, 25, 15, 0.14);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.78);
+    padding: 0.45rem 0.75rem;
+    font-size: 0.74rem;
+    font-weight: 900;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: rgba(38, 25, 15, 0.72);
+}
+
+.create-room-pill--code {
+    background: rgba(255, 209, 102, 0.28);
+}
+
+.create-room-pill--difficulty {
+    background: rgba(76, 201, 240, 0.2);
+}
+
+.create-room-copy {
+    color: rgba(38, 25, 15, 0.72);
+    font-size: 0.96rem;
+    font-weight: 700;
+    line-height: 1.9;
+}
+
+.create-room-copy a {
+    color: #ff8c42;
+    text-decoration: underline;
+    text-underline-offset: 0.18rem;
+}
+
+.create-room-info-card {
+    border: 2px solid rgba(38, 25, 15, 0.12);
+    border-radius: 1rem;
+    background: rgba(255, 247, 232, 0.72);
+    padding: 0.9rem 1rem;
+}
+
+.create-room-info-card p {
+    margin: 0;
+    font-size: 0.68rem;
+    font-weight: 900;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: rgba(38, 25, 15, 0.56);
+}
+
+.create-room-info-card strong {
+    display: block;
+    margin-top: 0.4rem;
+    font-size: 0.98rem;
+    font-weight: 900;
+    color: #26190f;
+}
+
+.create-room-preview-frame {
+    position: relative;
+    min-height: 25rem;
+    overflow: hidden;
+    border: 3px solid rgba(38, 25, 15, 0.12);
+    border-radius: 1.5rem;
+    background: linear-gradient(180deg, rgba(255, 247, 232, 0.96), rgba(255, 255, 255, 0.92));
+}
+
+.create-room-preview-stage {
+    position: absolute;
+}
+
+.create-room-preview-frame iframe {
+    position: absolute;
+    display: block;
+    border: 0;
+    background: transparent;
+}
+
+.create-room-preview-loader {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    display: grid;
+    place-items: center;
+    align-content: center;
+    gap: 0.55rem;
+    padding: 1.5rem;
+    text-align: center;
+    background: rgba(255, 253, 246, 0.92);
+    color: #26190f;
+}
+
+.create-room-preview-loader strong {
+    font-size: 1rem;
+    font-weight: 900;
+}
+
+.create-room-preview-loader small {
+    max-width: 20rem;
+    font-size: 0.82rem;
+    font-weight: 700;
+    line-height: 1.6;
+    color: rgba(38, 25, 15, 0.6);
+}
+
+.create-room-preview-loader__spinner {
+    width: 2rem;
+    height: 2rem;
+    border: 3px solid rgba(38, 25, 15, 0.16);
+    border-top-color: #ff8c42;
+    border-radius: 999px;
+    animation: create-room-spin 0.9s linear infinite;
+}
+
+.create-room-preview-loader.is-error .create-room-preview-loader__spinner {
+    border-top-color: #f97373;
+}
+
+@keyframes create-room-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+body.pixelwar-dark-mode .create-room-shell .create-room-field span {
+    color: rgba(226, 232, 240, 0.72);
+}
+
+body.pixelwar-dark-mode .create-room-shell .create-room-field input,
+body.pixelwar-dark-mode .create-room-shell .create-room-field select,
+body.pixelwar-dark-mode .create-room-shell .create-room-field textarea {
+    border-color: rgba(148, 163, 184, 0.2);
+    background: rgba(15, 23, 42, 0.92);
+    color: #e2e8f0;
+}
+
+body.pixelwar-dark-mode .create-room-pill {
+    border-color: rgba(226, 232, 240, 0.16);
+    background: rgba(15, 23, 42, 0.46);
+    color: rgba(248, 250, 252, 0.82);
+}
+
+body.pixelwar-dark-mode .create-room-copy {
+    color: rgba(226, 232, 240, 0.78);
+}
+
+body.pixelwar-dark-mode .create-room-copy a {
+    color: #ffd166;
+}
+
+body.pixelwar-dark-mode .create-room-info-card {
+    border-color: rgba(226, 232, 240, 0.1);
+    background: rgba(15, 23, 42, 0.6);
+}
+
+body.pixelwar-dark-mode .create-room-info-card p {
+    color: rgba(226, 232, 240, 0.52);
+}
+
+body.pixelwar-dark-mode .create-room-info-card strong {
+    color: #f8fafc;
+}
+
+body.pixelwar-dark-mode .create-room-preview-frame {
+    border-color: rgba(226, 232, 240, 0.14);
+    background: linear-gradient(180deg, rgba(15, 23, 42, 0.92), rgba(30, 41, 59, 0.96));
+}
+
+body.pixelwar-dark-mode .create-room-preview-loader {
+    background: rgba(15, 23, 42, 0.88);
+    color: #f8fafc;
+}
+
+body.pixelwar-dark-mode .create-room-preview-loader small {
+    color: rgba(226, 232, 240, 0.65);
+}

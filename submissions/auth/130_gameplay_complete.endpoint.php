@@ -9,6 +9,7 @@ if ($requestMethod === 'POST' && $requestedPage === 'pixelwar' && (string) ($_PO
 
     $userId = (int) ($_SESSION['user_id'] ?? 0);
     $challengeId = (int) ($_POST['challenge_id'] ?? 0);
+    $roomId = (int) ($_POST['room_id'] ?? 0);
     $userChallengeId = (int) ($_POST['user_challenge_id'] ?? 0);
 
     try {
@@ -17,6 +18,27 @@ if ($requestMethod === 'POST' && $requestedPage === 'pixelwar' && (string) ($_PO
         }
 
         $completion = $gameplayCompletionService->complete($userId, $userChallengeId, $challengeId);
+
+        if ($roomId > 0 && isset($roomPlayerRepository) && $roomPlayerRepository instanceof RoomPlayerRepository) {
+            $roomPlayerRepository->markCompleted($userId, $roomId);
+
+            if (isset($pusherService) && $pusherService instanceof PusherService && $pusherService->isConfigured()) {
+                try {
+                    $pusherService->trigger(
+                        'room-' . $roomId,
+                        'player-status',
+                        [
+                            'user_id' => $userId,
+                            'status_label' => 'completed',
+                            'started_at' => (string) ($completion['started_at'] ?? ''),
+                            'completed_at' => (string) ($completion['completed_at'] ?? ''),
+                        ]
+                    );
+                } catch (Throwable $pusherError) {
+                    error_log('Pixelwar room completion pusher error: ' . $pusherError->getMessage());
+                }
+            }
+        }
 
         if ($wantsJson) {
             pixelwarJsonResponse([

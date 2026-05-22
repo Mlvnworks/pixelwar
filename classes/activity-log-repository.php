@@ -62,6 +62,43 @@ final class ActivityLogRepository
     }
 
     /**
+     * @return array<string, array<string, int>>
+     */
+    public function countCreationByDayAndCategoryInRange(
+        int $userId,
+        DateTimeInterface $startDate,
+        DateTimeInterface $endDate
+    ): array {
+        $start = $startDate->format('Y-m-d 00:00:00');
+        $end = $endDate->format('Y-m-d 23:59:59');
+        $statement = $this->connection->prepare(
+            'SELECT DATE(date_created) AS activity_date, category, COUNT(*) AS total
+             FROM activity_logs
+             WHERE user_id = ?
+                AND date_created >= ?
+                AND date_created <= ?
+                AND category IN (\'challenge\', \'room\')
+                AND log_text LIKE \'Created %\'
+             GROUP BY DATE(date_created), category
+             ORDER BY activity_date ASC'
+        );
+        $statement->bind_param('iss', $userId, $start, $end);
+        $statement->execute();
+        $rows = $statement->get_result()->fetch_all(MYSQLI_ASSOC);
+        $statement->close();
+
+        $counts = [];
+
+        foreach ($rows as $row) {
+            $date = (string) $row['activity_date'];
+            $category = strtolower((string) $row['category']);
+            $counts[$date][$category] = (int) $row['total'];
+        }
+
+        return $counts;
+    }
+
+    /**
      * @return array<int, array<string, mixed>>
      */
     public function listLatestForUser(int $userId, int $limit = 30): array
@@ -75,6 +112,155 @@ final class ActivityLogRepository
              LIMIT ?'
         );
         $statement->bind_param('ii', $userId, $limit);
+        $statement->execute();
+        $logs = $statement->get_result()->fetch_all(MYSQLI_ASSOC);
+        $statement->close();
+
+        return $logs;
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    public function listCreationLogsForUser(int $userId, int $limit = 100): array
+    {
+        $limit = max(1, min(500, $limit));
+        $statement = $this->connection->prepare(
+            'SELECT al_id, category, log_text, date_created
+             FROM activity_logs
+             WHERE user_id = ?
+                AND category IN (\'challenge\', \'room\')
+                AND log_text LIKE \'Created %\'
+             ORDER BY date_created DESC
+             LIMIT ?'
+        );
+        $statement->bind_param('ii', $userId, $limit);
+        $statement->execute();
+        $logs = $statement->get_result()->fetch_all(MYSQLI_ASSOC);
+        $statement->close();
+
+        return $logs;
+    }
+
+    public function countCreationLogsForUser(int $userId): int
+    {
+        $statement = $this->connection->prepare(
+            'SELECT COUNT(*) AS total
+             FROM activity_logs
+             WHERE user_id = ?
+                AND category IN (\'challenge\', \'room\')
+                AND log_text LIKE \'Created %\''
+        );
+        $statement->bind_param('i', $userId);
+        $statement->execute();
+        $row = $statement->get_result()->fetch_assoc();
+        $statement->close();
+
+        return (int) ($row['total'] ?? 0);
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    public function listCreationLogsForUserPaged(int $userId, int $limit = 20, int $offset = 0): array
+    {
+        $limit = max(1, min(200, $limit));
+        $offset = max(0, $offset);
+        $statement = $this->connection->prepare(
+            'SELECT al_id, category, log_text, date_created
+             FROM activity_logs
+             WHERE user_id = ?
+                AND category IN (\'challenge\', \'room\')
+                AND log_text LIKE \'Created %\'
+             ORDER BY date_created DESC
+             LIMIT ? OFFSET ?'
+        );
+        $statement->bind_param('iii', $userId, $limit, $offset);
+        $statement->execute();
+        $logs = $statement->get_result()->fetch_all(MYSQLI_ASSOC);
+        $statement->close();
+
+        return $logs;
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    public function listCreationLogsForUserByDateRange(
+        int $userId,
+        DateTimeInterface $startDate,
+        DateTimeInterface $endDate,
+        int $limit = 1000
+    ): array {
+        $limit = max(1, min(2000, $limit));
+        $start = $startDate->format('Y-m-d 00:00:00');
+        $end = $endDate->format('Y-m-d 23:59:59');
+        $statement = $this->connection->prepare(
+            'SELECT al_id, category, log_text, date_created
+             FROM activity_logs
+             WHERE user_id = ?
+                AND date_created >= ?
+                AND date_created <= ?
+                AND category IN (\'challenge\', \'room\')
+                AND log_text LIKE \'Created %\'
+             ORDER BY date_created DESC
+             LIMIT ?'
+        );
+        $statement->bind_param('issi', $userId, $start, $end, $limit);
+        $statement->execute();
+        $logs = $statement->get_result()->fetch_all(MYSQLI_ASSOC);
+        $statement->close();
+
+        return $logs;
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    public function listRoomCreationLogsForUser(int $userId, int $limit = 500): array
+    {
+        $limit = max(1, min(2000, $limit));
+        $statement = $this->connection->prepare(
+            'SELECT al_id, category, log_text, date_created
+             FROM activity_logs
+             WHERE user_id = ?
+                AND category = \'room\'
+                AND log_text LIKE \'Created %\'
+             ORDER BY date_created DESC
+             LIMIT ?'
+        );
+        $statement->bind_param('ii', $userId, $limit);
+        $statement->execute();
+        $logs = $statement->get_result()->fetch_all(MYSQLI_ASSOC);
+        $statement->close();
+
+        return $logs;
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    public function listRoomCreationLogsForUserByDateRange(
+        int $userId,
+        DateTimeInterface $startDate,
+        DateTimeInterface $endDate,
+        int $limit = 2000
+    ): array {
+        $limit = max(1, min(5000, $limit));
+        $start = $startDate->format('Y-m-d 00:00:00');
+        $end = $endDate->format('Y-m-d 23:59:59');
+        $statement = $this->connection->prepare(
+            'SELECT al_id, category, log_text, date_created
+             FROM activity_logs
+             WHERE user_id = ?
+                AND category = \'room\'
+                AND log_text LIKE \'Created %\'
+                AND date_created >= ?
+                AND date_created <= ?
+             ORDER BY date_created DESC
+             LIMIT ?'
+        );
+        $statement->bind_param('issi', $userId, $start, $end, $limit);
         $statement->execute();
         $logs = $statement->get_result()->fetch_all(MYSQLI_ASSOC);
         $statement->close();
@@ -107,6 +293,58 @@ final class ActivityLogRepository
              LIMIT ?'
         );
         $statement->bind_param('i', $limit);
+        $statement->execute();
+        $logs = $statement->get_result()->fetch_all(MYSQLI_ASSOC);
+        $statement->close();
+
+        return $logs;
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    public function listOverallByDateRange(
+        DateTimeInterface $startDate,
+        DateTimeInterface $endDate,
+        ?string $category = null,
+        int $limit = 5000
+    ): array {
+        $limit = max(1, min(10000, $limit));
+        $start = $startDate->format('Y-m-d 00:00:00');
+        $end = $endDate->format('Y-m-d 23:59:59');
+        $normalizedCategory = $category !== null ? strtolower(trim($category)) : null;
+
+        $sql = 'SELECT
+                activity_logs.al_id,
+                activity_logs.user_id,
+                activity_logs.category,
+                activity_logs.log_text,
+                activity_logs.date_created,
+                users.username,
+                users.email,
+                users.role_id,
+                user_details.firstname,
+                user_details.lastname
+             FROM activity_logs
+             LEFT JOIN users ON users.user_id = activity_logs.user_id
+             LEFT JOIN user_details ON user_details.user_id = users.user_id
+             WHERE activity_logs.date_created >= ?
+                AND activity_logs.date_created <= ?';
+        $types = 'ss';
+        $params = [$start, $end];
+
+        if ($normalizedCategory !== null && $normalizedCategory !== '' && $normalizedCategory !== 'all') {
+            $sql .= ' AND activity_logs.category = ?';
+            $types .= 's';
+            $params[] = $normalizedCategory;
+        }
+
+        $sql .= ' ORDER BY activity_logs.date_created DESC LIMIT ?';
+        $types .= 'i';
+        $params[] = $limit;
+
+        $statement = $this->connection->prepare($sql);
+        $statement->bind_param($types, ...$params);
         $statement->execute();
         $logs = $statement->get_result()->fetch_all(MYSQLI_ASSOC);
         $statement->close();

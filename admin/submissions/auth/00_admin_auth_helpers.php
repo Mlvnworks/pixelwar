@@ -130,6 +130,57 @@ function adminPanelJsonResponse(array $payload, int $statusCode = 200): void
     exit;
 }
 
+function adminPanelExtractRoomActivityName(string $logText): string
+{
+    $normalized = trim($logText);
+
+    if ($normalized === '') {
+        return 'Room creation';
+    }
+
+    if (preg_match('/Created room "([^"]+)"/i', $normalized, $matches) === 1) {
+        return trim((string) ($matches[1] ?? '')) !== ''
+            ? trim((string) $matches[1])
+            : 'Room creation';
+    }
+
+    if (preg_match('/Created room:?\\s*(.+)$/i', $normalized, $matches) === 1) {
+        return trim((string) ($matches[1] ?? '')) !== ''
+            ? rtrim(trim((string) $matches[1]), '.')
+            : 'Room creation';
+    }
+
+    return 'Room creation';
+}
+
+/**
+ * @param array<string, mixed> $player
+ */
+function adminPanelRoomPlayerStatusLabel(array $player, bool $roomEnded = false): string
+{
+    $completedAt = trim((string) ($player['completed_at'] ?? ''));
+    $startedAt = trim((string) ($player['started_at'] ?? ''));
+    $status = (int) ($player['status'] ?? 0);
+
+    if ($roomEnded && $completedAt === '' && $status !== 2) {
+        return 'Failed';
+    }
+
+    if ($status === 3) {
+        return 'Failed';
+    }
+
+    if ($completedAt !== '' || $status === 2) {
+        return 'Completed';
+    }
+
+    if ($startedAt !== '' || $status === 1) {
+        return 'Solving';
+    }
+
+    return 'Waiting';
+}
+
 function adminPanelSendStudentReviewEmail(Tools $tools, string $email, string $studentName, string $status): bool
 {
     $safeName = htmlspecialchars($studentName, ENT_QUOTES, 'UTF-8');

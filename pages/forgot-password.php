@@ -1,3 +1,11 @@
+<?php
+$forgotErrors = $_SESSION['forgot_password_errors'] ?? [];
+$forgotNotices = $_SESSION['forgot_password_notices'] ?? [];
+$forgotOld = $_SESSION['forgot_password_old'] ?? [];
+$forgotCooldownAvailableAt = (int) ($_SESSION['forgot_password_available_at'] ?? 0);
+$forgotCooldownSecondsLeft = max(0, $forgotCooldownAvailableAt - time());
+unset($_SESSION['forgot_password_errors'], $_SESSION['forgot_password_notices'], $_SESSION['forgot_password_old']);
+?>
 <main class="forgot-page relative min-h-[calc(100vh-4.25rem)] overflow-hidden bg-arcade-cream px-4 py-4 text-arcade-ink">
     <div class="forgot-bg absolute inset-0 bg-[radial-gradient(circle_at_18%_20%,rgba(76,201,240,0.2),transparent_24%),radial-gradient(circle_at_82%_78%,rgba(255,209,102,0.32),transparent_26%)]"></div>
     <div class="forgot-grid absolute inset-0"></div>
@@ -6,18 +14,45 @@
     <div class="forgot-token forgot-token--three">ID</div>
 
     <section class="container relative flex min-h-[calc(100vh-7.25rem)] items-center justify-center">
-        <form class="forgot-card w-full max-w-[23rem] rounded-[24px] border-4 border-arcade-ink bg-arcade-panel p-4 shadow-[8px_8px_0_#26190f] md:p-5" action="./?c=forgot-password" method="get">
+        <form class="forgot-card w-full max-w-[23rem] rounded-[24px] border-4 border-arcade-ink bg-arcade-panel p-4 shadow-[8px_8px_0_#26190f] md:p-5" action="./?c=forgot-password" method="post" novalidate>
+            <?= pixelwarCsrfField() ?>
             <p class="font-arcade text-[10px] uppercase tracking-[0.28em] text-arcade-orange">Find Account</p>
-            <h1 class="mt-2 text-[1.45rem] font-bold leading-tight">Recover your player.</h1>
-            <p class="mt-2 text-sm leading-6 text-arcade-ink/68">Enter your username or email so we can find your Pixelwar account.</p>
+            <h1 class="mt-2 text-[1.45rem] font-bold leading-tight">Recover your account.</h1>
+            <p class="mt-2 text-sm leading-6 text-arcade-ink/68">Enter your username or email. If it matches a Pixelwar account, we will send a secure password reset link to the registered email.</p>
+
+            <?php if ($forgotErrors !== []) : ?>
+                <div class="mt-3 rounded-2xl border-2 border-arcade-coral bg-arcade-coral/10 px-3 py-2 text-sm font-bold leading-5 text-arcade-ink" role="alert">
+                    <?php foreach ($forgotErrors as $error) : ?>
+                        <p class="mb-1 last:mb-0"><?= htmlspecialchars((string) $error, ENT_QUOTES, 'UTF-8') ?></p>
+                    <?php endforeach; ?>
+                </div>
+            <?php endif; ?>
+
+            <?php if ($forgotNotices !== []) : ?>
+                <div class="mt-3 rounded-2xl border-2 border-arcade-mint bg-arcade-mint/20 px-3 py-2 text-sm font-bold leading-5 text-arcade-ink" role="status">
+                    <?php foreach ($forgotNotices as $notice) : ?>
+                        <p class="mb-1 last:mb-0"><?= htmlspecialchars((string) $notice, ENT_QUOTES, 'UTF-8') ?></p>
+                    <?php endforeach; ?>
+                </div>
+            <?php endif; ?>
 
             <label class="mt-5 block text-sm font-bold" for="forgot-identity">Username or Email</label>
-            <input id="forgot-identity" name="identity" type="text" autocomplete="username" class="mt-1 w-full rounded-xl border-2 border-arcade-ink/15 bg-white px-3 py-2.5 outline-none transition focus:border-arcade-orange" placeholder="pixelrookie or player@example.com">
+            <input id="forgot-identity" name="identity" type="text" autocomplete="username" value="<?= htmlspecialchars((string) ($forgotOld['identity'] ?? ''), ENT_QUOTES, 'UTF-8') ?>" class="mt-1 w-full rounded-xl border-2 border-arcade-ink/15 bg-white px-3 py-2.5 outline-none transition focus:border-arcade-orange" placeholder="pixelrookie or player@example.com">
 
-            <button type="button" class="mt-4 w-full rounded-xl border-2 border-arcade-ink bg-arcade-yellow px-6 py-2.5 text-sm font-bold shadow-[0_4px_0_#26190f] transition hover:-translate-y-0.5 hover:bg-arcade-orange hover:text-white" aria-disabled="true">
-                Find Account
+            <button
+                type="submit"
+                class="mt-4 w-full rounded-xl border-2 border-arcade-ink bg-arcade-yellow px-6 py-2.5 text-sm font-bold shadow-[0_4px_0_#26190f] transition hover:-translate-y-0.5 hover:bg-arcade-orange hover:text-white disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0 disabled:hover:bg-arcade-yellow disabled:hover:text-arcade-ink"
+                data-forgot-password-button
+                data-cooldown-available-at="<?= htmlspecialchars((string) $forgotCooldownAvailableAt, ENT_QUOTES, 'UTF-8') ?>"
+                <?= $forgotCooldownSecondsLeft > 0 ? 'disabled' : '' ?>>
+                Send Reset Link
             </button>
-            <p class="mt-2 text-center text-xs font-bold leading-5 text-arcade-ink/55">Account recovery flow is not enabled yet.</p>
+            <p
+                class="mt-2 min-h-5 text-center text-xs font-bold leading-5 text-arcade-ink/55"
+                data-forgot-password-cooldown
+                <?= $forgotCooldownSecondsLeft > 0 ? '' : 'hidden' ?>>
+                Please wait <?= (int) $forgotCooldownSecondsLeft ?> seconds before requesting another reset link.
+            </p>
 
             <p class="mt-4 text-center text-sm text-arcade-ink/68">
                 Remembered it?
@@ -194,3 +229,45 @@
     }
 }
 </style>
+
+<script>
+(() => {
+    const button = document.querySelector('[data-forgot-password-button]');
+    const cooldownText = document.querySelector('[data-forgot-password-cooldown]');
+
+    if (!button || !cooldownText) {
+        return;
+    }
+
+    const availableAt = Number(button.getAttribute('data-cooldown-available-at') || '0');
+    if (!Number.isFinite(availableAt) || availableAt <= 0) {
+        return;
+    }
+
+    const renderCooldown = () => {
+        const secondsLeft = Math.max(0, availableAt - Math.floor(Date.now() / 1000));
+
+        if (secondsLeft <= 0) {
+            button.disabled = false;
+            cooldownText.hidden = true;
+            cooldownText.textContent = '';
+            return false;
+        }
+
+        button.disabled = true;
+        cooldownText.hidden = false;
+        cooldownText.textContent = `Please wait ${secondsLeft} seconds before requesting another reset link.`;
+        return true;
+    };
+
+    if (!renderCooldown()) {
+        return;
+    }
+
+    const timer = window.setInterval(() => {
+        if (!renderCooldown()) {
+            window.clearInterval(timer);
+        }
+    }, 1000);
+})();
+</script>

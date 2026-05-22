@@ -33,6 +33,8 @@ $totalPoints = $userChallengeRepository instanceof UserChallengeRepository
 $rankRequirementPoints = 500;
 $rankProgressPercent = min(100, (int) round(($totalPoints / max(1, $rankRequirementPoints)) * 100));
 $activityDays = [];
+$studentChartLabels = [];
+$studentChartValues = [];
 
 for ($dayIndex = 0; $dayIndex < $analyticsTrackedDays; $dayIndex++) {
     $date = $yearStart->modify('+' . $dayIndex . ' days');
@@ -43,6 +45,8 @@ for ($dayIndex = 0; $dayIndex < $analyticsTrackedDays; $dayIndex++) {
         'solves' => $solves,
         'level' => min($solves, 5),
     ];
+    $studentChartLabels[] = $date->format('M j');
+    $studentChartValues[] = $solves;
 }
 
 $studentFirstname = trim((string) ($studentViewProfile['firstname'] ?? ''));
@@ -178,36 +182,19 @@ $studentViewBuildQuery = static function (array $overrides = []) use ($studentVi
                                 <p class="text-sm font-semibold uppercase tracking-[0.08em] text-arcade-ink/60">Solving Analytics</p>
                                 <h2 class="mt-1 text-2xl font-bold"><?= (int) $currentYear ?> activity</h2>
                             </div>
-                            <p class="text-sm font-medium text-arcade-ink/55"><?= (int) $totalSolveCount ?> total solve<?= $totalSolveCount === 1 ? '' : 's' ?></p>
-                        </div>
-
-                        <div class="admin-student-activity-scroll mt-4">
-                            <div class="admin-student-activity-grid" aria-label="<?= (int) $currentYear ?> student solving analytics">
-                                <?php foreach ($activityDays as $activityDay) : ?>
-                                    <?php
-                                    $level = (int) ($activityDay['level'] ?? 0);
-                                    $tooltip = $activityDay['date']->format('M j, Y')
-                                        . ': ' . (int) ($activityDay['solves'] ?? 0) . ' solve'
-                                        . ((int) ($activityDay['solves'] ?? 0) === 1 ? '' : 's');
-                                    ?>
-                                    <span
-                                        class="admin-student-activity-cell admin-student-activity-cell--<?= $level ?>"
-                                        tabindex="0"
-                                        role="button"
-                                        aria-label="<?= htmlspecialchars($tooltip, ENT_QUOTES, 'UTF-8') ?>"
-                                        data-tooltip="<?= htmlspecialchars($tooltip, ENT_QUOTES, 'UTF-8') ?>"
-                                        title="<?= htmlspecialchars($tooltip, ENT_QUOTES, 'UTF-8') ?>"></span>
-                                <?php endforeach; ?>
+                            <div class="flex flex-wrap items-center gap-2">
+                                <p class="text-sm font-medium text-arcade-ink/55"><?= (int) $totalSolveCount ?> total solve<?= $totalSolveCount === 1 ? '' : 's' ?></p>
+                                <a href="./?c=student-submissions&id=<?= (int) $studentViewId ?>" class="teacher-button teacher-button--light gap-2 no-underline">
+                                    <i data-lucide="list-checks" class="h-4 w-4" aria-hidden="true"></i>
+                                    <span>View Submissions</span>
+                                </a>
                             </div>
                         </div>
 
-                        <div class="mt-3 flex flex-wrap items-center gap-2 text-xs font-black text-arcade-ink/55">
-                            <span>Less</span>
-                            <span class="admin-student-activity-cell admin-student-activity-cell--0"></span>
-                            <span class="admin-student-activity-cell admin-student-activity-cell--1"></span>
-                            <span class="admin-student-activity-cell admin-student-activity-cell--3"></span>
-                            <span class="admin-student-activity-cell admin-student-activity-cell--5"></span>
-                            <span>More</span>
+                        <div class="admin-student-chart-shell mt-4" aria-label="<?= (int) $currentYear ?> student solving chart">
+                            <div class="admin-student-chart-stage">
+                                <canvas id="admin-student-activity-chart" aria-label="<?= (int) $currentYear ?> student solving analytics chart"></canvas>
+                            </div>
                         </div>
                     </article>
 
@@ -302,167 +289,148 @@ $studentViewBuildQuery = static function (array $overrides = []) use ($studentVi
     min-width: 0;
 }
 
-.admin-student-activity-grid {
-    display: grid;
-    grid-auto-flow: column;
-    grid-template-rows: repeat(7, 0.82rem);
-    grid-auto-columns: 0.82rem;
-    gap: 0.28rem;
-    min-width: max-content;
-    padding: 0.2rem;
+.admin-student-chart-shell {
+    border: 1px solid rgba(17, 24, 39, 0.08);
+    border-radius: 1rem;
+    background: rgba(255, 255, 255, 0.78);
+    padding: 1rem;
 }
 
-.admin-student-activity-scroll {
-    margin-inline: -0.25rem;
-    max-width: 100%;
-    overflow-x: auto;
-    overflow-y: visible;
-    padding: 0.3rem 0.25rem 1rem;
-    scrollbar-width: thin;
-}
-
-.admin-student-activity-cell {
+.admin-student-chart-stage {
     position: relative;
-    display: inline-block;
-    width: 0.82rem;
-    height: 0.82rem;
-    border: 1px solid rgba(17, 24, 39, 0.12);
-    border-radius: 0.22rem;
-    background: rgba(17, 24, 39, 0.06);
-    outline: none;
-    transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+    width: 100%;
+    min-height: 21rem;
 }
 
-.admin-student-activity-cell--1 {
-    background: rgba(245, 158, 11, 0.18);
-}
-
-.admin-student-activity-cell--2 {
-    background: rgba(245, 158, 11, 0.34);
-}
-
-.admin-student-activity-cell--3 {
-    background: rgba(249, 115, 22, 0.46);
-}
-
-.admin-student-activity-cell--4 {
-    background: rgba(249, 115, 22, 0.66);
-}
-
-.admin-student-activity-cell--5 {
-    background: #f59e0b;
-}
-
-.admin-student-activity-cell:hover,
-.admin-student-activity-cell:focus {
-    z-index: 5;
-    border-color: #111827;
-    box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.22);
-    transform: scale(1.18);
-}
-
-.admin-student-chart-tooltip {
-    position: fixed;
-    z-index: 9999;
-    max-width: min(18rem, calc(100vw - 1.5rem));
-    border: 1px solid rgba(17, 24, 39, 0.12);
-    border-radius: 0.75rem;
-    background: #ffffff;
-    padding: 0.55rem 0.75rem;
-    color: #111827;
-    font-size: 0.72rem;
-    font-weight: 700;
-    line-height: 1.35;
-    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.12);
-    pointer-events: none;
-    transform: translate(-50%, 0);
-}
-
-body.pixelwar-dark-mode .admin-student-activity-cell {
-    border-color: rgba(148, 163, 184, 0.22);
-    background: rgba(148, 163, 184, 0.08);
-}
-
-body.pixelwar-dark-mode .admin-student-activity-cell--1 {
-    background: rgba(251, 191, 36, 0.2);
-}
-
-body.pixelwar-dark-mode .admin-student-activity-cell--2 {
-    background: rgba(251, 191, 36, 0.34);
-}
-
-body.pixelwar-dark-mode .admin-student-activity-cell--3 {
-    background: rgba(251, 146, 60, 0.42);
-}
-
-body.pixelwar-dark-mode .admin-student-activity-cell--4 {
-    background: rgba(251, 146, 60, 0.62);
-}
-
-body.pixelwar-dark-mode .admin-student-activity-cell--5 {
-    background: #fbbf24;
-}
-
-body.pixelwar-dark-mode .admin-student-chart-tooltip {
-    border-color: rgba(148, 163, 184, 0.28);
-    background: #111827;
-    color: #f8fafc;
-    box-shadow: 0 14px 28px rgba(2, 6, 23, 0.4);
+body.pixelwar-dark-mode .admin-student-chart-shell {
+    border-color: rgba(148, 163, 184, 0.16);
+    background: linear-gradient(180deg, rgba(15, 23, 42, 0.92) 0%, rgba(15, 23, 42, 0.82) 100%);
 }
 </style>
 
 <script>
 (() => {
-    if (window.lucide) {
-        window.lucide.createIcons();
-    } else {
-        window.addEventListener('load', () => window.lucide?.createIcons());
-    }
+    const initializePage = () => {
+        window.lucide?.createIcons();
 
-    const cells = document.querySelectorAll('.admin-student-activity-cell[data-tooltip]');
-    if (cells.length === 0) {
+        const chartElement = document.getElementById('admin-student-activity-chart');
+        if (!chartElement || typeof window.Chart === 'undefined') {
+            return;
+        }
+
+        const isDarkMode = document.body.classList.contains('pixelwar-dark-mode');
+        const textColor = isDarkMode ? '#e2e8f0' : '#0f172a';
+        const mutedColor = isDarkMode ? '#94a3b8' : '#64748b';
+        const gridColor = isDarkMode ? 'rgba(148, 163, 184, 0.18)' : 'rgba(15, 23, 42, 0.08)';
+        const tooltipBackground = isDarkMode ? '#0f172a' : '#ffffff';
+        const chartContext = chartElement.getContext('2d');
+
+        if (!chartContext) {
+            return;
+        }
+
+        const canvas = chartElement;
+        const solveGradient = chartContext.createLinearGradient(0, 0, 0, canvas.height || 220);
+        solveGradient.addColorStop(0, isDarkMode ? 'rgba(245, 158, 11, 0.34)' : 'rgba(245, 158, 11, 0.22)');
+        solveGradient.addColorStop(1, 'rgba(245, 158, 11, 0)');
+
+        new window.Chart(chartElement, {
+            type: 'line',
+            data: {
+                labels: <?= json_encode($studentChartLabels, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?>,
+                datasets: [
+                    {
+                        label: 'Solved challenges',
+                        data: <?= json_encode($studentChartValues, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?>,
+                        borderColor: '#f59e0b',
+                        backgroundColor: solveGradient,
+                        fill: true,
+                        borderWidth: 2,
+                        pointRadius: 0,
+                        pointHoverRadius: 4,
+                        pointHoverBackgroundColor: '#f59e0b',
+                        pointHoverBorderColor: '#ffffff',
+                        pointHoverBorderWidth: 2,
+                        tension: 0.35,
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                        align: 'start',
+                        labels: {
+                            color: textColor,
+                            usePointStyle: true,
+                            boxWidth: 10,
+                            boxHeight: 10,
+                            font: {
+                                size: 12,
+                                weight: '600',
+                            },
+                        },
+                    },
+                    tooltip: {
+                        backgroundColor: tooltipBackground,
+                        titleColor: textColor,
+                        bodyColor: textColor,
+                        borderColor: gridColor,
+                        borderWidth: 1,
+                        displayColors: true,
+                        padding: 10,
+                    },
+                },
+                interaction: {
+                    mode: 'index',
+                    intersect: false,
+                },
+                scales: {
+                    x: {
+                        ticks: {
+                            color: mutedColor,
+                            maxTicksLimit: 12,
+                            font: {
+                                size: 11,
+                                weight: '500',
+                            },
+                        },
+                        grid: {
+                            display: false,
+                        },
+                        border: {
+                            color: gridColor,
+                        },
+                    },
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            precision: 0,
+                            color: mutedColor,
+                            font: {
+                                size: 11,
+                                weight: '500',
+                            },
+                        },
+                        grid: {
+                            color: gridColor,
+                        },
+                        border: {
+                            color: gridColor,
+                        },
+                    },
+                },
+            },
+        });
+    };
+
+    if (window.lucide && typeof window.Chart !== 'undefined') {
+        initializePage();
         return;
     }
 
-    const tooltip = document.createElement('div');
-    tooltip.className = 'admin-student-chart-tooltip';
-    tooltip.hidden = true;
-    document.body.appendChild(tooltip);
-
-    const positionTooltip = (cell) => {
-        const rect = cell.getBoundingClientRect();
-        tooltip.textContent = cell.getAttribute('data-tooltip') || '';
-        tooltip.hidden = false;
-
-        const tooltipRect = tooltip.getBoundingClientRect();
-        const viewportPadding = 12;
-        let left = rect.left + rect.width / 2;
-        let top = rect.top - tooltipRect.height - 10;
-
-        if (top < viewportPadding) {
-            top = rect.bottom + 10;
-        }
-
-        const minLeft = viewportPadding + tooltipRect.width / 2;
-        const maxLeft = window.innerWidth - viewportPadding - tooltipRect.width / 2;
-        left = Math.max(minLeft, Math.min(maxLeft, left));
-
-        tooltip.style.left = `${left}px`;
-        tooltip.style.top = `${top}px`;
-    };
-
-    const hideTooltip = () => {
-        tooltip.hidden = true;
-    };
-
-    cells.forEach((cell) => {
-        cell.addEventListener('mouseenter', () => positionTooltip(cell));
-        cell.addEventListener('focus', () => positionTooltip(cell));
-        cell.addEventListener('mouseleave', hideTooltip);
-        cell.addEventListener('blur', hideTooltip);
-    });
-
-    window.addEventListener('scroll', hideTooltip, true);
-    window.addEventListener('resize', hideTooltip);
+    window.addEventListener('load', initializePage, { once: true });
 })();
 </script>

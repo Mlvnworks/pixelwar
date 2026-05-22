@@ -55,6 +55,25 @@ if ($adminRequestMethod === 'POST' && $adminRequestedPage === 'student-verificat
                 'content' => 'Student access approved successfully.',
             ];
         } elseif ($action === 'reject') {
+            $idPictureUrl = $users->clearStudentIdPicture($studentId);
+
+            if ($idPictureUrl !== null) {
+                try {
+                    $storage = new SupabaseStorage(
+                        SUPABASE_URL,
+                        SUPABASE_SERVICE_ROLE_KEY,
+                        SUPABASE_STORAGE_BUCKET,
+                        SUPABASE_STORAGE_ID_PICTURE_FOLDER
+                    );
+
+                    if ($storage->isConfigured()) {
+                        $storage->deletePublicObject($idPictureUrl);
+                    }
+                } catch (Throwable $cleanupError) {
+                    error_log('Pixelwar student ID cleanup error: ' . $cleanupError->getMessage());
+                }
+            }
+
             $users->updateActiveState($studentId, -1);
             $logs->create((int) ($_SESSION['user_id'] ?? 0), 'student', 'Rejected student verification for ' . $studentLabel . ' via admin review queue.');
             adminPanelSendStudentReviewEmail($toolsService, (string) ($student['email'] ?? ''), $studentLabel, 'rejected');

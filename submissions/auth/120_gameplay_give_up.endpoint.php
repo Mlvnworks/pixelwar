@@ -7,6 +7,7 @@ if ($requestMethod === 'POST' && $requestedPage === 'pixelwar' && (string) ($_PO
 
     $userChallengeId = (int) ($_POST['user_challenge_id'] ?? 0);
     $challengeId = (int) ($_POST['challenge_id'] ?? 0);
+    $roomId = (int) ($_POST['room_id'] ?? 0);
     $userId = (int) ($_SESSION['user_id'] ?? 0);
 
     try {
@@ -18,9 +19,17 @@ if ($requestMethod === 'POST' && $requestedPage === 'pixelwar' && (string) ($_PO
             throw new InvalidArgumentException('Invalid challenge progress request.');
         }
 
-        $deleted = $userChallengeRepository->deleteOngoingForUser($userChallengeId, $userId);
+        $isRoomRun = $roomId > 0;
+        $preservedRoomRun = false;
+        $deleted = false;
 
-        if ($deleted) {
+        if ($isRoomRun) {
+            $preservedRoomRun = $userChallengeRepository->hasOwnedOngoing($userChallengeId, $userId);
+        } else {
+            $deleted = $userChallengeRepository->deleteOngoingForUser($userChallengeId, $userId);
+        }
+
+        if ($deleted || $preservedRoomRun) {
             $challengeName = 'Challenge';
 
             if ($challengeRepository instanceof ChallengeRepository) {
@@ -31,12 +40,35 @@ if ($requestMethod === 'POST' && $requestedPage === 'pixelwar' && (string) ($_PO
             }
 
             pixelwarLogActivity($activityLogRepository ?? null, $userId, 'challenge', 'Gave up challenge "' . $challengeName . '".');
+
+            if ($roomId > 0 && isset($roomPlayerRepository) && $roomPlayerRepository instanceof RoomPlayerRepository) {
+                $roomPlayerRepository->markGaveUp($userId, $roomId);
+
+                if (isset($pusherService) && $pusherService instanceof PusherService && $pusherService->isConfigured()) {
+                    try {
+                        $pusherService->trigger(
+                            'room-' . $roomId,
+                            'player-status',
+                            [
+                                'user_id' => $userId,
+                                'status_label' => 'gave_up',
+                                'started_at' => date(DATE_ATOM),
+                                'completed_at' => '',
+                            ]
+                        );
+                    } catch (Throwable $pusherError) {
+                        error_log('Pixelwar room give up pusher error: ' . $pusherError->getMessage());
+                    }
+                }
+            }
         }
 
         $_SESSION['alert'] = [
-            'error' => !$deleted,
-            'content' => $deleted
-                ? 'Challenge run removed. You can restart it anytime.'
+            'error' => !($deleted || $preservedRoomRun),
+            'content' => ($deleted || $preservedRoomRun)
+                ? ($isRoomRun
+                    ? 'Challenge run marked as gave up for this room.'
+                    : 'Challenge run removed. You can restart it anytime.')
                 : 'No ongoing challenge run was found.',
         ];
     } catch (Throwable $err) {

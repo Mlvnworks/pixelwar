@@ -2,8 +2,9 @@
 require_once __DIR__ . '/../classes/challenge-catalog.php';
 
 $username = $_SESSION['username'] ?? 'Pixel Rookie';
+$playerDisplayName = trim((string) ($_SESSION['firstname'] ?? '') . ' ' . (string) ($_SESSION['lastname'] ?? ''));
+$playerDisplayName = $playerDisplayName !== '' ? $playerDisplayName : (string) $username;
 $currentYear = (int) date('Y');
-$yearStart = new DateTimeImmutable($currentYear . '-01-01');
 $today = new DateTimeImmutable('today');
 $currentStudentId = (int) ($_SESSION['user_id'] ?? 0);
 $currentSeason = 'Season 01: Arcade Dawn';
@@ -14,10 +15,11 @@ $currentRankPoints = $userChallengeRepository instanceof UserChallengeRepository
     : 0;
 $rankRequirementPoints = 500;
 $rankProgressPercent = min(100, (int) round(($currentRankPoints / $rankRequirementPoints) * 100));
-$analyticsTrackedDays = 235;
-$analyticsEndDate = $yearStart->modify('+' . ($analyticsTrackedDays - 1) . ' days');
+$analyticsTrackedDays = 30;
+$analyticsEndDate = $today;
+$analyticsStartDate = $analyticsEndDate->modify('-' . ($analyticsTrackedDays - 1) . ' days');
 $completedCountsByDate = $userChallengeRepository instanceof UserChallengeRepository
-    ? $userChallengeRepository->completedCountsByDate($currentStudentId, $yearStart, $analyticsEndDate)
+    ? $userChallengeRepository->completedCountsByDate($currentStudentId, $analyticsStartDate, $analyticsEndDate)
     : [];
 $attemptHistoryRows = $userChallengeRepository instanceof UserChallengeRepository
     ? $userChallengeRepository->listAttemptHistory($currentStudentId, 50)
@@ -27,9 +29,11 @@ $completedChallengeCount = $userChallengeRepository instanceof UserChallengeRepo
     : 0;
 $activityDays = [];
 $solvedChallengeRows = [];
+$activityChartLabels = [];
+$activityChartValues = [];
 
 for ($dayIndex = 0; $dayIndex < $analyticsTrackedDays; $dayIndex++) {
-    $date = $yearStart->modify('+' . $dayIndex . ' days');
+    $date = $analyticsStartDate->modify('+' . $dayIndex . ' days');
     $dateKey = $date->format('Y-m-d');
     $solves = $completedCountsByDate[$dateKey] ?? 0;
     $activityDays[] = [
@@ -37,6 +41,8 @@ for ($dayIndex = 0; $dayIndex < $analyticsTrackedDays; $dayIndex++) {
         'solves' => $solves,
         'level' => min($solves, 5),
     ];
+    $activityChartLabels[] = $date->format('M j');
+    $activityChartValues[] = $solves;
 }
 
 foreach ($attemptHistoryRows as $attemptRow) {
@@ -101,6 +107,7 @@ $latestSolvedChallenges = array_slice($solvedChallengeRows, 0, 5);
 $joinRoomAvatarInitials = strtoupper(substr(preg_replace('/[^a-z0-9]+/i', '', (string) ($_SESSION['avatar_initials'] ?? $username)) ?: 'PR', 0, 2));
 $joinRoomAvatarColor = (string) ($_SESSION['avatar_color'] ?? 'yellow');
 $joinRoomAvatarUrl = trim((string) ($_SESSION['avatar_url'] ?? ''));
+$roomNotice = trim((string) ($_GET['room_notice'] ?? ''));
 ?>
 
 <main class="home-dashboard relative overflow-hidden bg-arcade-cream px-4 py-8 text-arcade-ink md:py-10">
@@ -215,32 +222,17 @@ $joinRoomAvatarUrl = trim((string) ($_SESSION['avatar_url'] ?? ''));
                             <h2 class="mt-3 text-xl font-bold">Challenge Solving</h2>
                         </div>
                         <div class="flex flex-wrap items-center gap-2">
-                            <p class="text-sm font-bold text-arcade-ink/60"><?= (int) $currentYear ?> Activity</p>
+                            <p class="text-sm font-bold text-arcade-ink/60">Last 30 Days</p>
                             <a href="./?c=player-analytics" class="rounded-xl border-2 border-arcade-ink/10 bg-white px-3 py-1.5 text-xs font-bold text-arcade-ink no-underline transition hover:bg-arcade-yellow/50">Open Analytics</a>
                         </div>
                     </div>
 
                     <div class="mt-4 overflow-x-auto pb-2">
-                        <div class="home-activity-grid" aria-label="<?= (int) $currentYear ?> challenge solving chart with <?= (int) $analyticsTrackedDays ?> days">
-                            <?php foreach ($activityDays as $activityDay) : ?>
-                                <span
-                                    class="home-activity-cell home-activity-cell--<?= (int) $activityDay['level'] ?>"
-                                    tabindex="0"
-                                    role="button"
-                                    aria-label="<?= htmlspecialchars($activityDay['date']->format('M j, Y'), ENT_QUOTES, 'UTF-8') ?>: <?= (int) $activityDay['solves'] ?> solved challenges"
-                                    data-tooltip="<?= htmlspecialchars($activityDay['date']->format('M j, Y'), ENT_QUOTES, 'UTF-8') ?>: <?= (int) $activityDay['solves'] ?> solved"
-                                    title="<?= htmlspecialchars($activityDay['date']->format('M j, Y'), ENT_QUOTES, 'UTF-8') ?>: <?= (int) $activityDay['solves'] ?> solved"></span>
-                            <?php endforeach; ?>
+                        <div class="home-chart-shell" aria-label="Challenge solving chart for the last <?= (int) $analyticsTrackedDays ?> days">
+                            <div class="home-chart-stage">
+                                <canvas id="home-analytics-chart" height="210"></canvas>
+                            </div>
                         </div>
-                    </div>
-
-                    <div class="mt-3 flex flex-wrap items-center gap-2 text-xs font-bold text-arcade-ink/55">
-                        <span>Less</span>
-                        <span class="home-activity-cell home-activity-cell--0"></span>
-                        <span class="home-activity-cell home-activity-cell--1"></span>
-                        <span class="home-activity-cell home-activity-cell--3"></span>
-                        <span class="home-activity-cell home-activity-cell--5"></span>
-                        <span>More</span>
                     </div>
 
                     <div class="solved-challenges-panel mt-5 border-t-2 border-arcade-ink/10 pt-4">
@@ -319,8 +311,6 @@ $joinRoomAvatarUrl = trim((string) ($_SESSION['avatar_url'] ?? ''));
     </section>
 </main>
 
-<div id="home-activity-tooltip" class="home-activity-tooltip" role="status" hidden></div>
-
 <div class="modal fade join-room-modal" id="join-room-modal" tabindex="-1" aria-labelledby="join-room-modal-title" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <form class="modal-content rounded-[28px] border-4 border-arcade-ink bg-arcade-panel p-0 text-arcade-ink shadow-[8px_8px_0_#26190f]" action="./" method="get">
@@ -345,23 +335,18 @@ $joinRoomAvatarUrl = trim((string) ($_SESSION['avatar_url'] ?? ''));
                             <?php endif; ?>
                         </div>
 
-                        <label class="join-room-field join-room-name-field min-w-0 flex-1" for="join-room-player-name">
-                            <span>Player name confirmation</span>
-                            <span class="join-room-name-control">
-                                <input id="join-room-player-name" name="player_name" type="text" autocomplete="name" value="<?= htmlspecialchars((string) $username, ENT_QUOTES, 'UTF-8') ?>" required>
-                                <span class="join-room-edit-icon" aria-hidden="true">
-                                    <svg class="h-4 w-4" viewBox="0 0 16 16" focusable="false">
-                                        <path fill="currentColor" d="M11.7 1.6 14.4 4.3 5.9 12.8 3 13.5l.7-2.9 8-9Zm-1.1 2.2-5.5 5.5 1.6 1.6 5.5-5.5-1.6-1.6Z" />
-                                    </svg>
-                                </span>
-                            </span>
-                        </label>
+                        <div class="join-room-field join-room-name-field min-w-0 flex-1">
+                            <span>Player</span>
+                            <div class="join-room-name-control">
+                                <span class="truncate font-bold text-arcade-ink"><?= htmlspecialchars($playerDisplayName, ENT_QUOTES, 'UTF-8') ?></span>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
                 <label class="join-room-field mt-4" for="join-room-code">
                     <span>Room code</span>
-                    <input id="join-room-code" name="room_code" type="text" inputmode="text" autocomplete="off" placeholder="PIXEL-123" required>
+                    <input id="join-room-code" name="room_code" type="text" inputmode="text" autocomplete="off" placeholder="ROOM-0001" required>
                 </label>
 
                 <div class="mt-5 flex flex-col gap-3 sm:flex-row sm:justify-end">
@@ -373,41 +358,149 @@ $joinRoomAvatarUrl = trim((string) ($_SESSION['avatar_url'] ?? ''));
     </div>
 </div>
 
+<?php if ($roomNotice === 'ended_incomplete') : ?>
+    <div class="modal fade" id="room-ended-modal" tabindex="-1" aria-labelledby="room-ended-modal-title" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content rounded-[28px] border-4 border-arcade-ink bg-arcade-panel p-0 text-arcade-ink shadow-[8px_8px_0_#26190f]">
+                <div class="modal-header border-0 px-5 pb-2 pt-5">
+                    <div>
+                        <p class="font-arcade text-[10px] uppercase tracking-[0.24em] text-arcade-coral">Room Ended</p>
+                        <h2 class="modal-title mt-2 text-2xl font-bold" id="room-ended-modal-title">The room was ended.</h2>
+                    </div>
+                    <button type="button" class="btn-close opacity-100" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body px-5 pb-5 pt-2">
+                    <p class="text-sm font-semibold leading-7 text-arcade-ink/75">Your challenge run was not completed.</p>
+                    <div class="mt-5 flex justify-end">
+                        <button type="button" class="rounded-xl border-2 border-arcade-ink bg-arcade-yellow px-5 py-2 text-sm font-bold text-arcade-ink shadow-[0_4px_0_#26190f] transition hover:-translate-y-0.5 hover:bg-arcade-orange hover:text-white" data-bs-dismiss="modal">
+                            Close
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+<?php endif; ?>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.min.js"></script>
 <script>
 (() => {
-    const tooltip = document.getElementById('home-activity-tooltip');
-    const cells = Array.from(document.querySelectorAll('.home-activity-cell[data-tooltip]'));
+    <?php if ($roomNotice === 'ended_incomplete') : ?>
+    const roomEndedModalElement = document.getElementById('room-ended-modal');
+    if (roomEndedModalElement && window.bootstrap?.Modal) {
+        window.bootstrap.Modal.getOrCreateInstance(roomEndedModalElement).show();
+    }
+    <?php endif; ?>
 
-    if (!tooltip || cells.length === 0) {
+    const canvas = document.getElementById('home-analytics-chart');
+
+    if (!canvas || typeof window.Chart === 'undefined') {
         return;
     }
 
-    const showTooltip = (cell) => {
-        const text = cell.dataset.tooltip || '';
-        if (text === '') {
-            return;
-        }
+    const labels = <?= json_encode($activityChartLabels, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?>;
+    const values = <?= json_encode($activityChartValues, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?>;
+    const isDarkMode = document.body.classList.contains('pixelwar-dark-mode');
+    const context = canvas.getContext('2d');
 
-        const rect = cell.getBoundingClientRect();
-        tooltip.textContent = text;
-        tooltip.hidden = false;
-        tooltip.style.left = `${Math.min(window.innerWidth - 12, Math.max(12, rect.left + rect.width / 2))}px`;
-        tooltip.style.top = `${Math.max(12, rect.top - 10)}px`;
-    };
+    if (!context) {
+        return;
+    }
 
-    const hideTooltip = () => {
-        tooltip.hidden = true;
-    };
+    const gradient = context.createLinearGradient(0, 0, 0, canvas.height || 210);
+    gradient.addColorStop(0, isDarkMode ? 'rgba(255, 140, 66, 0.52)' : 'rgba(255, 140, 66, 0.4)');
+    gradient.addColorStop(0.55, isDarkMode ? 'rgba(255, 209, 102, 0.24)' : 'rgba(255, 209, 102, 0.18)');
+    gradient.addColorStop(1, 'rgba(255, 209, 102, 0)');
 
-    cells.forEach((cell) => {
-        cell.addEventListener('mouseenter', () => showTooltip(cell));
-        cell.addEventListener('focus', () => showTooltip(cell));
-        cell.addEventListener('click', () => showTooltip(cell));
-        cell.addEventListener('mouseleave', hideTooltip);
-        cell.addEventListener('blur', hideTooltip);
+    new window.Chart(context, {
+        type: 'line',
+        data: {
+            labels,
+            datasets: [{
+                label: 'Solved challenges',
+                data: values,
+                fill: true,
+                backgroundColor: gradient,
+                borderColor: '#ff8c42',
+                borderWidth: 3,
+                pointRadius: 0,
+                pointHoverRadius: 5,
+                pointHoverBorderWidth: 2,
+                pointHoverBackgroundColor: '#ffd166',
+                pointHoverBorderColor: '#26190f',
+                tension: 0.32,
+            }],
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: {
+                mode: 'index',
+                intersect: false,
+            },
+            plugins: {
+                legend: {
+                    display: false,
+                },
+                tooltip: {
+                    backgroundColor: isDarkMode ? '#1f160f' : '#fffdf6',
+                    titleColor: isDarkMode ? '#fff7e8' : '#26190f',
+                    bodyColor: isDarkMode ? '#fff7e8' : '#26190f',
+                    borderColor: '#26190f',
+                    borderWidth: 2,
+                    padding: 12,
+                    displayColors: false,
+                    titleFont: {
+                        weight: '800',
+                    },
+                    bodyFont: {
+                        weight: '700',
+                    },
+                    callbacks: {
+                        title(items) {
+                            return items[0]?.label || '';
+                        },
+                        label(item) {
+                            return `${item.raw || 0} solved challenge${item.raw === 1 ? '' : 's'}`;
+                        },
+                    },
+                },
+            },
+            scales: {
+                x: {
+                    ticks: {
+                        color: isDarkMode ? 'rgba(255,247,232,0.7)' : 'rgba(38,25,15,0.58)',
+                        autoSkip: true,
+                        maxTicksLimit: 10,
+                        font: {
+                            weight: '700',
+                        },
+                    },
+                    grid: {
+                        display: false,
+                    },
+                    border: {
+                        color: isDarkMode ? 'rgba(255,247,232,0.12)' : 'rgba(38,25,15,0.12)',
+                    },
+                },
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        precision: 0,
+                        color: isDarkMode ? 'rgba(255,247,232,0.7)' : 'rgba(38,25,15,0.58)',
+                        font: {
+                            weight: '700',
+                        },
+                    },
+                    grid: {
+                        color: isDarkMode ? 'rgba(255,247,232,0.08)' : 'rgba(38,25,15,0.08)',
+                    },
+                    border: {
+                        color: isDarkMode ? 'rgba(255,247,232,0.12)' : 'rgba(38,25,15,0.12)',
+                    },
+                },
+            },
+        },
     });
-
-    window.addEventListener('scroll', hideTooltip, { passive: true });
-    window.addEventListener('resize', hideTooltip);
 })();
 </script>

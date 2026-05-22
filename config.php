@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/classes/env.php';
 require_once __DIR__ . '/classes/database-initializer.php';
+require_once __DIR__ . '/classes/pusher-service.php';
 require_once __DIR__ . '/classes/supabase-storage.php';
 
 Env::load(__DIR__ . '/.env');
@@ -111,6 +112,22 @@ if (!defined('SUPABASE_STORAGE_CHALLENGE_HTML_FOLDER')) {
 
 if (!defined('SUPABASE_STORAGE_CHALLENGE_CSS_FOLDER')) {
     define('SUPABASE_STORAGE_CHALLENGE_CSS_FOLDER', Env::get('SUPABASE_STORAGE_CHALLENGE_CSS_FOLDER', 'challenge-sources/css'));
+}
+
+if (!defined('PUSHER_APP_ID')) {
+    define('PUSHER_APP_ID', Env::get('PUSHER_APP_ID', ''));
+}
+
+if (!defined('PUSHER_KEY')) {
+    define('PUSHER_KEY', Env::get('PUSHER_KEY', ''));
+}
+
+if (!defined('PUSHER_SECRET')) {
+    define('PUSHER_SECRET', Env::get('PUSHER_SECRET', ''));
+}
+
+if (!defined('PUSHER_CLUSTER')) {
+    define('PUSHER_CLUSTER', Env::get('PUSHER_CLUSTER', 'ap1'));
 }
 
 ini_set('display_errors', APP_DEBUG ? '1' : '0');

@@ -4,9 +4,27 @@ $profileSetupOld = $_SESSION['profile_setup_old'] ?? [];
 $setupUsername = (string) ($_SESSION['username'] ?? 'Player');
 $setupEmail = (string) ($_SESSION['email'] ?? '');
 $setupRoleId = (int) ($_SESSION['role_id'] ?? 0);
+$setupUserId = (int) ($_SESSION['user_id'] ?? 0);
 $isTeacherSetup = $setupRoleId === 2;
 $isAdminSetup = $setupRoleId === 1;
 $isStaffSetup = $isTeacherSetup || $isAdminSetup;
+$existingSessionUser = $userRepository instanceof UserRepository && $setupUserId > 0
+    ? $userRepository->findSessionUser($setupUserId)
+    : null;
+$existingDetails = $userRepository instanceof UserRepository && $setupUserId > 0
+    ? $userRepository->findUserDetailsAvatar($setupUserId)
+    : null;
+$existingFirstname = trim((string) ($existingSessionUser['firstname'] ?? ''));
+$existingLastname = trim((string) ($existingSessionUser['lastname'] ?? ''));
+$existingAvatarUrl = trim((string) ($existingDetails['avatar_url'] ?? ($existingSessionUser['avatar_url'] ?? '')));
+$existingStudentNumber = trim((string) ($existingDetails['student_number'] ?? ''));
+$existingIdPictureUrl = trim((string) ($existingDetails['id_picture_url'] ?? ''));
+$profileFirstnameValue = (string) ($profileSetupOld['firstname'] ?? $existingFirstname);
+$profileLastnameValue = (string) ($profileSetupOld['lastname'] ?? $existingLastname);
+$profileUsernameValue = (string) ($profileSetupOld['username'] ?? $setupUsername);
+$profileEmailValue = (string) ($profileSetupOld['email'] ?? $setupEmail);
+$profileStudentNumberValue = (string) ($profileSetupOld['student_number'] ?? $existingStudentNumber);
+$profilePreviewInitials = strtoupper(substr(preg_replace('/[^a-z0-9]+/i', '', trim($profileFirstnameValue . $profileLastnameValue)) ?: $setupUsername, 0, 2)) ?: 'PW';
 $profileTitle = $isTeacherSetup
     ? 'Finish your teacher setup.'
     : ($isAdminSetup ? 'Finish your admin setup.' : 'Finish your profile.');
@@ -58,12 +76,12 @@ unset($_SESSION['profile_setup_errors'], $_SESSION['profile_setup_old']);
             <div id="profile-upload-dropzone" class="profile-upload-dropzone mt-1 rounded-[22px] border-2 border-dashed border-arcade-ink/25 bg-white/75 p-3 transition">
                 <div class="flex items-center gap-3">
                     <div class="profile-upload-preview grid h-16 w-16 shrink-0 place-items-center overflow-hidden rounded-2xl border-2 border-arcade-ink bg-arcade-yellow text-arcade-ink">
-                        <span id="profile-upload-initials" class="font-arcade text-sm"><?= htmlspecialchars(strtoupper(substr($setupUsername, 0, 2)) ?: 'PW', ENT_QUOTES, 'UTF-8') ?></span>
-                        <img id="profile-upload-preview-image" src="" alt="Profile image preview" class="hidden h-full w-full object-cover">
+                        <span id="profile-upload-initials" class="font-arcade text-sm <?= $existingAvatarUrl !== '' ? 'hidden' : '' ?>"><?= htmlspecialchars($profilePreviewInitials, ENT_QUOTES, 'UTF-8') ?></span>
+                        <img id="profile-upload-preview-image" src="<?= htmlspecialchars($existingAvatarUrl, ENT_QUOTES, 'UTF-8') ?>" alt="Profile image preview" class="<?= $existingAvatarUrl !== '' ? '' : 'hidden ' ?>h-full w-full object-cover">
                     </div>
                     <div class="min-w-0 flex-1">
                         <p class="text-sm font-extrabold text-arcade-ink">Drop your avatar here</p>
-                        <p id="profile-upload-file-name" class="mt-1 truncate text-xs font-bold text-arcade-ink/55">PNG, JPG, WEBP, or GIF. Max 2MB.</p>
+                        <p id="profile-upload-file-name" class="mt-1 truncate text-xs font-bold text-arcade-ink/55"><?= $existingAvatarUrl !== '' ? 'Current avatar is loaded. Choose a new file to replace it.' : 'PNG, JPG, WEBP, or GIF. Max 2MB.' ?></p>
                     </div>
                     <span class="inline-flex shrink-0 rounded-xl border-2 border-arcade-ink bg-arcade-yellow px-3 py-2 text-xs font-extrabold shadow-[0_3px_0_#26190f]">Browse</span>
                 </div>
@@ -74,12 +92,12 @@ unset($_SESSION['profile_setup_errors'], $_SESSION['profile_setup_old']);
             <div class="mt-4 grid gap-3 sm:grid-cols-2">
                 <label class="block text-sm font-bold" for="profile-firstname">
                     First Name
-                    <input id="profile-firstname" name="firstname" type="text" autocomplete="given-name" required maxlength="80" value="<?= htmlspecialchars((string) ($profileSetupOld['firstname'] ?? ''), ENT_QUOTES, 'UTF-8') ?>" class="mt-1 w-full rounded-xl border-2 border-arcade-ink/15 bg-white px-3 py-2 outline-none transition focus:border-arcade-orange" placeholder="Mika">
+                    <input id="profile-firstname" name="firstname" type="text" autocomplete="given-name" required maxlength="80" value="<?= htmlspecialchars($profileFirstnameValue, ENT_QUOTES, 'UTF-8') ?>" class="mt-1 w-full rounded-xl border-2 border-arcade-ink/15 bg-white px-3 py-2 outline-none transition focus:border-arcade-orange" placeholder="Mika">
                 </label>
 
                 <label class="block text-sm font-bold" for="profile-lastname">
                     Last Name
-                    <input id="profile-lastname" name="lastname" type="text" autocomplete="family-name" required maxlength="80" value="<?= htmlspecialchars((string) ($profileSetupOld['lastname'] ?? ''), ENT_QUOTES, 'UTF-8') ?>" class="mt-1 w-full rounded-xl border-2 border-arcade-ink/15 bg-white px-3 py-2 outline-none transition focus:border-arcade-orange" placeholder="Reyes">
+                    <input id="profile-lastname" name="lastname" type="text" autocomplete="family-name" required maxlength="80" value="<?= htmlspecialchars($profileLastnameValue, ENT_QUOTES, 'UTF-8') ?>" class="mt-1 w-full rounded-xl border-2 border-arcade-ink/15 bg-white px-3 py-2 outline-none transition focus:border-arcade-orange" placeholder="Reyes">
                 </label>
             </div>
 
@@ -87,14 +105,14 @@ unset($_SESSION['profile_setup_errors'], $_SESSION['profile_setup_old']);
                 <div class="mt-4 grid gap-3 sm:grid-cols-2">
                     <label class="block text-sm font-bold sm:col-span-2" for="profile-username">
                         Final Username
-                        <input id="profile-username" name="username" type="text" autocomplete="username" required maxlength="32" value="<?= htmlspecialchars((string) ($profileSetupOld['username'] ?? $setupUsername), ENT_QUOTES, 'UTF-8') ?>" class="mt-1 w-full rounded-xl border-2 border-arcade-ink/15 bg-white px-3 py-2 outline-none transition focus:border-arcade-orange" placeholder="teacher_username" data-teacher-setup-username>
+                        <input id="profile-username" name="username" type="text" autocomplete="username" required maxlength="32" value="<?= htmlspecialchars($profileUsernameValue, ENT_QUOTES, 'UTF-8') ?>" class="mt-1 w-full rounded-xl border-2 border-arcade-ink/15 bg-white px-3 py-2 outline-none transition focus:border-arcade-orange" placeholder="teacher_username" data-teacher-setup-username>
                         <span id="profile-username-feedback" class="mt-1 block min-h-5 text-xs font-bold leading-5 text-arcade-ink/55"></span>
                     </label>
 
                     <?php if ($isAdminSetup) : ?>
                         <label class="block text-sm font-bold sm:col-span-2" for="profile-email">
                             Email
-                            <input id="profile-email" name="email" type="email" autocomplete="email" required maxlength="255" value="<?= htmlspecialchars((string) ($profileSetupOld['email'] ?? $setupEmail), ENT_QUOTES, 'UTF-8') ?>" class="mt-1 w-full rounded-xl border-2 border-arcade-ink/15 bg-white px-3 py-2 outline-none transition focus:border-arcade-orange" placeholder="admin@example.com">
+                            <input id="profile-email" name="email" type="email" autocomplete="email" required maxlength="255" value="<?= htmlspecialchars($profileEmailValue, ENT_QUOTES, 'UTF-8') ?>" class="mt-1 w-full rounded-xl border-2 border-arcade-ink/15 bg-white px-3 py-2 outline-none transition focus:border-arcade-orange" placeholder="admin@example.com">
                             <span id="profile-email-feedback" class="mt-1 block min-h-5 text-xs font-bold leading-5 text-arcade-ink/55"></span>
                         </label>
                     <?php endif; ?>
@@ -124,7 +142,7 @@ unset($_SESSION['profile_setup_errors'], $_SESSION['profile_setup_old']);
                     <div class="mt-4 space-y-4">
                         <label class="block text-sm font-bold" for="student-number">
                             Student Number
-                            <input id="student-number" name="student_number" type="text" autocomplete="off" required maxlength="40" value="<?= htmlspecialchars((string) ($profileSetupOld['student_number'] ?? ''), ENT_QUOTES, 'UTF-8') ?>" class="mt-1 w-full rounded-xl border-2 border-arcade-ink/15 bg-white px-3 py-2 outline-none transition focus:border-arcade-orange" placeholder="2026-000123">
+                            <input id="student-number" name="student_number" type="text" autocomplete="off" required maxlength="40" value="<?= htmlspecialchars($profileStudentNumberValue, ENT_QUOTES, 'UTF-8') ?>" class="mt-1 w-full rounded-xl border-2 border-arcade-ink/15 bg-white px-3 py-2 outline-none transition focus:border-arcade-orange" placeholder="2026-000123">
                             <span id="student-number-message" class="mt-1 block min-h-4 text-xs font-bold leading-5 text-arcade-coral" aria-live="polite"></span>
                             <span class="mt-1 block text-xs font-bold leading-5 text-arcade-ink/55">Use the number printed on your active school record or ID.</span>
                         </label>
@@ -134,12 +152,12 @@ unset($_SESSION['profile_setup_errors'], $_SESSION['profile_setup_old']);
                             <div id="id-upload-dropzone" class="profile-upload-dropzone profile-upload-dropzone--compact mt-1 rounded-[20px] border-2 border-dashed border-arcade-ink/25 bg-white/80 p-3 transition">
                                 <div class="flex items-center gap-3">
                                     <div class="profile-upload-preview profile-upload-preview--id grid h-14 w-20 shrink-0 place-items-center overflow-hidden rounded-2xl border-2 border-arcade-ink bg-white text-arcade-ink">
-                                        <span id="id-upload-placeholder" class="text-[10px] font-black uppercase tracking-[0.18em] text-arcade-ink/42">ID</span>
-                                        <img id="id-upload-preview-image" src="" alt="ID picture preview" class="hidden h-full w-full object-cover">
+                                        <span id="id-upload-placeholder" class="text-[10px] font-black uppercase tracking-[0.18em] text-arcade-ink/42 <?= $existingIdPictureUrl !== '' ? 'hidden' : '' ?>">ID</span>
+                                        <img id="id-upload-preview-image" src="<?= htmlspecialchars($existingIdPictureUrl, ENT_QUOTES, 'UTF-8') ?>" alt="ID picture preview" class="<?= $existingIdPictureUrl !== '' ? '' : 'hidden ' ?>h-full w-full object-cover">
                                     </div>
                                     <div class="min-w-0 flex-1">
                                         <p class="text-sm font-extrabold text-arcade-ink">Upload your school ID</p>
-                                        <p id="id-upload-file-name" class="mt-1 truncate text-xs font-bold text-arcade-ink/55">Front side image. Max 2MB.</p>
+                                        <p id="id-upload-file-name" class="mt-1 truncate text-xs font-bold text-arcade-ink/55"><?= $existingIdPictureUrl !== '' ? 'Current ID image is loaded. Choose a new file to replace it.' : 'Front side image. Max 2MB.' ?></p>
                                     </div>
                                 </div>
                                 <input id="id-picture" name="id_picture" type="file" accept="image/png,image/jpeg,image/webp,image/gif" required class="sr-only">
@@ -155,10 +173,10 @@ unset($_SESSION['profile_setup_errors'], $_SESSION['profile_setup_old']);
                         </div>
                         <div class="mt-3 overflow-hidden rounded-2xl border-2 border-dashed border-arcade-ink/25 bg-white">
                             <div class="relative min-h-[16rem] sm:min-h-[18rem]">
-                                <div id="id-preview-empty" class="absolute inset-0 grid place-items-center px-4 text-center text-xs font-bold leading-5 text-arcade-ink/45">
+                                <div id="id-preview-empty" class="absolute inset-0 <?= $existingIdPictureUrl !== '' ? 'hidden ' : '' ?>grid place-items-center px-4 text-center text-xs font-bold leading-5 text-arcade-ink/45">
                                     Select an ID image to preview it here.
                                 </div>
-                                <img id="id-upload-preview-panel" src="" alt="Selected ID image preview" class="hidden h-full w-full object-contain p-3">
+                                <img id="id-upload-preview-panel" src="<?= htmlspecialchars($existingIdPictureUrl, ENT_QUOTES, 'UTF-8') ?>" alt="Selected ID image preview" class="<?= $existingIdPictureUrl !== '' ? '' : 'hidden ' ?>h-full w-full object-contain p-3">
                             </div>
                         </div>
                     </div>
@@ -415,6 +433,8 @@ unset($_SESSION['profile_setup_errors'], $_SESSION['profile_setup_old']);
     const emailInput = document.querySelector('#profile-email');
     const emailFeedback = document.querySelector('#profile-email-feedback');
     const defaultSubmitLabel = submitLabel ? submitLabel.textContent : 'Continue';
+    const hasExistingProfileImage = Boolean(preview.getAttribute('src'));
+    const hasExistingIdImage = Boolean(idPreview && idPreview.getAttribute('src'));
 
     if (!form || !dropzone || !input || !preview || !initials || !fileName || !message || !progress || !progressLabel || !progressValue || !progressBar || !submitButton || !submitLabel) {
         return;
@@ -889,7 +909,7 @@ unset($_SESSION['profile_setup_errors'], $_SESSION['profile_setup_old']);
         }
 
         if (input.files.length === 0) {
-            if (!selectedProfileFile) {
+            if (!selectedProfileFile && !hasExistingProfileImage) {
                 setError('Upload a profile image before continuing.');
                 return;
             }
@@ -899,16 +919,16 @@ unset($_SESSION['profile_setup_errors'], $_SESSION['profile_setup_old']);
             selectedProfileFile = input.files[0];
         }
 
-        if (selectedProfileFile === null) {
+        if (selectedProfileFile !== null && !showPreview(selectedProfileFile, { stateKey: 'profile' })) {
+            return;
+        }
+
+        if (selectedProfileFile === null && !hasExistingProfileImage) {
             setError('Upload a profile image before continuing.');
             return;
         }
 
         setStudentNumberError('');
-
-        if (!showPreview(selectedProfileFile, { stateKey: 'profile' })) {
-            return;
-        }
 
         if (studentNumberInput && !/^[A-Za-z0-9-]{4,40}$/.test(studentNumberInput.value.trim())) {
             setStudentNumberError('Enter a valid student number.');
@@ -921,7 +941,7 @@ unset($_SESSION['profile_setup_errors'], $_SESSION['profile_setup_old']);
                 selectedIdFile = idInput.files[0];
             }
 
-            if (!selectedIdFile) {
+            if (!selectedIdFile && !hasExistingIdImage) {
                 setError('Upload your ID picture before continuing.', idMessage, idDropzone);
                 return;
             }

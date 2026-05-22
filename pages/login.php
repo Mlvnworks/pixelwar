@@ -1,7 +1,8 @@
 <?php
 $loginErrors = $_SESSION['login_errors'] ?? [];
+$loginNotices = $_SESSION['login_notices'] ?? [];
 $loginOld = $_SESSION['login_old'] ?? [];
-unset($_SESSION['login_errors'], $_SESSION['login_old']);
+unset($_SESSION['login_errors'], $_SESSION['login_notices'], $_SESSION['login_old']);
 ?>
 <main class="login-page relative min-h-[calc(100vh-4.25rem)] overflow-hidden bg-arcade-cream px-4 py-4 text-arcade-ink">
     <div
@@ -27,6 +28,13 @@ unset($_SESSION['login_errors'], $_SESSION['login_old']);
                     role="alert">
                     <?php foreach ($loginErrors as $error): ?>
                         <p class="mb-1 last:mb-0"><?= htmlspecialchars((string) $error, ENT_QUOTES, 'UTF-8') ?></p>
+                    <?php endforeach; ?>
+                </div>
+            <?php elseif ($loginNotices !== []): ?>
+                <div class="mt-3 rounded-2xl border-2 border-arcade-mint bg-arcade-mint/20 px-3 py-2 text-sm font-bold leading-5 text-arcade-ink"
+                    role="status">
+                    <?php foreach ($loginNotices as $notice): ?>
+                        <p class="mb-1 last:mb-0"><?= htmlspecialchars((string) $notice, ENT_QUOTES, 'UTF-8') ?></p>
                     <?php endforeach; ?>
                 </div>
             <?php endif; ?>

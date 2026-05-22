@@ -29,6 +29,9 @@ $teacherRoomCreatedCount = $activityLogRepository instanceof ActivityLogReposito
     ? $activityLogRepository->countForUserByCategory($teacherViewId, 'room')
     : 0;
 $teacherActivityDays = [];
+$teacherChartLabels = [];
+$teacherChallengeValues = [];
+$teacherRoomValues = [];
 
 for ($dayIndex = 0, $totalDays = (int) $yearStart->diff($yearEnd)->days + 1; $dayIndex < $totalDays; $dayIndex++) {
     $date = $yearStart->modify('+' . $dayIndex . ' days');
@@ -44,6 +47,9 @@ for ($dayIndex = 0, $totalDays = (int) $yearStart->diff($yearEnd)->days + 1; $da
         'rooms' => $roomCreated,
         'level' => min(5, $totalActivity),
     ];
+    $teacherChartLabels[] = $date->format('M j');
+    $teacherChallengeValues[] = $challengeCreated;
+    $teacherRoomValues[] = $roomCreated;
 }
 
 $teacherFirstname = trim((string) ($teacherViewProfile['firstname'] ?? ''));
@@ -180,34 +186,10 @@ $teacherViewBuildQuery = static function (array $overrides = []) use ($teacherVi
                             </div>
                         </div>
 
-                        <div class="admin-teacher-activity-scroll mt-4">
-                            <div class="admin-teacher-activity-grid" aria-label="<?= (int) $currentYear ?> teacher activity chart">
-                                <?php foreach ($teacherActivityDays as $activityDay) : ?>
-                                    <?php
-                                    $challengeLabel = (int) $activityDay['challenges'] === 1 ? 'challenge' : 'challenges';
-                                    $roomLabel = (int) $activityDay['rooms'] === 1 ? 'room' : 'rooms';
-                                    $tooltip = $activityDay['date']->format('M j, Y')
-                                        . ': ' . (int) $activityDay['challenges'] . ' ' . $challengeLabel . ' created'
-                                        . ', ' . (int) $activityDay['rooms'] . ' ' . $roomLabel . ' created';
-                                    ?>
-                                    <span
-                                        class="admin-teacher-activity-cell admin-teacher-activity-cell--<?= (int) $activityDay['level'] ?>"
-                                        tabindex="0"
-                                        role="button"
-                                        aria-label="<?= htmlspecialchars($tooltip, ENT_QUOTES, 'UTF-8') ?>"
-                                        data-tooltip="<?= htmlspecialchars($tooltip, ENT_QUOTES, 'UTF-8') ?>"
-                                        title="<?= htmlspecialchars($tooltip, ENT_QUOTES, 'UTF-8') ?>"></span>
-                                <?php endforeach; ?>
+                        <div class="admin-teacher-chart-shell mt-4" aria-label="<?= (int) $currentYear ?> teacher activity chart">
+                            <div class="admin-teacher-chart-stage">
+                                <canvas id="admin-teacher-activity-chart" aria-label="<?= (int) $currentYear ?> teacher creation chart"></canvas>
                             </div>
-                        </div>
-
-                        <div class="mt-3 flex flex-wrap items-center gap-2 text-xs font-black text-arcade-ink/55">
-                            <span>Less</span>
-                            <span class="admin-teacher-activity-cell admin-teacher-activity-cell--0"></span>
-                            <span class="admin-teacher-activity-cell admin-teacher-activity-cell--1"></span>
-                            <span class="admin-teacher-activity-cell admin-teacher-activity-cell--3"></span>
-                            <span class="admin-teacher-activity-cell admin-teacher-activity-cell--5"></span>
-                            <span>More</span>
                         </div>
                     </article>
 
@@ -272,112 +254,22 @@ $teacherViewBuildQuery = static function (array $overrides = []) use ($teacherVi
 </main>
 
 <style>
-.admin-teacher-activity-grid {
-    display: grid;
-    grid-auto-flow: column;
-    grid-template-rows: repeat(7, 0.82rem);
-    grid-auto-columns: 0.82rem;
-    gap: 0.28rem;
-    min-width: max-content;
-    padding: 0.2rem;
+.admin-teacher-chart-shell {
+    border: 1px solid rgba(17, 24, 39, 0.08);
+    border-radius: 1rem;
+    background: rgba(255, 255, 255, 0.78);
+    padding: 1rem;
 }
 
-.admin-teacher-activity-scroll {
-    margin-inline: -0.25rem;
-    max-width: 100%;
-    overflow-x: auto;
-    overflow-y: visible;
-    padding: 2.2rem 0.25rem 1rem;
-    scrollbar-width: thin;
-}
-
-.admin-teacher-activity-cell {
+.admin-teacher-chart-stage {
     position: relative;
-    display: inline-block;
-    width: 0.82rem;
-    height: 0.82rem;
-    border: 1px solid rgba(17, 24, 39, 0.12);
-    border-radius: 0.22rem;
-    background: rgba(17, 24, 39, 0.06);
-    outline: none;
-    transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+    height: 18rem;
+    width: 100%;
 }
 
-.admin-teacher-activity-cell--1 {
-    background: rgba(37, 99, 235, 0.18);
-}
-
-.admin-teacher-activity-cell--2 {
-    background: rgba(37, 99, 235, 0.34);
-}
-
-.admin-teacher-activity-cell--3 {
-    background: rgba(14, 165, 233, 0.46);
-}
-
-.admin-teacher-activity-cell--4 {
-    background: rgba(14, 165, 233, 0.66);
-}
-
-.admin-teacher-activity-cell--5 {
-    background: #2563eb;
-}
-
-.admin-teacher-activity-cell:hover,
-.admin-teacher-activity-cell:focus {
-    z-index: 5;
-    border-color: #111827;
-    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.25);
-    transform: scale(1.18);
-}
-
-.admin-teacher-chart-tooltip {
-    position: fixed;
-    z-index: 9999;
-    max-width: min(18rem, calc(100vw - 1.5rem));
-    border: 1px solid rgba(17, 24, 39, 0.12);
-    border-radius: 0.75rem;
-    background: #ffffff;
-    padding: 0.55rem 0.75rem;
-    color: #111827;
-    font-size: 0.72rem;
-    font-weight: 700;
-    line-height: 1.35;
-    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.12);
-    pointer-events: none;
-    transform: translate(-50%, 0);
-}
-
-body.pixelwar-dark-mode .admin-teacher-activity-cell {
-    border-color: rgba(148, 163, 184, 0.22);
-    background: rgba(148, 163, 184, 0.08);
-}
-
-body.pixelwar-dark-mode .admin-teacher-activity-cell--1 {
-    background: rgba(96, 165, 250, 0.2);
-}
-
-body.pixelwar-dark-mode .admin-teacher-activity-cell--2 {
-    background: rgba(96, 165, 250, 0.34);
-}
-
-body.pixelwar-dark-mode .admin-teacher-activity-cell--3 {
-    background: rgba(56, 189, 248, 0.42);
-}
-
-body.pixelwar-dark-mode .admin-teacher-activity-cell--4 {
-    background: rgba(56, 189, 248, 0.62);
-}
-
-body.pixelwar-dark-mode .admin-teacher-activity-cell--5 {
-    background: #60a5fa;
-}
-
-body.pixelwar-dark-mode .admin-teacher-chart-tooltip {
-    border-color: rgba(148, 163, 184, 0.28);
-    background: #111827;
-    color: #f8fafc;
-    box-shadow: 0 14px 28px rgba(2, 6, 23, 0.4);
+body.pixelwar-dark-mode .admin-teacher-chart-shell {
+    border-color: rgba(148, 163, 184, 0.14);
+    background: rgba(15, 23, 42, 0.42);
 }
 </style>
 
@@ -389,52 +281,126 @@ body.pixelwar-dark-mode .admin-teacher-chart-tooltip {
         window.addEventListener('load', () => window.lucide?.createIcons());
     }
 
-    const cells = document.querySelectorAll('.admin-teacher-activity-cell[data-tooltip]');
-    if (cells.length === 0) {
+    const chartElement = document.getElementById('admin-teacher-activity-chart');
+    if (!chartElement || typeof window.Chart === 'undefined') {
         return;
     }
 
-    const tooltip = document.createElement('div');
-    tooltip.className = 'admin-teacher-chart-tooltip';
-    tooltip.hidden = true;
-    document.body.appendChild(tooltip);
+    const rootStyles = getComputedStyle(document.body);
+    const textColor = rootStyles.getPropertyValue('--admin-text').trim() || '#111827';
+    const mutedColor = rootStyles.getPropertyValue('--admin-text-muted').trim() || '#6b7280';
+    const gridColor = document.body.classList.contains('pixelwar-dark-mode')
+        ? 'rgba(148, 163, 184, 0.14)'
+        : 'rgba(17, 24, 39, 0.08)';
 
-    const positionTooltip = (cell) => {
-        const rect = cell.getBoundingClientRect();
-        const text = cell.getAttribute('data-tooltip') || '';
-        tooltip.textContent = text;
-        tooltip.hidden = false;
+    const chartContext = chartElement.getContext('2d');
+    if (!chartContext) {
+        return;
+    }
 
-        const tooltipRect = tooltip.getBoundingClientRect();
-        const viewportPadding = 12;
-        let left = rect.left + rect.width / 2;
-        let top = rect.top - tooltipRect.height - 10;
-
-        if (top < viewportPadding) {
-            top = rect.bottom + 10;
-        }
-
-        const minLeft = viewportPadding + tooltipRect.width / 2;
-        const maxLeft = window.innerWidth - viewportPadding - tooltipRect.width / 2;
-        left = Math.max(minLeft, Math.min(maxLeft, left));
-
-        tooltip.style.left = `${left}px`;
-        tooltip.style.top = `${top}px`;
-    };
-
-    const hideTooltip = () => {
-        tooltip.hidden = true;
-    };
-
-    cells.forEach((cell) => {
-        cell.addEventListener('mouseenter', () => positionTooltip(cell));
-        cell.addEventListener('mousemove', () => positionTooltip(cell));
-        cell.addEventListener('focus', () => positionTooltip(cell));
-        cell.addEventListener('mouseleave', hideTooltip);
-        cell.addEventListener('blur', hideTooltip);
+    new window.Chart(chartContext, {
+        type: 'line',
+        data: {
+            labels: <?= json_encode($teacherChartLabels, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?>,
+            datasets: [
+                {
+                    label: 'Challenges',
+                    data: <?= json_encode($teacherChallengeValues, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?>,
+                    borderColor: '#f59e0b',
+                    backgroundColor: 'rgba(245, 158, 11, 0.12)',
+                    fill: false,
+                    borderWidth: 2,
+                    pointRadius: 0,
+                    pointHoverRadius: 4,
+                    pointHoverBackgroundColor: '#f59e0b',
+                    pointHoverBorderColor: '#ffffff',
+                    pointHoverBorderWidth: 2,
+                    tension: 0.35,
+                },
+                {
+                    label: 'Rooms',
+                    data: <?= json_encode($teacherRoomValues, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?>,
+                    borderColor: '#2563eb',
+                    backgroundColor: 'rgba(37, 99, 235, 0.12)',
+                    fill: false,
+                    borderWidth: 2,
+                    pointRadius: 0,
+                    pointHoverRadius: 4,
+                    pointHoverBackgroundColor: '#2563eb',
+                    pointHoverBorderColor: '#ffffff',
+                    pointHoverBorderWidth: 2,
+                    tension: 0.35,
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'top',
+                    align: 'start',
+                    labels: {
+                        color: textColor,
+                        usePointStyle: true,
+                        boxWidth: 10,
+                        boxHeight: 10,
+                        font: {
+                            size: 12,
+                            weight: '600',
+                        },
+                    },
+                },
+                tooltip: {
+                    backgroundColor: document.body.classList.contains('pixelwar-dark-mode') ? '#0f172a' : '#ffffff',
+                    titleColor: textColor,
+                    bodyColor: textColor,
+                    borderColor: gridColor,
+                    borderWidth: 1,
+                    displayColors: true,
+                    padding: 10,
+                },
+            },
+            interaction: {
+                mode: 'index',
+                intersect: false,
+            },
+            scales: {
+                x: {
+                    ticks: {
+                        color: mutedColor,
+                        maxTicksLimit: 12,
+                        font: {
+                            size: 11,
+                            weight: '500',
+                        },
+                    },
+                    grid: {
+                        display: false,
+                    },
+                    border: {
+                        color: gridColor,
+                    },
+                },
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        precision: 0,
+                        color: mutedColor,
+                        font: {
+                            size: 11,
+                            weight: '500',
+                        },
+                    },
+                    grid: {
+                        color: gridColor,
+                    },
+                    border: {
+                        color: gridColor,
+                    },
+                },
+            },
+        },
     });
-
-    window.addEventListener('scroll', hideTooltip, { passive: true });
-    window.addEventListener('resize', hideTooltip);
 })();
 </script>

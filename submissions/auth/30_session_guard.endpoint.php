@@ -1,6 +1,6 @@
 <?php
 $currentPage = $requestedPage !== '' ? $requestedPage : 'landing';
-$publicPages = ['landing', 'login', 'signup', 'forgot-password'];
+$publicPages = ['landing', 'login', 'signup', 'forgot-password', 'update-pass'];
 $guestOnlyPages = ['login', 'signup', 'forgot-password'];
 $onboardingPages = ['email-verification', 'profile-setup'];
 $reviewPage = 'review-pending';
@@ -127,8 +127,9 @@ if (
 if (
     $sessionUser !== null
     && (int) ($sessionUser['role_id'] ?? 0) === pixelwarStudentRoleId()
+    && !pixelwarStudentRejected($sessionUser)
     && (int) $sessionUser['is_verified'] === 1
-    && !pixelwarUserDetailsExist(pixelwarRequireUserRepository($userRepository), (int) $sessionUser['user_id'])
+    && !pixelwarStudentProfileComplete(pixelwarRequireUserRepository($userRepository), $sessionUser)
     && $currentPage !== 'profile-setup'
 ) {
     pixelwarRedirect('profile-setup');
@@ -137,7 +138,6 @@ if (
 if (
     $sessionUser !== null
     && pixelwarStudentRejected($sessionUser)
-    && pixelwarUserDetailsExist(pixelwarRequireUserRepository($userRepository), (int) $sessionUser['user_id'])
     && $currentPage !== $rejectedPage
     && $currentPage !== 'logout'
 ) {
@@ -147,7 +147,7 @@ if (
 if (
     $sessionUser !== null
     && pixelwarStudentUnderReview($sessionUser)
-    && pixelwarUserDetailsExist(pixelwarRequireUserRepository($userRepository), (int) $sessionUser['user_id'])
+    && pixelwarStudentProfileComplete(pixelwarRequireUserRepository($userRepository), $sessionUser)
     && $currentPage !== $reviewPage
     && $currentPage !== 'logout'
 ) {
@@ -230,10 +230,13 @@ if (
     && (int) ($sessionUser['role_id'] ?? 0) === pixelwarStudentRoleId()
     && (int) $sessionUser['is_verified'] === 1
     && $currentPage === 'profile-setup'
-    && pixelwarUserDetailsExist(pixelwarRequireUserRepository($userRepository), (int) $sessionUser['user_id'])
 ) {
     if (pixelwarStudentRejected($sessionUser)) {
         pixelwarRedirect($rejectedPage);
+    }
+
+    if (!pixelwarStudentProfileComplete(pixelwarRequireUserRepository($userRepository), $sessionUser)) {
+        return;
     }
 
     if (pixelwarStudentUnderReview($sessionUser)) {
@@ -257,7 +260,7 @@ if (
     && $sessionUser !== null
     && (
         !pixelwarStudentUnderReview($sessionUser)
-        || !pixelwarUserDetailsExist(pixelwarRequireUserRepository($userRepository), (int) $sessionUser['user_id'])
+        || !pixelwarStudentProfileComplete(pixelwarRequireUserRepository($userRepository), $sessionUser)
     )
     && $currentPage === $reviewPage
 ) {

@@ -1,20 +1,27 @@
 <?php
 $currentStudentId = (int) ($_SESSION['user_id'] ?? 0);
-$initialStatusFilter = isset($_GET['status']) && in_array((string) $_GET['status'], ['completed', 'ongoing'], true)
+$initialStatusFilter = isset($_GET['status']) && in_array((string) $_GET['status'], ['completed', 'ongoing', 'failed'], true)
     ? (string) $_GET['status']
     : 'all';
-$currentYear = (int) date('Y');
-$yearStart = new DateTimeImmutable($currentYear . '-01-01');
-$analyticsTrackedDays = 235;
-$analyticsEndDate = $yearStart->modify('+' . ($analyticsTrackedDays - 1) . ' days');
+$allowedAnalyticsRanges = [7, 30, 365];
+$selectedRangeDays = isset($_GET['range']) ? (int) $_GET['range'] : 30;
+
+if (!in_array($selectedRangeDays, $allowedAnalyticsRanges, true)) {
+    $selectedRangeDays = 30;
+}
+
+$analyticsEndDate = new DateTimeImmutable('today');
+$analyticsStartDate = $analyticsEndDate->modify('-' . ($selectedRangeDays - 1) . ' days');
 $completedCountsByDate = $userChallengeRepository instanceof UserChallengeRepository
-    ? $userChallengeRepository->completedCountsByDate($currentStudentId, $yearStart, $analyticsEndDate)
+    ? $userChallengeRepository->completedCountsByDate($currentStudentId, $analyticsStartDate, $analyticsEndDate)
     : [];
 $attemptHistoryRows = $userChallengeRepository instanceof UserChallengeRepository
-    ? $userChallengeRepository->listAttemptHistory($currentStudentId, 250)
+    ? $userChallengeRepository->listAttemptHistory($currentStudentId, 500)
     : [];
-$activityDays = [];
+$activityChartLabels = [];
+$activityChartValues = [];
 $analyticsRows = [];
+$rangeQueryBase = './?c=player-analytics&status=' . urlencode($initialStatusFilter);
 
 $formatDurationLabel = static function (int $totalSeconds): string {
     $safeSeconds = max(0, $totalSeconds);
@@ -33,29 +40,32 @@ $formatDurationLabel = static function (int $totalSeconds): string {
     return sprintf('%ds', $seconds);
 };
 
-for ($dayIndex = 0; $dayIndex < $analyticsTrackedDays; $dayIndex++) {
-    $date = $yearStart->modify('+' . $dayIndex . ' days');
-    $solves = $completedCountsByDate[$date->format('Y-m-d')] ?? 0;
-    $activityDays[] = [
-        'date' => $date,
-        'solves' => $solves,
-        'level' => min($solves, 5),
-    ];
+for ($dayIndex = 0; $dayIndex < $selectedRangeDays; $dayIndex++) {
+    $date = $analyticsStartDate->modify('+' . $dayIndex . ' days');
+    $dateKey = $date->format('Y-m-d');
+    $solves = $completedCountsByDate[$dateKey] ?? 0;
+    $activityChartLabels[] = $date->format('M j');
+    $activityChartValues[] = $solves;
 }
 
 foreach ($attemptHistoryRows as $attemptRow) {
-    $status = !empty($attemptRow['completed_at']) ? 'completed' : 'ongoing';
+    $isRoomAttempt = (int) ($attemptRow['room_id'] ?? 0) > 0;
+    $status = !empty($attemptRow['completed_at'])
+        ? 'completed'
+        : ($isRoomAttempt ? 'failed' : 'ongoing');
     $startedAt = new DateTimeImmutable((string) $attemptRow['started_at']);
     $completedAt = !empty($attemptRow['completed_at'])
         ? new DateTimeImmutable((string) $attemptRow['completed_at'])
         : null;
-    $durationLabel = 'Ongoing';
-    $durationDetails = 'Started ' . $startedAt->format('M j, Y g:i A');
+    $durationLabel = $status === 'failed' ? 'Failed' : 'Ongoing';
+    $durationDetails = 'Taken ' . $startedAt->format('M j, Y g:i A');
 
     if ($completedAt instanceof DateTimeImmutable) {
         $durationSeconds = max(0, $completedAt->getTimestamp() - $startedAt->getTimestamp());
         $durationLabel = $formatDurationLabel($durationSeconds);
         $durationDetails = 'Taken ' . $startedAt->format('M j, Y g:i A') . ' - Completed in ' . $durationLabel;
+    } elseif ($status === 'failed') {
+        $durationDetails = 'Taken ' . $startedAt->format('M j, Y g:i A') . ' - This room run was not completed.';
     } else {
         $ongoingSeconds = max(0, time() - $startedAt->getTimestamp());
         $durationDetails = 'Taken ' . $startedAt->format('M j, Y g:i A') . ' - Running for ' . $formatDurationLabel($ongoingSeconds);
@@ -72,12 +82,16 @@ foreach ($attemptHistoryRows as $attemptRow) {
         'durationDetails' => $durationDetails,
         'summary' => $status === 'completed'
             ? 'Completed this CSS matching challenge and locked in the solve.'
-            : 'Started this CSS matching challenge and still has an active run.',
-        'href' => $status === 'completed'
-            ? './?c=challenge&id=' . (int) $attemptRow['challenge_id']
-            : './?c=pixelwar&intro=1&challenge_id=' . (int) $attemptRow['challenge_id'],
+            : ($status === 'failed'
+                ? 'Started this CSS matching challenge inside a room, but the run was not completed.'
+                : 'Started this CSS matching challenge and still has an active run.'),
+        'href' => $status === 'ongoing'
+            ? './?c=pixelwar&intro=1&challenge_id=' . (int) $attemptRow['challenge_id']
+            : './?c=challenge&id=' . (int) $attemptRow['challenge_id'],
+        'points' => (int) ($attemptRow['awarded_points'] ?? 0),
     ];
 }
+
 ?>
 
 <main class="analytics-page relative overflow-hidden bg-arcade-cream px-4 py-8 text-arcade-ink md:py-10">
@@ -90,43 +104,49 @@ foreach ($attemptHistoryRows as $attemptRow) {
             <div class="mt-3 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
                 <div>
                     <h1 class="text-3xl font-bold leading-tight md:text-5xl">Challenge History</h1>
-                    <p class="mt-2 max-w-2xl text-sm leading-7 text-arcade-ink/70">Search completed and ongoing attempts with completion details and solving duration.</p>
+                    <p class="mt-2 max-w-2xl text-sm leading-7 text-arcade-ink/70">Search completed, ongoing, and failed attempts with completion details and solving duration.</p>
                 </div>
-                <a href="./?c=home" class="inline-flex justify-center rounded-xl border-2 border-arcade-ink/10 bg-white px-4 py-2 text-sm font-bold text-arcade-ink no-underline transition hover:bg-arcade-yellow/50">Back Home</a>
+                <div class="flex flex-wrap items-center gap-2">
+                    <button type="button" class="inline-flex justify-center rounded-xl border-2 border-arcade-ink bg-arcade-yellow px-4 py-2 text-sm font-bold text-arcade-ink shadow-[0_3px_0_#26190f] transition hover:-translate-y-0.5 hover:bg-arcade-orange hover:text-white" data-bs-toggle="modal" data-bs-target="#analytics-export-modal">Export CSV</button>
+                    <a href="./?c=home" class="inline-flex justify-center rounded-xl border-2 border-arcade-ink/10 bg-white px-4 py-2 text-sm font-bold text-arcade-ink no-underline transition hover:bg-arcade-yellow/50">Back Home</a>
+                </div>
             </div>
         </div>
 
         <section class="rounded-[24px] border-4 border-arcade-ink bg-arcade-panel p-4 shadow-[7px_7px_0_#26190f] md:p-5">
             <article class="mb-5 rounded-[20px] border-2 border-arcade-ink/10 bg-white p-4">
-                <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                    <div>
-                        <p class="font-arcade text-[10px] uppercase tracking-[0.24em] text-arcade-orange">Solving Chart</p>
-                        <h2 class="mt-2 text-xl font-bold"><?= (int) $currentYear ?> Activity</h2>
+                <div class="flex flex-col gap-4">
+                    <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                        <div>
+                            <p class="font-arcade text-[10px] uppercase tracking-[0.24em] text-arcade-orange">Solving Chart</p>
+                            <h2 class="mt-2 text-xl font-bold">Challenge Solving</h2>
+                        </div>
+                        <p class="text-sm font-bold text-arcade-ink/60">Last <?= (int) $selectedRangeDays ?> Days</p>
                     </div>
-                    <p class="text-sm font-bold text-arcade-ink/60"><?= (int) $analyticsTrackedDays ?> tracked days</p>
-                </div>
 
-                <div class="mt-4 overflow-x-auto pb-2">
-                    <div class="analytics-activity-grid" aria-label="<?= (int) $currentYear ?> challenge solving chart with <?= (int) $analyticsTrackedDays ?> days">
-                        <?php foreach ($activityDays as $activityDay) : ?>
-                            <span
-                                class="analytics-activity-cell analytics-activity-cell--<?= (int) $activityDay['level'] ?>"
-                                tabindex="0"
-                                role="button"
-                                aria-label="<?= htmlspecialchars($activityDay['date']->format('M j, Y'), ENT_QUOTES, 'UTF-8') ?>: <?= (int) $activityDay['solves'] ?> solved challenges"
-                                data-tooltip="<?= htmlspecialchars($activityDay['date']->format('M j, Y'), ENT_QUOTES, 'UTF-8') ?>: <?= (int) $activityDay['solves'] ?> solved"
-                                title="<?= htmlspecialchars($activityDay['date']->format('M j, Y'), ENT_QUOTES, 'UTF-8') ?>: <?= (int) $activityDay['solves'] ?> solved"></span>
+                    <div class="analytics-range-row">
+                        <?php foreach ($allowedAnalyticsRanges as $rangeOption) : ?>
+                            <a
+                                href="<?= htmlspecialchars($rangeQueryBase . '&range=' . $rangeOption, ENT_QUOTES, 'UTF-8') ?>"
+                                class="analytics-range-chip <?= $selectedRangeDays === $rangeOption ? 'is-active' : '' ?>"
+                            >
+                                Last <?= (int) $rangeOption ?> Days
+                            </a>
                         <?php endforeach; ?>
                     </div>
-                </div>
 
-                <div class="mt-3 flex flex-wrap items-center gap-2 text-xs font-bold text-arcade-ink/55">
-                    <span>Less</span>
-                    <span class="analytics-activity-cell analytics-activity-cell--0"></span>
-                    <span class="analytics-activity-cell analytics-activity-cell--1"></span>
-                    <span class="analytics-activity-cell analytics-activity-cell--3"></span>
-                    <span class="analytics-activity-cell analytics-activity-cell--5"></span>
-                    <span>More</span>
+                    <div class="analytics-chart-shell" aria-label="Challenge solving chart for the last <?= (int) $selectedRangeDays ?> days">
+                        <div class="analytics-chart-summary">
+                            <div class="analytics-chart-chip">
+                                <span class="analytics-chart-chip__dot"></span>
+                                <span>Daily completed challenges</span>
+                            </div>
+                            <p class="analytics-chart-summary__copy">Shows your completed challenge count day by day for the selected range.</p>
+                        </div>
+                        <div class="analytics-chart-stage">
+                            <canvas id="player-analytics-chart" height="230"></canvas>
+                        </div>
+                    </div>
                 </div>
             </article>
 
@@ -139,6 +159,7 @@ foreach ($attemptHistoryRows as $attemptRow) {
                     <button class="analytics-filter <?= $initialStatusFilter === 'all' ? 'is-active bg-arcade-yellow' : 'bg-white' ?> rounded-xl border-2 border-arcade-ink/10 px-3 py-2 text-xs font-bold" type="button" data-status-filter="all">All</button>
                     <button class="analytics-filter <?= $initialStatusFilter === 'completed' ? 'is-active bg-arcade-yellow' : 'bg-white' ?> rounded-xl border-2 border-arcade-ink/10 px-3 py-2 text-xs font-bold" type="button" data-status-filter="completed">Completed</button>
                     <button class="analytics-filter <?= $initialStatusFilter === 'ongoing' ? 'is-active bg-arcade-yellow' : 'bg-white' ?> rounded-xl border-2 border-arcade-ink/10 px-3 py-2 text-xs font-bold" type="button" data-status-filter="ongoing">Ongoing</button>
+                    <button class="analytics-filter <?= $initialStatusFilter === 'failed' ? 'is-active bg-arcade-yellow' : 'bg-white' ?> rounded-xl border-2 border-arcade-ink/10 px-3 py-2 text-xs font-bold" type="button" data-status-filter="failed">Failed</button>
                 </div>
             </div>
 
@@ -146,7 +167,7 @@ foreach ($attemptHistoryRows as $attemptRow) {
                 <?php if ($analyticsRows === []) : ?>
                     <p class="px-4 py-5 text-sm font-bold text-arcade-ink/55">No challenge activity yet.</p>
                 <?php endif; ?>
-                <?php foreach ($analyticsRows as $rowIndex => $row) : ?>
+                <?php foreach ($analyticsRows as $row) : ?>
                     <article
                         class="analytics-row grid gap-2 border-b border-arcade-ink/10 px-4 py-3 last:border-b-0 lg:grid-cols-[1.2fr_0.55fr_0.65fr_1fr_auto] lg:items-center"
                         data-analytics-row
@@ -157,7 +178,7 @@ foreach ($attemptHistoryRows as $attemptRow) {
                             <p class="text-xs font-semibold text-arcade-ink/55"><?= htmlspecialchars($row['summary'], ENT_QUOTES, 'UTF-8') ?></p>
                         </div>
                         <div>
-                            <span class="rounded-full <?= $row['status'] === 'completed' ? 'bg-arcade-mint/70' : 'bg-arcade-yellow/70' ?> px-3 py-1 text-xs font-bold">
+                            <span class="rounded-full <?= $row['status'] === 'completed' ? 'bg-arcade-mint/70' : ($row['status'] === 'failed' ? 'bg-arcade-coral/30' : 'bg-arcade-yellow/70') ?> px-3 py-1 text-xs font-bold">
                                 <?= htmlspecialchars(ucfirst($row['status']), ENT_QUOTES, 'UTF-8') ?>
                             </span>
                         </div>
@@ -179,12 +200,42 @@ foreach ($attemptHistoryRows as $attemptRow) {
     </section>
 </main>
 
-<div id="analytics-activity-tooltip" class="analytics-activity-tooltip" role="status" hidden></div>
+<div class="modal fade" id="analytics-export-modal" tabindex="-1" aria-labelledby="analytics-export-modal-title" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <form class="modal-content rounded-[28px] border-4 border-arcade-ink bg-arcade-panel p-0 text-arcade-ink shadow-[8px_8px_0_#26190f]" action="./" method="get">
+            <input type="hidden" name="c" value="player-analytics">
+            <input type="hidden" name="export" value="csv">
+            <div class="modal-header border-0 px-5 pb-2 pt-5">
+                <div>
+                    <p class="font-arcade text-[10px] uppercase tracking-[0.24em] text-arcade-orange">Export Records</p>
+                    <h2 class="modal-title mt-2 text-2xl font-bold" id="analytics-export-modal-title">Choose date range</h2>
+                </div>
+                <button type="button" class="btn-close opacity-100" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body px-5 pb-5 pt-2">
+                <p class="text-sm font-semibold leading-6 text-arcade-ink/65">Export your solving records as CSV for the exact date range you choose.</p>
+                <div class="mt-4 grid gap-3 sm:grid-cols-2">
+                    <label class="export-date-field">
+                        <span>Start Date</span>
+                        <input type="date" name="export_start_date" value="<?= htmlspecialchars($analyticsStartDate->format('Y-m-d'), ENT_QUOTES, 'UTF-8') ?>" max="<?= htmlspecialchars($analyticsEndDate->format('Y-m-d'), ENT_QUOTES, 'UTF-8') ?>" required>
+                    </label>
+                    <label class="export-date-field">
+                        <span>End Date</span>
+                        <input type="date" name="export_end_date" value="<?= htmlspecialchars($analyticsEndDate->format('Y-m-d'), ENT_QUOTES, 'UTF-8') ?>" max="<?= htmlspecialchars($analyticsEndDate->format('Y-m-d'), ENT_QUOTES, 'UTF-8') ?>" required>
+                    </label>
+                </div>
+                <div class="mt-5 flex justify-end gap-3">
+                    <button type="button" class="rounded-xl border-2 border-arcade-ink/15 bg-white px-4 py-2 text-sm font-bold text-arcade-ink transition hover:bg-arcade-peach/60" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="rounded-xl border-2 border-arcade-ink bg-arcade-yellow px-5 py-2 text-sm font-bold text-arcade-ink shadow-[0_4px_0_#26190f] transition hover:-translate-y-0.5 hover:bg-arcade-orange hover:text-white">Export CSV</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
 
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.min.js"></script>
 <script>
 (() => {
-    const tooltip = document.getElementById('analytics-activity-tooltip');
-    const cells = Array.from(document.querySelectorAll('.analytics-activity-cell[data-tooltip]'));
     const rows = Array.from(document.querySelectorAll('[data-analytics-row]'));
     const searchInput = document.getElementById('analytics-search');
     const filterButtons = Array.from(document.querySelectorAll('[data-status-filter]'));
@@ -195,24 +246,101 @@ foreach ($attemptHistoryRows as $attemptRow) {
     let currentPage = 1;
     let activeStatus = <?= json_encode($initialStatusFilter, JSON_UNESCAPED_SLASHES) ?>;
 
-    const showTooltip = (cell) => {
-        const text = cell.dataset.tooltip || '';
-        if (!tooltip || text === '') {
-            return;
-        }
+    const canvas = document.getElementById('player-analytics-chart');
 
-        const rect = cell.getBoundingClientRect();
-        tooltip.textContent = text;
-        tooltip.hidden = false;
-        tooltip.style.left = `${Math.min(window.innerWidth - 12, Math.max(12, rect.left + rect.width / 2))}px`;
-        tooltip.style.top = `${Math.max(12, rect.top - 10)}px`;
-    };
+    if (canvas && typeof window.Chart !== 'undefined') {
+        const context = canvas.getContext('2d');
+        if (context) {
+            const labels = <?= json_encode($activityChartLabels, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?>;
+            const values = <?= json_encode($activityChartValues, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?>;
+            const isDarkMode = document.body.classList.contains('pixelwar-dark-mode');
+            const gradient = context.createLinearGradient(0, 0, 0, canvas.height || 230);
+            gradient.addColorStop(0, isDarkMode ? 'rgba(255, 140, 66, 0.52)' : 'rgba(255, 140, 66, 0.4)');
+            gradient.addColorStop(0.55, isDarkMode ? 'rgba(255, 209, 102, 0.24)' : 'rgba(255, 209, 102, 0.18)');
+            gradient.addColorStop(1, 'rgba(255, 209, 102, 0)');
 
-    const hideTooltip = () => {
-        if (tooltip) {
-            tooltip.hidden = true;
+            new window.Chart(context, {
+                type: 'line',
+                data: {
+                    labels,
+                    datasets: [{
+                        label: 'Solved challenges',
+                        data: values,
+                        fill: true,
+                        backgroundColor: gradient,
+                        borderColor: '#ff8c42',
+                        borderWidth: 3,
+                        pointRadius: 0,
+                        pointHoverRadius: 5,
+                        pointHoverBorderWidth: 2,
+                        pointHoverBackgroundColor: '#ffd166',
+                        pointHoverBorderColor: '#26190f',
+                        tension: 0.32,
+                    }],
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false,
+                    },
+                    plugins: {
+                        legend: {
+                            display: false,
+                        },
+                        tooltip: {
+                            backgroundColor: isDarkMode ? '#1f160f' : '#fffdf6',
+                            titleColor: isDarkMode ? '#fff7e8' : '#26190f',
+                            bodyColor: isDarkMode ? '#fff7e8' : '#26190f',
+                            borderColor: '#26190f',
+                            borderWidth: 2,
+                            padding: 12,
+                            displayColors: false,
+                            titleFont: { weight: '800' },
+                            bodyFont: { weight: '700' },
+                            callbacks: {
+                                title(items) {
+                                    return items[0]?.label || '';
+                                },
+                                label(item) {
+                                    return `${item.raw || 0} solved challenge${item.raw === 1 ? '' : 's'}`;
+                                },
+                            },
+                        },
+                    },
+                    scales: {
+                        x: {
+                            ticks: {
+                                color: isDarkMode ? 'rgba(255,247,232,0.7)' : 'rgba(38,25,15,0.58)',
+                                autoSkip: true,
+                                maxTicksLimit: 10,
+                                font: { weight: '700' },
+                            },
+                            grid: { display: false },
+                            border: {
+                                color: isDarkMode ? 'rgba(255,247,232,0.12)' : 'rgba(38,25,15,0.12)',
+                            },
+                        },
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                precision: 0,
+                                color: isDarkMode ? 'rgba(255,247,232,0.7)' : 'rgba(38,25,15,0.58)',
+                                font: { weight: '700' },
+                            },
+                            grid: {
+                                color: isDarkMode ? 'rgba(255,247,232,0.08)' : 'rgba(38,25,15,0.08)',
+                            },
+                            border: {
+                                color: isDarkMode ? 'rgba(255,247,232,0.12)' : 'rgba(38,25,15,0.12)',
+                            },
+                        },
+                    },
+                },
+            });
         }
-    };
+    }
 
     const matchingRows = () => {
         const query = (searchInput?.value || '').trim().toLowerCase();
@@ -277,16 +405,6 @@ foreach ($attemptHistoryRows as $attemptRow) {
         renderRows();
     });
 
-    cells.forEach((cell) => {
-        cell.addEventListener('mouseenter', () => showTooltip(cell));
-        cell.addEventListener('focus', () => showTooltip(cell));
-        cell.addEventListener('click', () => showTooltip(cell));
-        cell.addEventListener('mouseleave', hideTooltip);
-        cell.addEventListener('blur', hideTooltip);
-    });
-
-    window.addEventListener('scroll', hideTooltip, { passive: true });
-    window.addEventListener('resize', hideTooltip);
     renderRows();
 })();
 </script>

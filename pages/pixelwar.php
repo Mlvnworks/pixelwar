@@ -1,8 +1,13 @@
 <?php
 $gameChallengeId = (int) ($_GET['challenge_id'] ?? 0);
+$gameRoomId = (int) ($_GET['room_id'] ?? 0);
 $gameChallenge = null;
 $gameUserChallenge = null;
 $gameChallengeError = '';
+$gameRoom = null;
+$gameRoomDeadlineIso = '';
+$gameRoomTimerLimit = 0;
+$gamePusherEnabled = isset($pusherService) && $pusherService instanceof PusherService && $pusherService->isConfigured();
 
 if ($gameChallengeId > 0) {
     try {
@@ -22,12 +27,52 @@ if ($gameChallengeId > 0) {
             throw new RuntimeException('Login required to start this challenge.');
         }
 
+        if ($gameRoomId > 0) {
+            if (!$roomRepository instanceof RoomRepository || !$roomPlayerRepository instanceof RoomPlayerRepository) {
+                throw new RuntimeException('Room progress is not available.');
+            }
+
+            $gameRoom = $roomRepository->findById($gameRoomId);
+
+            if ($gameRoom === null) {
+                throw new RuntimeException('Room not found.');
+            }
+
+            if ((int) ($gameRoom['challenge_id'] ?? 0) !== $gameChallengeId) {
+                throw new RuntimeException('This room is not linked to the selected challenge.');
+            }
+
+            if ((int) ($gameRoom['status'] ?? 1) !== 1) {
+                throw new RuntimeException('This room is closed.');
+            }
+
+            if (trim((string) ($gameRoom['started_at'] ?? '')) === '') {
+                throw new RuntimeException('This room session has not started yet.');
+            }
+
+            if (trim((string) ($gameRoom['ended_at'] ?? '')) !== '' || (int) ($gameRoom['status'] ?? 1) !== 1) {
+                throw new RuntimeException('This room is already ended.');
+            }
+
+            $gameRoomPlayer = $roomPlayerRepository->findByUserAndRoom($gameUserId, $gameRoomId);
+            if ($gameRoomPlayer === null) {
+                throw new RuntimeException('You have not joined this room yet.');
+            }
+
+            if (
+                (int) ($gameRoomPlayer['status'] ?? 0) === 3
+                && trim((string) ($gameRoom['ended_at'] ?? '')) === ''
+            ) {
+                throw new RuntimeException('You already gave up this room and cannot re-enter while it is still ongoing.');
+            }
+        }
+
         $gameChallengeIsPublic = (int) ($gameChallenge['status'] ?? 0) === 1;
         if (!$gameChallengeIsPublic) {
             throw new RuntimeException('This challenge is not available publicly right now.');
         }
 
-        $gameUserChallenge = $userChallengeRepository->startOrFindOngoing($gameUserId, $gameChallengeId);
+        $gameUserChallenge = $userChallengeRepository->startOrFindOngoing($gameUserId, $gameChallengeId, $gameRoomId);
 
         if (!empty($gameUserChallenge['was_created']) && $activityLogRepository instanceof ActivityLogRepository) {
             $activityLogRepository->create(
@@ -36,6 +81,35 @@ if ($gameChallengeId > 0) {
                 'Started challenge "' . (string) ($gameChallenge['name'] ?? 'Challenge') . '".'
             );
         }
+
+        if ($gameRoomId > 0 && $roomPlayerRepository instanceof RoomPlayerRepository) {
+            $roomPlayerRepository->markSolving($gameUserId, $gameRoomId);
+
+            if ($gameRoom !== null) {
+                $startedAtTs = strtotime((string) ($gameRoom['started_at'] ?? ''));
+                $gameRoomTimerLimit = max(0, (int) ($gameRoom['timer_limit'] ?? 0));
+                if ($startedAtTs !== false && $gameRoomTimerLimit > 0) {
+                    $gameRoomDeadlineIso = date(DATE_ATOM, $startedAtTs + ($gameRoomTimerLimit * 60));
+                }
+            }
+
+            if (isset($pusherService) && $pusherService instanceof PusherService && $pusherService->isConfigured()) {
+                try {
+                    $pusherService->trigger(
+                        'room-' . $gameRoomId,
+                        'player-status',
+                        [
+                            'user_id' => $gameUserId,
+                            'status_label' => 'solving',
+                            'started_at' => date(DATE_ATOM),
+                            'completed_at' => '',
+                        ]
+                    );
+                } catch (Throwable $pusherError) {
+                    error_log('Pixelwar room solving pusher error: ' . $pusherError->getMessage());
+                }
+            }
+        }
     } catch (Throwable $err) {
         error_log('Pixelwar gameplay challenge start error: ' . $err->getMessage());
         $message = $err->getMessage();
@@ -43,6 +117,8 @@ if ($gameChallengeId > 0) {
         if ($message === 'Challenge not found.') {
             $gameChallengeError = 'This challenge is no longer available. Please choose another one from the library.';
         } elseif ($message === 'This challenge is not available publicly right now.') {
+            $gameChallengeError = $message;
+        } elseif (in_array($message, ['Room not found.', 'This room is closed.', 'This room session has not started yet.', 'This room is already ended.', 'This room is not linked to the selected challenge.', 'You have not joined this room yet.', 'You already gave up this room and cannot re-enter while it is still ongoing.'], true)) {
             $gameChallengeError = $message;
         } else {
             $gameChallengeError = APP_DEBUG ? $message : 'Unable to start this challenge. Please try another one.';
@@ -86,10 +162,14 @@ $gameUserChallengeId = $gameUserChallenge !== null ? (int) $gameUserChallenge['u
                     <span id="game-status">Waiting for your first move.</span>
                     <?php if ($gameUserChallenge !== null) : ?>
                         <span class="gameplay-time" id="gameplay-time" data-started-at="<?= htmlspecialchars($gameStartedAtIso, ENT_QUOTES, 'UTF-8') ?>">00:00</span>
+                        <?php if ($gameRoomDeadlineIso !== '') : ?>
+                            <span class="gameplay-time" id="room-session-timer" data-deadline-at="<?= htmlspecialchars($gameRoomDeadlineIso, ENT_QUOTES, 'UTF-8') ?>">00:00</span>
+                        <?php endif; ?>
                         <form id="give-up-form" class="give-up-form" action="./?c=pixelwar" method="post">
                             <?= pixelwarCsrfField() ?>
                             <input type="hidden" name="gameplay_action" value="give_up">
                             <input type="hidden" name="challenge_id" value="<?= (int) $gameChallengeId ?>">
+                            <input type="hidden" name="room_id" value="<?= (int) $gameRoomId ?>">
                             <input type="hidden" name="user_challenge_id" value="<?= (int) $gameUserChallenge['uc_id'] ?>">
                             <button type="submit" class="give-up-button">Give Up</button>
                         </form>
@@ -270,6 +350,9 @@ $gameUserChallengeId = $gameUserChallenge !== null ? (int) $gameUserChallenge['u
     </div>
 </div>
 
+<?php if ($gameRoomId > 0 && $gamePusherEnabled) : ?>
+    <script src="https://js.pusher.com/8.4.0/pusher.min.js"></script>
+<?php endif; ?>
 <script>
 (() => {
     if (window.history?.replaceState) {
@@ -287,9 +370,15 @@ $gameUserChallengeId = $gameUserChallenge !== null ? (int) $gameUserChallenge['u
         cssSource: <?= json_encode($gameChallengeCssSource, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?: "''" ?>,
         hasChallenge: <?= $gameChallenge !== null ? 'true' : 'false' ?>,
         challengeId: <?= (int) $gameChallengeId ?>,
+        roomId: <?= (int) $gameRoomId ?>,
+        roomDeadlineAt: <?= json_encode($gameRoomDeadlineIso, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?: "''" ?>,
+        roomTimerLimit: <?= (int) $gameRoomTimerLimit ?>,
         userChallengeId: <?= (int) $gameUserChallengeId ?>,
         challengeTitle: <?= json_encode($gameChallengeTitle, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?: "''" ?>,
         csrfToken: <?= json_encode(pixelwarCsrfToken(), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?: "''" ?>,
+        pusherKey: <?= json_encode($gamePusherEnabled ? (string) PUSHER_KEY : '', JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?: "''" ?>,
+        pusherCluster: <?= json_encode($gamePusherEnabled ? (string) PUSHER_CLUSTER : '', JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?: "''" ?>,
+        endedRedirectUrl: './?c=home&room_notice=ended_incomplete',
     };
 
     const selectorGrid = document.getElementById('selector-card-grid');
@@ -299,6 +388,7 @@ $gameUserChallengeId = $gameUserChallenge !== null ? (int) $gameUserChallenge['u
     const targetFrames = Array.from(document.querySelectorAll('[data-source-target-frame]'));
     const statusLabel = document.getElementById('game-status');
     const gameplayTime = document.getElementById('gameplay-time');
+    const roomSessionTimer = document.getElementById('room-session-timer');
     const giveUpForm = document.getElementById('give-up-form');
     const progressBarFill = document.getElementById('progress-bar-fill');
     const resetButton = document.getElementById('reset-layout-btn');
@@ -344,6 +434,7 @@ $gameUserChallengeId = $gameUserChallenge !== null ? (int) $gameUserChallenge['u
     };
 
     let gameplayAudioContext = null;
+    let roomEndSubmitting = false;
 
     const escapeHtml = (value) => String(value)
         .replace(/&/g, '&amp;')
@@ -593,6 +684,7 @@ ${css}
                 _csrf_token: challengeConfig.csrfToken,
                 gameplay_action: 'complete',
                 challenge_id: String(challengeConfig.challengeId),
+                room_id: String(challengeConfig.roomId || 0),
                 user_challenge_id: String(challengeConfig.userChallengeId),
             });
 
@@ -644,6 +736,24 @@ ${css}
         }, 1400);
     };
 
+    const handleRoomEnded = (message, redirectUrl) => {
+        if (state.isUnavailable || state.isCompleted) {
+            return;
+        }
+
+        state.isUnavailable = true;
+        state.skipUnloadWarning = true;
+        state.isCompletionSubmitting = false;
+        roomEndSubmitting = true;
+        setStatus(message || 'The room was ended.');
+        exitModal?.hide();
+        completionModal?.hide();
+
+        window.setTimeout(() => {
+            window.location.href = redirectUrl || challengeConfig.endedRedirectUrl;
+        }, 900);
+    };
+
     const validateChallengeAvailability = async () => {
         if (!challengeConfig.hasChallenge || !challengeConfig.challengeId || !challengeConfig.userChallengeId) {
             return;
@@ -677,6 +787,59 @@ ${css}
             }
         } catch (error) {
             console.error(error);
+        }
+    };
+
+    const triggerRoomTimeoutEnd = async () => {
+        if (roomEndSubmitting || !challengeConfig.roomId || !challengeConfig.csrfToken) {
+            return;
+        }
+
+        roomEndSubmitting = true;
+
+        try {
+            const body = new URLSearchParams({
+                _csrf_token: challengeConfig.csrfToken,
+                gameplay_action: 'end_room_timeout',
+                room_id: String(challengeConfig.roomId),
+            });
+
+            const response = await fetch('./?c=pixelwar', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                body: body.toString(),
+            });
+
+            const payload = await response.json().catch(() => null);
+            if (payload?.ended) {
+                handleRoomEnded(payload?.message || 'The room was ended. Your challenge run was not completed.');
+                return;
+            }
+        } catch (error) {
+            console.error(error);
+        }
+    };
+
+    const handleRoomTimerTick = () => {
+        if (!roomSessionTimer || !challengeConfig.roomDeadlineAt || state.isCompleted || state.skipUnloadWarning) {
+            return;
+        }
+
+        const deadline = new Date(challengeConfig.roomDeadlineAt);
+        if (Number.isNaN(deadline.getTime())) {
+            return;
+        }
+
+        const remainingSeconds = Math.max(0, Math.floor((deadline.getTime() - Date.now()) / 1000));
+        roomSessionTimer.textContent = formatElapsedTime(remainingSeconds);
+
+        if (remainingSeconds <= 0) {
+            roomSessionTimer.textContent = '00:00';
+            setStatus('Room time expired.');
+            triggerRoomTimeoutEnd();
         }
     };
 
@@ -1494,6 +1657,22 @@ ${css}
     window.addEventListener('resize', () => allPreviewFrames.forEach((frame) => fitPreviewFrame(frame)));
     initResizeHandle();
     startGameplayTimer();
+    if (roomSessionTimer && challengeConfig.roomDeadlineAt) {
+        handleRoomTimerTick();
+        window.setInterval(handleRoomTimerTick, 1000);
+    }
+    if (challengeConfig.roomId > 0 && challengeConfig.pusherKey && challengeConfig.pusherCluster && window.Pusher) {
+        const pusher = new window.Pusher(challengeConfig.pusherKey, {
+            cluster: challengeConfig.pusherCluster,
+        });
+        const channel = pusher.subscribe(`room-${challengeConfig.roomId}`);
+        channel.bind('session-ended', (payload) => {
+            handleRoomEnded(
+                payload?.message || 'The room was ended. Your challenge run was not completed.',
+                payload?.redirect_url || challengeConfig.endedRedirectUrl
+            );
+        });
+    }
     boot();
     validateChallengeAvailability();
     const availabilityInterval = window.setInterval(() => {

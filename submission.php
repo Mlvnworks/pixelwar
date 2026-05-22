@@ -13,6 +13,8 @@ require_once __DIR__ . '/classes/challenge-repository.php';
 require_once __DIR__ . '/classes/user-challenge-repository.php';
 require_once __DIR__ . '/classes/activity-log-repository.php';
 require_once __DIR__ . '/classes/gameplay-completion-service.php';
+require_once __DIR__ . '/classes/room-repository.php';
+require_once __DIR__ . '/classes/room-player-repository.php';
 
 // ==================== INITIALIZATION ====================
 $pageMeta = new PageMeta();
@@ -28,6 +30,9 @@ $userAccountService = $connection instanceof mysqli && $userRepository instanceo
 $challengeRepository = $connection instanceof mysqli ? new ChallengeRepository($connection) : null;
 $userChallengeRepository = $connection instanceof mysqli ? new UserChallengeRepository($connection) : null;
 $activityLogRepository = $connection instanceof mysqli ? new ActivityLogRepository($connection) : null;
+$roomRepository = $connection instanceof mysqli ? new RoomRepository($connection) : null;
+$roomPlayerRepository = $connection instanceof mysqli ? new RoomPlayerRepository($connection) : null;
+$pusherService = new PusherService(PUSHER_APP_ID, PUSHER_KEY, PUSHER_SECRET, PUSHER_CLUSTER);
 $gameplayCompletionService = $connection instanceof mysqli
     && $userChallengeRepository instanceof UserChallengeRepository
     && $challengeRepository instanceof ChallengeRepository

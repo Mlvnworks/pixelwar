@@ -137,17 +137,57 @@ final class DatabaseInitializer
                 CONSTRAINT `challenges_user_id_foreign` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`),
                 CONSTRAINT `challenges_difficulty_id_foreign` FOREIGN KEY (`difficulty_id`) REFERENCES `difficulties` (`difficulty_id`)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci',
+            'CREATE TABLE IF NOT EXISTS `rooms` (
+                `room_id` INT NOT NULL AUTO_INCREMENT,
+                `user_id` INT NOT NULL,
+                `challenge_id` INT NOT NULL,
+                `room_code` VARCHAR(100) NOT NULL,
+                `room_name` VARCHAR(150) NOT NULL,
+                `room_description` VARCHAR(255) NOT NULL,
+                `status` INT NOT NULL DEFAULT 1,
+                `timer_limit` INT NOT NULL DEFAULT 0,
+                `strict_mode` INT NOT NULL DEFAULT 0,
+                `started_at` TIMESTAMP NULL DEFAULT NULL,
+                `ended_at` TIMESTAMP NULL DEFAULT NULL,
+                `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                `date_deleted` TIMESTAMP NULL DEFAULT NULL,
+                PRIMARY KEY (`room_id`),
+                KEY `rooms_room_code_index` (`room_code`),
+                KEY `rooms_user_id_index` (`user_id`),
+                KEY `rooms_challenge_id_index` (`challenge_id`),
+                KEY `rooms_status_index` (`status`),
+                CONSTRAINT `rooms_user_id_foreign` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`),
+                CONSTRAINT `rooms_challenge_id_foreign` FOREIGN KEY (`challenge_id`) REFERENCES `challenges` (`challenge_id`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci',
+            'CREATE TABLE IF NOT EXISTS `room_players` (
+                `rp_id` INT NOT NULL AUTO_INCREMENT,
+                `user_id` INT NOT NULL,
+                `room_id` INT NOT NULL,
+                `status` INT NOT NULL DEFAULT 0,
+                `last_seen_at` TIMESTAMP NULL NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                `started_at` TIMESTAMP NULL DEFAULT NULL,
+                `completed_at` TIMESTAMP NULL DEFAULT NULL,
+                PRIMARY KEY (`rp_id`),
+                KEY `room_players_user_id_index` (`user_id`),
+                KEY `room_players_room_id_index` (`room_id`),
+                KEY `room_players_status_index` (`status`),
+                CONSTRAINT `room_players_user_id_foreign` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`),
+                CONSTRAINT `room_players_room_id_foreign` FOREIGN KEY (`room_id`) REFERENCES `rooms` (`room_id`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci',
             'CREATE TABLE IF NOT EXISTS `user_challenge` (
                 `uc_id` INT NOT NULL AUTO_INCREMENT,
                 `challenge_id` INT NOT NULL,
                 `user_id` INT NOT NULL,
+                `room_id` INT NULL DEFAULT NULL,
                 `started_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 `completed_at` TIMESTAMP NULL DEFAULT NULL,
                 PRIMARY KEY (`uc_id`),
                 KEY `user_challenge_challenge_id_index` (`challenge_id`),
                 KEY `user_challenge_user_id_index` (`user_id`),
+                KEY `user_challenge_room_id_index` (`room_id`),
                 CONSTRAINT `user_challenge_challenge_id_foreign` FOREIGN KEY (`challenge_id`) REFERENCES `challenges` (`challenge_id`),
-                CONSTRAINT `user_challenge_user_id_foreign` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`)
+                CONSTRAINT `user_challenge_user_id_foreign` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`),
+                CONSTRAINT `user_challenge_room_id_foreign` FOREIGN KEY (`room_id`) REFERENCES `rooms` (`room_id`)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci',
             'CREATE TABLE IF NOT EXISTS `activity_logs` (
                 `al_id` INT NOT NULL AUTO_INCREMENT,
@@ -191,6 +231,186 @@ final class DatabaseInitializer
 
         if ($this->tableExists($connection, 'challenges') && !$this->columnExists($connection, 'challenges', 'date_deleted')) {
             $connection->query('ALTER TABLE `challenges` ADD `date_deleted` TIMESTAMP NULL DEFAULT NULL AFTER `date_created`');
+        }
+
+        if ($this->tableExists($connection, 'rooms') && !$this->columnExists($connection, 'rooms', 'date_deleted')) {
+            $connection->query('ALTER TABLE `rooms` ADD `date_deleted` TIMESTAMP NULL DEFAULT NULL AFTER `created_at`');
+        }
+
+        if ($this->tableExists($connection, 'rooms') && !$this->columnExists($connection, 'rooms', 'user_id')) {
+            $connection->query('ALTER TABLE `rooms` ADD `user_id` INT NOT NULL AFTER `room_id`');
+        }
+
+        if ($this->tableExists($connection, 'rooms') && !$this->columnExists($connection, 'rooms', 'challenge_id')) {
+            $connection->query('ALTER TABLE `rooms` ADD `challenge_id` INT NOT NULL AFTER `user_id`');
+        }
+
+        if ($this->tableExists($connection, 'rooms') && !$this->columnExists($connection, 'rooms', 'room_code')) {
+            $connection->query("ALTER TABLE `rooms` ADD `room_code` VARCHAR(100) NOT NULL DEFAULT '' AFTER `challenge_id`");
+        }
+
+        if ($this->tableExists($connection, 'rooms') && !$this->columnExists($connection, 'rooms', 'room_name')) {
+            $connection->query('ALTER TABLE `rooms` ADD `room_name` VARCHAR(150) NOT NULL AFTER `room_code`');
+        }
+
+        if ($this->tableExists($connection, 'rooms') && !$this->columnExists($connection, 'rooms', 'room_description')) {
+            $connection->query('ALTER TABLE `rooms` ADD `room_description` VARCHAR(255) NOT NULL AFTER `room_name`');
+        }
+
+        if ($this->tableExists($connection, 'rooms') && !$this->columnExists($connection, 'rooms', 'status')) {
+            $connection->query('ALTER TABLE `rooms` ADD `status` INT NOT NULL DEFAULT 1 AFTER `room_description`');
+        }
+
+        if ($this->tableExists($connection, 'rooms') && !$this->columnExists($connection, 'rooms', 'timer_limit')) {
+            $connection->query('ALTER TABLE `rooms` ADD `timer_limit` INT NOT NULL DEFAULT 0 AFTER `status`');
+        }
+
+        if ($this->tableExists($connection, 'rooms') && !$this->columnExists($connection, 'rooms', 'strict_mode')) {
+            $connection->query('ALTER TABLE `rooms` ADD `strict_mode` INT NOT NULL DEFAULT 0 AFTER `timer_limit`');
+        }
+
+        if ($this->tableExists($connection, 'rooms') && !$this->columnExists($connection, 'rooms', 'started_at')) {
+            $connection->query('ALTER TABLE `rooms` ADD `started_at` TIMESTAMP NULL DEFAULT NULL AFTER `strict_mode`');
+        }
+
+        if ($this->tableExists($connection, 'rooms') && !$this->columnExists($connection, 'rooms', 'ended_at')) {
+            $connection->query('ALTER TABLE `rooms` ADD `ended_at` TIMESTAMP NULL DEFAULT NULL AFTER `started_at`');
+        }
+
+        if ($this->tableExists($connection, 'rooms') && !$this->columnExists($connection, 'rooms', 'created_at')) {
+            $connection->query('ALTER TABLE `rooms` ADD `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP AFTER `ended_at`');
+        }
+
+        if (
+            $this->tableExists($connection, 'rooms')
+            && $this->columnExists($connection, 'rooms', 'room_code')
+            && !$this->indexExists($connection, 'rooms', 'rooms_room_code_index')
+        ) {
+            $connection->query('ALTER TABLE `rooms` ADD KEY `rooms_room_code_index` (`room_code`)');
+        }
+
+        if (
+            $this->tableExists($connection, 'rooms')
+            && $this->columnExists($connection, 'rooms', 'user_id')
+            && !$this->indexExists($connection, 'rooms', 'rooms_user_id_index')
+        ) {
+            $connection->query('ALTER TABLE `rooms` ADD KEY `rooms_user_id_index` (`user_id`)');
+        }
+
+        if (
+            $this->tableExists($connection, 'rooms')
+            && $this->columnExists($connection, 'rooms', 'challenge_id')
+            && !$this->indexExists($connection, 'rooms', 'rooms_challenge_id_index')
+        ) {
+            $connection->query('ALTER TABLE `rooms` ADD KEY `rooms_challenge_id_index` (`challenge_id`)');
+        }
+
+        if (
+            $this->tableExists($connection, 'rooms')
+            && $this->columnExists($connection, 'rooms', 'status')
+            && !$this->indexExists($connection, 'rooms', 'rooms_status_index')
+        ) {
+            $connection->query('ALTER TABLE `rooms` ADD KEY `rooms_status_index` (`status`)');
+        }
+
+        if (
+            $this->tableExists($connection, 'rooms')
+            && $this->columnExists($connection, 'rooms', 'user_id')
+            && !$this->constraintExists($connection, 'rooms', 'rooms_user_id_foreign')
+        ) {
+            $connection->query('ALTER TABLE `rooms` ADD CONSTRAINT `rooms_user_id_foreign` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`)');
+        }
+
+        if (
+            $this->tableExists($connection, 'rooms')
+            && $this->columnExists($connection, 'rooms', 'challenge_id')
+            && !$this->constraintExists($connection, 'rooms', 'rooms_challenge_id_foreign')
+        ) {
+            $connection->query('ALTER TABLE `rooms` ADD CONSTRAINT `rooms_challenge_id_foreign` FOREIGN KEY (`challenge_id`) REFERENCES `challenges` (`challenge_id`)');
+        }
+
+        if ($this->tableExists($connection, 'room_players') && !$this->columnExists($connection, 'room_players', 'user_id')) {
+            $connection->query('ALTER TABLE `room_players` ADD `user_id` INT NOT NULL AFTER `rp_id`');
+        }
+
+        if ($this->tableExists($connection, 'room_players') && !$this->columnExists($connection, 'room_players', 'room_id')) {
+            $connection->query('ALTER TABLE `room_players` ADD `room_id` INT NOT NULL AFTER `user_id`');
+        }
+
+        if ($this->tableExists($connection, 'room_players') && !$this->columnExists($connection, 'room_players', 'status')) {
+            $connection->query('ALTER TABLE `room_players` ADD `status` INT NOT NULL DEFAULT 0 AFTER `room_id`');
+        }
+
+        if ($this->tableExists($connection, 'room_players') && !$this->columnExists($connection, 'room_players', 'last_seen_at')) {
+            $connection->query('ALTER TABLE `room_players` ADD `last_seen_at` TIMESTAMP NULL NOT NULL DEFAULT CURRENT_TIMESTAMP AFTER `status`');
+        }
+
+        if ($this->tableExists($connection, 'room_players') && !$this->columnExists($connection, 'room_players', 'started_at')) {
+            $connection->query('ALTER TABLE `room_players` ADD `started_at` TIMESTAMP NULL DEFAULT NULL AFTER `last_seen_at`');
+        }
+
+        if ($this->tableExists($connection, 'room_players') && !$this->columnExists($connection, 'room_players', 'completed_at')) {
+            $connection->query('ALTER TABLE `room_players` ADD `completed_at` TIMESTAMP NULL DEFAULT NULL AFTER `started_at`');
+        }
+
+        if (
+            $this->tableExists($connection, 'room_players')
+            && $this->columnExists($connection, 'room_players', 'user_id')
+            && !$this->indexExists($connection, 'room_players', 'room_players_user_id_index')
+        ) {
+            $connection->query('ALTER TABLE `room_players` ADD KEY `room_players_user_id_index` (`user_id`)');
+        }
+
+        if (
+            $this->tableExists($connection, 'room_players')
+            && $this->columnExists($connection, 'room_players', 'room_id')
+            && !$this->indexExists($connection, 'room_players', 'room_players_room_id_index')
+        ) {
+            $connection->query('ALTER TABLE `room_players` ADD KEY `room_players_room_id_index` (`room_id`)');
+        }
+
+        if (
+            $this->tableExists($connection, 'room_players')
+            && $this->columnExists($connection, 'room_players', 'status')
+            && !$this->indexExists($connection, 'room_players', 'room_players_status_index')
+        ) {
+            $connection->query('ALTER TABLE `room_players` ADD KEY `room_players_status_index` (`status`)');
+        }
+
+        if (
+            $this->tableExists($connection, 'room_players')
+            && $this->columnExists($connection, 'room_players', 'user_id')
+            && !$this->constraintExists($connection, 'room_players', 'room_players_user_id_foreign')
+        ) {
+            $connection->query('ALTER TABLE `room_players` ADD CONSTRAINT `room_players_user_id_foreign` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`)');
+        }
+
+        if (
+            $this->tableExists($connection, 'room_players')
+            && $this->columnExists($connection, 'room_players', 'room_id')
+            && !$this->constraintExists($connection, 'room_players', 'room_players_room_id_foreign')
+        ) {
+            $connection->query('ALTER TABLE `room_players` ADD CONSTRAINT `room_players_room_id_foreign` FOREIGN KEY (`room_id`) REFERENCES `rooms` (`room_id`)');
+        }
+
+        if ($this->tableExists($connection, 'user_challenge') && !$this->columnExists($connection, 'user_challenge', 'room_id')) {
+            $connection->query('ALTER TABLE `user_challenge` ADD `room_id` INT NULL DEFAULT NULL AFTER `user_id`');
+        }
+
+        if (
+            $this->tableExists($connection, 'user_challenge')
+            && $this->columnExists($connection, 'user_challenge', 'room_id')
+            && !$this->indexExists($connection, 'user_challenge', 'user_challenge_room_id_index')
+        ) {
+            $connection->query('ALTER TABLE `user_challenge` ADD KEY `user_challenge_room_id_index` (`room_id`)');
+        }
+
+        if (
+            $this->tableExists($connection, 'user_challenge')
+            && $this->columnExists($connection, 'user_challenge', 'room_id')
+            && !$this->constraintExists($connection, 'user_challenge', 'user_challenge_room_id_foreign')
+        ) {
+            $connection->query('ALTER TABLE `user_challenge` ADD CONSTRAINT `user_challenge_room_id_foreign` FOREIGN KEY (`room_id`) REFERENCES `rooms` (`room_id`)');
         }
 
         if ($this->tableExists($connection, 'users') && !$this->columnExists($connection, 'users', 'is_active')) {

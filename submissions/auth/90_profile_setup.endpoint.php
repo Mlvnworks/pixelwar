@@ -48,6 +48,7 @@ if ($requestMethod === 'POST' && $requestedPage === 'profile-setup') {
         }
 
         $sessionUser = pixelwarFindSessionUser($users);
+        $existingDetails = $users->findUserDetailsAvatar($userId);
 
         if ($sessionUser === null) {
             if ($profileSetupWantsJson) {
@@ -111,17 +112,20 @@ if ($requestMethod === 'POST' && $requestedPage === 'profile-setup') {
             $errors[] = 'Enter a valid last name.';
         }
 
+        $hasExistingProfileImage = trim((string) ($existingDetails['avatar_url'] ?? ($sessionUser['avatar_url'] ?? ''))) !== '';
+        $hasExistingIdPicture = trim((string) ($existingDetails['id_picture_url'] ?? '')) !== '';
+
         if (!$isStaffSetup) {
             if (!preg_match('/^[A-Za-z0-9-]{4,40}$/', $studentNumber)) {
                 $errors[] = 'Enter a valid student number.';
             }
 
-            if ((int) ($idPictureFile['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
+            if ((int) ($idPictureFile['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK && !$hasExistingIdPicture) {
                 $errors[] = 'Upload your ID picture before continuing.';
             }
         }
 
-        if ((int) ($profileImageFile['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
+        if ((int) ($profileImageFile['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK && !$hasExistingProfileImage) {
             $errors[] = 'Upload a profile image before continuing.';
         }
 
@@ -144,17 +148,23 @@ if ($requestMethod === 'POST' && $requestedPage === 'profile-setup') {
             SUPABASE_STORAGE_BUCKET,
             SUPABASE_STORAGE_AVATAR_FOLDER
         );
-        $profileImage = $supabaseStorage->uploadProfileImage($profileImageFile, $userId);
-        $idPictureImage = null;
+        $profileImage = $hasExistingProfileImage ? trim((string) ($existingDetails['avatar_url'] ?? ($sessionUser['avatar_url'] ?? ''))) : '';
+        $idPictureImage = $hasExistingIdPicture ? trim((string) ($existingDetails['id_picture_url'] ?? '')) : null;
+
+        if ((int) ($profileImageFile['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_OK) {
+            $profileImage = $supabaseStorage->uploadProfileImage($profileImageFile, $userId);
+        }
 
         if (!$isStaffSetup) {
-            $idPictureStorage = new SupabaseStorage(
-                SUPABASE_URL,
-                SUPABASE_SERVICE_ROLE_KEY,
-                SUPABASE_STORAGE_BUCKET,
-                SUPABASE_STORAGE_ID_PICTURE_FOLDER
-            );
-            $idPictureImage = $idPictureStorage->uploadProfileImage($idPictureFile, $userId);
+            if ((int) ($idPictureFile['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_OK) {
+                $idPictureStorage = new SupabaseStorage(
+                    SUPABASE_URL,
+                    SUPABASE_SERVICE_ROLE_KEY,
+                    SUPABASE_STORAGE_BUCKET,
+                    SUPABASE_STORAGE_ID_PICTURE_FOLDER
+                );
+                $idPictureImage = $idPictureStorage->uploadProfileImage($idPictureFile, $userId);
+            }
         }
 
         if ($isTeacherSetup) {

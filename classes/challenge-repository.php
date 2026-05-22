@@ -295,6 +295,78 @@ final class ChallengeRepository
         return $challenges;
     }
 
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    public function listCreatedChallengesForUser(int $userId, int $limit = 500): array
+    {
+        $limit = max(1, min(2000, $limit));
+        $statement = $this->connection->prepare(
+            'SELECT
+                challenges.challenge_id,
+                challenges.name,
+                challenges.instruction,
+                challenges.status,
+                challenges.date_created,
+                difficulties.name AS difficulty_name,
+                difficulties.points,
+                users.username AS author
+             FROM challenges
+             INNER JOIN difficulties ON difficulties.difficulty_id = challenges.difficulty_id
+             INNER JOIN users ON users.user_id = challenges.user_id
+             WHERE challenges.user_id = ?
+                AND challenges.date_deleted IS NULL
+             ORDER BY challenges.date_created DESC
+             LIMIT ?'
+        );
+        $statement->bind_param('ii', $userId, $limit);
+        $statement->execute();
+        $challenges = $statement->get_result()->fetch_all(MYSQLI_ASSOC);
+        $statement->close();
+
+        return $challenges;
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    public function listCreatedChallengesForUserByDateRange(
+        int $userId,
+        DateTimeInterface $startDate,
+        DateTimeInterface $endDate,
+        int $limit = 2000
+    ): array {
+        $limit = max(1, min(5000, $limit));
+        $start = $startDate->format('Y-m-d 00:00:00');
+        $end = $endDate->format('Y-m-d 23:59:59');
+        $statement = $this->connection->prepare(
+            'SELECT
+                challenges.challenge_id,
+                challenges.name,
+                challenges.instruction,
+                challenges.status,
+                challenges.date_created,
+                difficulties.name AS difficulty_name,
+                difficulties.points,
+                users.username AS author
+             FROM challenges
+             INNER JOIN difficulties ON difficulties.difficulty_id = challenges.difficulty_id
+             INNER JOIN users ON users.user_id = challenges.user_id
+             WHERE challenges.user_id = ?
+                AND challenges.date_deleted IS NULL
+                AND challenges.date_created >= ?
+                AND challenges.date_created <= ?
+             ORDER BY challenges.date_created DESC
+             LIMIT ?'
+        );
+        $statement->bind_param('issi', $userId, $start, $end, $limit);
+        $statement->execute();
+        $challenges = $statement->get_result()->fetch_all(MYSQLI_ASSOC);
+        $statement->close();
+
+        return $challenges;
+    }
+
     public function findCreatedChallenge(int $challengeId): ?array
     {
         if ($challengeId <= 0) {

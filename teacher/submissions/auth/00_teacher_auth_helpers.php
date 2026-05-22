@@ -64,6 +64,15 @@ function teacherPanelRequireChallengeRepository($challengeRepository): Challenge
     return $challengeRepository;
 }
 
+function teacherPanelRequireUserChallengeRepository($userChallengeRepository): UserChallengeRepository
+{
+    if (!$userChallengeRepository instanceof UserChallengeRepository) {
+        throw new RuntimeException('User challenge repository is not available.');
+    }
+
+    return $userChallengeRepository;
+}
+
 function teacherPanelRequireActivityLogRepository($activityLogRepository): ActivityLogRepository
 {
     if (!$activityLogRepository instanceof ActivityLogRepository) {
@@ -71,6 +80,15 @@ function teacherPanelRequireActivityLogRepository($activityLogRepository): Activ
     }
 
     return $activityLogRepository;
+}
+
+function teacherPanelRequireRoomRepository($roomRepository): RoomRepository
+{
+    if (!$roomRepository instanceof RoomRepository) {
+        throw new RuntimeException('Room repository is not available.');
+    }
+
+    return $roomRepository;
 }
 
 function teacherPanelValidateCsrf(): bool
