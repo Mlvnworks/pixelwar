@@ -50,6 +50,8 @@ for ($dayIndex = 0; $dayIndex < $selectedRangeDays; $dayIndex++) {
 
 foreach ($attemptHistoryRows as $attemptRow) {
     $isRoomAttempt = (int) ($attemptRow['room_id'] ?? 0) > 0;
+    $isStrictRoomAttempt = $isRoomAttempt && (int) ($attemptRow['room_strict_mode'] ?? 0) === 1;
+    $strictModeScore = max(0, min(100, (int) ($attemptRow['strict_mode_score'] ?? 0)));
     $status = !empty($attemptRow['completed_at'])
         ? 'completed'
         : ($isRoomAttempt ? 'failed' : 'ongoing');
@@ -59,6 +61,7 @@ foreach ($attemptHistoryRows as $attemptRow) {
         : null;
     $durationLabel = $status === 'failed' ? 'Failed' : 'Ongoing';
     $durationDetails = 'Taken ' . $startedAt->format('M j, Y g:i A');
+    $statusBadgeLabel = ucfirst($status);
 
     if ($completedAt instanceof DateTimeImmutable) {
         $durationSeconds = max(0, $completedAt->getTimestamp() - $startedAt->getTimestamp());
@@ -71,19 +74,34 @@ foreach ($attemptHistoryRows as $attemptRow) {
         $durationDetails = 'Taken ' . $startedAt->format('M j, Y g:i A') . ' - Running for ' . $formatDurationLabel($ongoingSeconds);
     }
 
+    if ($isStrictRoomAttempt && $status !== 'ongoing') {
+        $statusBadgeLabel = $strictModeScore . '%';
+        $durationDetails = 'Taken ' . $startedAt->format('M j, Y g:i A')
+            . ($completedAt instanceof DateTimeImmutable
+                ? ' - Completed in ' . $durationLabel
+                : ' - Strict mode result recorded at ' . $strictModeScore . '%.');
+    }
+
     $analyticsRows[] = [
         'challengeId' => (int) $attemptRow['challenge_id'],
         'title' => (string) $attemptRow['name'],
         'status' => $status,
+        'statusBadgeLabel' => $statusBadgeLabel,
+        'isStrictRoomAttempt' => $isStrictRoomAttempt,
+        'strictModeScore' => $strictModeScore,
         'level' => ucfirst(strtolower((string) ($attemptRow['difficulty_name'] ?? 'Beginner'))),
         'startedAt' => $startedAt,
         'completedAt' => $completedAt,
         'duration' => $durationLabel,
         'durationDetails' => $durationDetails,
         'summary' => $status === 'completed'
-            ? 'Completed this CSS matching challenge and locked in the solve.'
+            ? ($isStrictRoomAttempt
+                ? 'Submitted this strict mode room challenge and recorded the final match score.'
+                : 'Completed this CSS matching challenge and locked in the solve.')
             : ($status === 'failed'
-                ? 'Started this CSS matching challenge inside a room, but the run was not completed.'
+                ? ($isStrictRoomAttempt
+                    ? 'Submitted this strict mode room challenge and recorded the final match score.'
+                    : 'Started this CSS matching challenge inside a room, but the run was not completed.')
                 : 'Started this CSS matching challenge and still has an active run.'),
         'href' => $status === 'ongoing'
             ? './?c=pixelwar&intro=1&challenge_id=' . (int) $attemptRow['challenge_id']
@@ -179,7 +197,7 @@ foreach ($attemptHistoryRows as $attemptRow) {
                         </div>
                         <div>
                             <span class="rounded-full <?= $row['status'] === 'completed' ? 'bg-arcade-mint/70' : ($row['status'] === 'failed' ? 'bg-arcade-coral/30' : 'bg-arcade-yellow/70') ?> px-3 py-1 text-xs font-bold">
-                                <?= htmlspecialchars(ucfirst($row['status']), ENT_QUOTES, 'UTF-8') ?>
+                                <?= htmlspecialchars((string) ($row['statusBadgeLabel'] ?? ucfirst($row['status'])), ENT_QUOTES, 'UTF-8') ?>
                             </span>
                         </div>
                         <p class="text-xs font-bold text-arcade-ink/60"><?= htmlspecialchars($row['level'], ENT_QUOTES, 'UTF-8') ?> - <?= htmlspecialchars($row['duration'], ENT_QUOTES, 'UTF-8') ?></p>

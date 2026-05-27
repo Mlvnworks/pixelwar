@@ -7,6 +7,7 @@ $gameChallengeError = '';
 $gameRoom = null;
 $gameRoomDeadlineIso = '';
 $gameRoomTimerLimit = 0;
+$gameRoomStrictMode = false;
 $gamePusherEnabled = isset($pusherService) && $pusherService instanceof PusherService && $pusherService->isConfigured();
 
 if ($gameChallengeId > 0) {
@@ -68,7 +69,8 @@ if ($gameChallengeId > 0) {
         }
 
         $gameChallengeIsPublic = (int) ($gameChallenge['status'] ?? 0) === 1;
-        if (!$gameChallengeIsPublic) {
+        $gameIsRoomChallengeAccess = $gameRoomId > 0 && $gameRoom !== null;
+        if (!$gameChallengeIsPublic && !$gameIsRoomChallengeAccess) {
             throw new RuntimeException('This challenge is not available publicly right now.');
         }
 
@@ -88,6 +90,7 @@ if ($gameChallengeId > 0) {
             if ($gameRoom !== null) {
                 $startedAtTs = strtotime((string) ($gameRoom['started_at'] ?? ''));
                 $gameRoomTimerLimit = max(0, (int) ($gameRoom['timer_limit'] ?? 0));
+                $gameRoomStrictMode = (int) ($gameRoom['strict_mode'] ?? 0) === 1;
                 if ($startedAtTs !== false && $gameRoomTimerLimit > 0) {
                     $gameRoomDeadlineIso = date(DATE_ATOM, $startedAtTs + ($gameRoomTimerLimit * 60));
                 }
@@ -164,6 +167,9 @@ $gameUserChallengeId = $gameUserChallenge !== null ? (int) $gameUserChallenge['u
                         <span class="gameplay-time" id="gameplay-time" data-started-at="<?= htmlspecialchars($gameStartedAtIso, ENT_QUOTES, 'UTF-8') ?>">00:00</span>
                         <?php if ($gameRoomDeadlineIso !== '') : ?>
                             <span class="gameplay-time" id="room-session-timer" data-deadline-at="<?= htmlspecialchars($gameRoomDeadlineIso, ENT_QUOTES, 'UTF-8') ?>">00:00</span>
+                        <?php endif; ?>
+                        <?php if ($gameRoomStrictMode && $gameRoomId > 0) : ?>
+                            <button type="button" id="strict-mode-submit-button" class="give-up-button give-up-button--submit">Submit</button>
                         <?php endif; ?>
                         <form id="give-up-form" class="give-up-form" action="./?c=pixelwar" method="post">
                             <?= pixelwarCsrfField() ?>
@@ -350,6 +356,49 @@ $gameUserChallengeId = $gameUserChallenge !== null ? (int) $gameUserChallenge['u
     </div>
 </div>
 
+<div class="modal fade gameplay-strict-result-modal" id="gameplay-strict-result-modal" tabindex="-1" aria-labelledby="gameplay-strict-result-modal-title" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-[24px] border-4 border-arcade-ink bg-arcade-panel p-0 text-arcade-ink shadow-[8px_8px_0_#26190f]">
+            <div class="modal-header border-0 px-4 pb-2 pt-4">
+                <div>
+                    <p class="font-arcade text-[10px] uppercase tracking-[0.22em] text-arcade-orange">Strict Mode Result</p>
+                    <h2 id="gameplay-strict-result-modal-title" class="modal-title mt-2 text-xl font-bold">Run submitted.</h2>
+                </div>
+                <button type="button" class="btn-close opacity-100" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body px-4 pb-4 pt-2">
+                <div class="gameplay-complete-summary">
+                    <div class="gameplay-complete-card">
+                        <span class="gameplay-complete-card__label">Challenge</span>
+                        <strong id="gameplay-strict-result-name">Pixelwar</strong>
+                    </div>
+                    <div class="gameplay-complete-grid">
+                        <div class="gameplay-complete-card">
+                            <span class="gameplay-complete-card__label">Match Score</span>
+                            <strong id="gameplay-strict-result-score">0%</strong>
+                        </div>
+                        <div class="gameplay-complete-card">
+                            <span class="gameplay-complete-card__label">Selectors</span>
+                            <strong id="gameplay-strict-result-selectors">0</strong>
+                        </div>
+                        <div class="gameplay-complete-card">
+                            <span class="gameplay-complete-card__label">Properties</span>
+                            <strong id="gameplay-strict-result-properties">0</strong>
+                        </div>
+                    </div>
+                    <div class="gameplay-complete-card">
+                        <span class="gameplay-complete-card__label">Result</span>
+                        <strong id="gameplay-strict-result-message">Your run has ended.</strong>
+                    </div>
+                </div>
+                <div class="mt-4 flex flex-col gap-3 sm:flex-row sm:justify-end">
+                    <a href="./?c=home" class="rounded-xl border-2 border-arcade-ink bg-arcade-yellow px-5 py-2 text-center text-sm font-bold text-arcade-ink no-underline shadow-[0_4px_0_#26190f] transition hover:-translate-y-0.5 hover:bg-arcade-orange hover:text-white">Back Home</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <?php if ($gameRoomId > 0 && $gamePusherEnabled) : ?>
     <script src="https://js.pusher.com/8.4.0/pusher.min.js"></script>
 <?php endif; ?>
@@ -373,6 +422,7 @@ $gameUserChallengeId = $gameUserChallenge !== null ? (int) $gameUserChallenge['u
         roomId: <?= (int) $gameRoomId ?>,
         roomDeadlineAt: <?= json_encode($gameRoomDeadlineIso, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?: "''" ?>,
         roomTimerLimit: <?= (int) $gameRoomTimerLimit ?>,
+        strictMode: <?= $gameRoomStrictMode ? 'true' : 'false' ?>,
         userChallengeId: <?= (int) $gameUserChallengeId ?>,
         challengeTitle: <?= json_encode($gameChallengeTitle, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?: "''" ?>,
         csrfToken: <?= json_encode(pixelwarCsrfToken(), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?: "''" ?>,
@@ -393,10 +443,13 @@ $gameUserChallengeId = $gameUserChallenge !== null ? (int) $gameUserChallenge['u
     const progressBarFill = document.getElementById('progress-bar-fill');
     const resetButton = document.getElementById('reset-layout-btn');
     const propertySearchInput = document.getElementById('property-search');
+    const strictModeSubmitButton = document.getElementById('strict-mode-submit-button');
     const openingEffect = document.getElementById('game-opening-effect');
     const completionConfetti = document.getElementById('completion-confetti');
     const completionModalElement = document.getElementById('gameplay-complete-modal');
     const completionModal = completionModalElement ? new bootstrap.Modal(completionModalElement) : null;
+    const strictResultModalElement = document.getElementById('gameplay-strict-result-modal');
+    const strictResultModal = strictResultModalElement ? new bootstrap.Modal(strictResultModalElement) : null;
     const exitModalElement = document.getElementById('gameplay-exit-modal');
     const exitModal = exitModalElement ? new bootstrap.Modal(exitModalElement) : null;
     const confirmGiveUpButton = document.getElementById('confirm-give-up-button');
@@ -431,6 +484,7 @@ $gameUserChallengeId = $gameUserChallenge !== null ? (int) $gameUserChallenge['u
         isCompleted: false,
         skipUnloadWarning: false,
         isUnavailable: false,
+        strictProgressPercent: null,
     };
 
     let gameplayAudioContext = null;
@@ -671,6 +725,22 @@ ${css}
         setText('gameplay-complete-finished-at', formatDateTime(completionData.completed_at || ''));
     };
 
+    const populateStrictResultModal = (score, message) => {
+        const setText = (id, value) => {
+            const node = document.getElementById(id);
+            if (node) {
+                node.textContent = value;
+            }
+        };
+
+        const normalizedScore = Math.max(0, Math.min(100, Number(score || 0)));
+        setText('gameplay-strict-result-name', challengeConfig.challengeTitle || 'Pixelwar');
+        setText('gameplay-strict-result-score', `${normalizedScore}%`);
+        setText('gameplay-strict-result-selectors', String(state.selectorKeys.length));
+        setText('gameplay-strict-result-properties', String(state.totalCount));
+        setText('gameplay-strict-result-message', message || `Your run ended with ${normalizedScore}% match.`);
+    };
+
     const submitCompletion = async () => {
         if (state.isCompletionSubmitting || state.isCompleted || state.isUnavailable || !challengeConfig.challengeId || !challengeConfig.userChallengeId) {
             return;
@@ -781,6 +851,10 @@ ${css}
             });
 
             const payload = await response.json().catch(() => null);
+
+            if (state.isCompleted || state.isCompletionSubmitting || state.isUnavailable) {
+                return;
+            }
 
             if (!response.ok || !payload?.success || payload?.available === false) {
                 handleChallengeUnavailable(payload?.message || 'This challenge is no longer available.');
@@ -1267,10 +1341,12 @@ ${css}
             const metaNode = state.selectorMetaLookup[selectorKey];
             card.classList.remove('is-target-danger', 'is-target-complete');
 
-            if (selectorStatus.complete) {
-                card.classList.add('is-target-complete');
-            } else if (selectorStatus.mismatch) {
-                card.classList.add('is-target-danger');
+            if (!challengeConfig.strictMode) {
+                if (selectorStatus.complete) {
+                    card.classList.add('is-target-complete');
+                } else if (selectorStatus.mismatch) {
+                    card.classList.add('is-target-danger');
+                }
             }
 
             if (metaNode) {
@@ -1296,6 +1372,17 @@ ${css}
         });
 
         const progressPercent = state.totalCount > 0 ? Math.round((correctCount / state.totalCount) * 100) : 0;
+
+        if (challengeConfig.strictMode) {
+            if (progressBarFill) {
+                progressBarFill.style.width = `${Math.max(0, Math.min(100, Number(state.strictProgressPercent ?? 0)))}%`;
+            }
+            if (state.strictProgressPercent === null) {
+                setStatus('Strict mode: submit to record your progress.');
+            }
+            return { correctCount, hasMismatch, allComplete, progressPercent };
+        }
+
         if (progressBarFill) {
             progressBarFill.style.width = `${progressPercent}%`;
         }
@@ -1306,6 +1393,8 @@ ${css}
         } else {
             setStatus(hasMismatch ? 'Mismatch detected' : 'In progress');
         }
+
+        return { correctCount, hasMismatch, allComplete, progressPercent };
     };
 
     const render = () => {
@@ -1313,6 +1402,71 @@ ${css}
         renderPreviewStyles();
         renderSelectorStates();
         renderProgress();
+    };
+
+    const submitStrictModeScore = async (progressPercent) => {
+        if (!challengeConfig.roomId || !challengeConfig.csrfToken || !challengeConfig.challengeId || !challengeConfig.userChallengeId) {
+            throw new Error('Strict mode submit is not available.');
+        }
+
+        const body = new URLSearchParams({
+            _csrf_token: challengeConfig.csrfToken,
+            gameplay_action: 'strict_mode_submit',
+            room_id: String(challengeConfig.roomId),
+            challenge_id: String(challengeConfig.challengeId),
+            user_challenge_id: String(challengeConfig.userChallengeId),
+            strict_mode_score: String(progressPercent),
+        });
+
+        const response = await fetch('./?c=pixelwar', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+            body: body.toString(),
+        });
+
+        const payload = await response.json().catch(() => null);
+
+        if (!response.ok || !payload?.success) {
+            throw new Error(payload?.message || 'Unable to submit strict mode progress right now.');
+        }
+
+        return payload;
+    };
+
+    const handleStrictModeSubmit = async () => {
+        if (!challengeConfig.strictMode || state.isCompleted || state.isCompletionSubmitting || state.isUnavailable) {
+            return;
+        }
+
+        state.isCompletionSubmitting = true;
+        const progressState = renderProgress();
+        const progressPercent = Number(progressState?.progressPercent || 0);
+        state.strictProgressPercent = progressPercent;
+        if (progressBarFill) {
+            progressBarFill.style.width = `${progressPercent}%`;
+        }
+
+        try {
+            const payload = await submitStrictModeScore(progressPercent);
+            state.skipUnloadWarning = true;
+            state.isCompleted = progressPercent >= 100;
+            state.isUnavailable = progressPercent < 100;
+            setStatus(payload?.message || `Strict mode result recorded: ${progressPercent}%.`, progressPercent >= 100);
+            exitModal?.hide();
+            completionModal?.hide();
+            if (progressPercent >= 100) {
+                launchConfetti();
+            }
+            populateStrictResultModal(progressPercent, payload?.message || `Your run ended with ${progressPercent}% match.`);
+            strictResultModal?.show();
+        } catch (error) {
+            console.error(error);
+            state.isCompletionSubmitting = false;
+            setStatus(error instanceof Error ? error.message : 'Unable to submit strict mode progress right now.');
+        }
     };
 
     const scrollSelectorCardIntoView = (key) => {
@@ -1515,6 +1669,7 @@ ${css}
         state.placements.pool = { ...state.totalRequiredByProperty };
         state.hoveredSelectorKey = null;
         state.pinnedSelectorKey = null;
+        state.strictProgressPercent = null;
         clearSelectorCardHighlight();
         clearSelectedPayload();
         render();
@@ -1592,7 +1747,7 @@ ${css}
             attachDropHandlers();
             loadTargetPreviews();
             render();
-            setStatus('In progress');
+            setStatus(challengeConfig.strictMode ? 'Strict mode: submit to record your progress.' : 'In progress');
         } catch (error) {
             console.error(error);
             setStatus('Challenge load failed');
@@ -1626,6 +1781,7 @@ ${css}
 
     resetButton?.addEventListener('click', resetGame);
     propertySearchInput?.addEventListener('input', renderLists);
+    strictModeSubmitButton?.addEventListener('click', handleStrictModeSubmit);
     giveUpForm?.addEventListener('submit', (event) => {
         event.preventDefault();
         if (state.isCompleted || state.isCompletionSubmitting) {

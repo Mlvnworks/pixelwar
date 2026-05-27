@@ -97,7 +97,7 @@ $latestCreatedItems = array_slice($latestCreatedItems, 0, 10);
                     </p>
                 </div>
                 <div class="flex flex-wrap gap-2">
-                    <a href="../?c=room" class="teacher-button teacher-button--light gap-2">
+                    <a href="./?c=create-room" class="teacher-button teacher-button--light gap-2">
                         <i data-lucide="messages-square" class="h-4 w-4" aria-hidden="true"></i>
                         <span>Create Room</span>
                     </a>

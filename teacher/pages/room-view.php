@@ -44,7 +44,9 @@ $formatTimestamp = static function (?string $value): string {
             $roomDescription = trim((string) ($room['room_description'] ?? ''));
             $htmlSourceUrl = (string) ($room['html_source'] ?? '');
             $cssSourceUrl = (string) ($room['css_source'] ?? '');
-            $dummyShareLink = 'https://pixelwar.local/room/' . rawurlencode($roomCode !== 'Not set' ? $roomCode : 'ROOM-CODE');
+            $shareLink = $roomCode !== 'Not set'
+                ? rtrim(APP_URL, '/') . '/?c=room&room_code=' . rawurlencode($roomCode)
+                : '';
             ?>
 
             <article class="teacher-hero rounded-[26px] border-4 border-arcade-ink bg-arcade-panel p-4 shadow-[7px_7px_0_#26190f] md:p-6">
@@ -190,7 +192,7 @@ $formatTimestamp = static function (?string $value): string {
             </div>
             <div class="modal-body px-4 py-4">
                 <p class="mb-4 text-sm font-bold leading-6 text-arcade-ink/70">
-                    Copy the room code or the room link. The link is placeholder-only for now.
+                    Copy the room code or the room link to share room access with players.
                 </p>
 
                 <div class="room-share-stack">
@@ -211,12 +213,12 @@ $formatTimestamp = static function (?string $value): string {
                     <div class="room-share-card">
                         <div>
                             <p class="room-share-label">Room Link</p>
-                            <strong class="room-share-value room-share-value--link"><?= htmlspecialchars($dummyShareLink, ENT_QUOTES, 'UTF-8') ?></strong>
+                            <strong class="room-share-value room-share-value--link"><?= htmlspecialchars($shareLink !== '' ? $shareLink : 'Unavailable', ENT_QUOTES, 'UTF-8') ?></strong>
                         </div>
                         <button
                             type="button"
                             class="room-share-copy-button"
-                            data-copy-text="<?= htmlspecialchars($dummyShareLink, ENT_QUOTES, 'UTF-8') ?>"
+                            data-copy-text="<?= htmlspecialchars($shareLink, ENT_QUOTES, 'UTF-8') ?>"
                             data-default-label="Copy Link">
                             Copy Link
                         </button>

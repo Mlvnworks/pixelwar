@@ -43,7 +43,9 @@ final class GameplayCompletionService
             throw new RuntimeException('This challenge is no longer available. Your run was ended.');
         }
 
-        if ((int) ($challenge['status'] ?? 0) !== 1) {
+        $isRoomLinkedRun = (int) ($ongoingRun['room_id'] ?? 0) > 0;
+
+        if ((int) ($challenge['status'] ?? 0) !== 1 && !$isRoomLinkedRun) {
             $this->userChallenges->deleteOngoingForUser($userChallengeId, $userId);
             throw new RuntimeException('This challenge is not available publicly right now. Your run was ended.');
         }

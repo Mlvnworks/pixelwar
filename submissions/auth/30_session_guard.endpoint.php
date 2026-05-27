@@ -88,6 +88,27 @@ if ($requestMethod === 'GET' && $sessionUser !== null && in_array($currentPage, 
 if (
     $requestMethod === 'GET'
     && $sessionUser !== null
+    && (int) ($sessionUser['role_id'] ?? 0) === pixelwarStudentRoleId()
+    && $userChallengeRepository instanceof UserChallengeRepository
+) {
+    $activeRoomRun = $userChallengeRepository->findActiveRoomRunLock((int) ($sessionUser['user_id'] ?? 0));
+    if ($activeRoomRun !== null) {
+        $lockedChallengeId = (int) ($activeRoomRun['challenge_id'] ?? 0);
+        $lockedRoomId = (int) ($activeRoomRun['room_id'] ?? 0);
+        $onLockedGameplayPage = $currentPage === 'pixelwar'
+            && (int) ($_GET['challenge_id'] ?? 0) === $lockedChallengeId
+            && (int) ($_GET['room_id'] ?? 0) === $lockedRoomId;
+
+        if (!$onLockedGameplayPage && $lockedChallengeId > 0 && $lockedRoomId > 0) {
+            header('Location: ./?c=pixelwar&challenge_id=' . $lockedChallengeId . '&room_id=' . $lockedRoomId);
+            exit;
+        }
+    }
+}
+
+if (
+    $requestMethod === 'GET'
+    && $sessionUser !== null
     && (int) ($sessionUser['role_id'] ?? 0) !== pixelwarStudentRoleId()
     && !$isPublicPage
     && !$isOnboardingPage

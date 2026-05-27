@@ -16,8 +16,8 @@ final class RoomPlayerRepository
 
         $status = 0;
         $statement = $this->connection->prepare(
-            'INSERT INTO room_players (user_id, room_id, status, last_seen_at, started_at, completed_at)
-             VALUES (?, ?, ?, CURRENT_TIMESTAMP, NULL, NULL)'
+            'INSERT INTO room_players (user_id, room_id, status, strict_mode_score, last_seen_at, started_at, completed_at)
+             VALUES (?, ?, ?, 0, CURRENT_TIMESTAMP, NULL, NULL)'
         );
         $statement->bind_param('iii', $userId, $roomId, $status);
         $statement->execute();
@@ -29,6 +29,7 @@ final class RoomPlayerRepository
             'user_id' => $userId,
             'room_id' => $roomId,
             'status' => 0,
+            'strict_mode_score' => 0,
             'started_at' => null,
             'completed_at' => null,
             'was_created' => true,
@@ -42,7 +43,7 @@ final class RoomPlayerRepository
         }
 
         $statement = $this->connection->prepare(
-            'SELECT rp_id, user_id, room_id, status, started_at, completed_at
+            'SELECT rp_id, user_id, room_id, status, strict_mode_score, started_at, completed_at
              FROM room_players
              WHERE user_id = ?
                 AND room_id = ?
@@ -72,6 +73,7 @@ final class RoomPlayerRepository
                 room_players.user_id,
                 room_players.room_id,
                 room_players.status,
+                room_players.strict_mode_score,
                 room_players.started_at,
                 room_players.completed_at,
                 users.username,
@@ -206,6 +208,7 @@ final class RoomPlayerRepository
         $statement = $this->connection->prepare(
             'UPDATE room_players
              SET status = 0,
+                 strict_mode_score = 0,
                  last_seen_at = CURRENT_TIMESTAMP,
                  started_at = NULL,
                  completed_at = NULL
@@ -246,6 +249,7 @@ final class RoomPlayerRepository
         $statement = $this->connection->prepare(
             'UPDATE room_players
              SET status = 2,
+                 strict_mode_score = 100,
                  last_seen_at = CURRENT_TIMESTAMP,
                  started_at = COALESCE(started_at, CURRENT_TIMESTAMP),
                  completed_at = CURRENT_TIMESTAMP
@@ -273,6 +277,49 @@ final class RoomPlayerRepository
              LIMIT 1'
         );
         $statement->bind_param('ii', $userId, $roomId);
+        $statement->execute();
+        $updated = $statement->affected_rows >= 0;
+        $statement->close();
+
+        return $updated;
+    }
+
+    public function markStrictSubmittedFailed(int $userId, int $roomId): bool
+    {
+        $statement = $this->connection->prepare(
+            'UPDATE room_players
+             SET status = 3,
+                 last_seen_at = CURRENT_TIMESTAMP,
+                 started_at = COALESCE(started_at, CURRENT_TIMESTAMP),
+                 completed_at = CURRENT_TIMESTAMP
+             WHERE user_id = ?
+                AND room_id = ?
+             LIMIT 1'
+        );
+        $statement->bind_param('ii', $userId, $roomId);
+        $statement->execute();
+        $updated = $statement->affected_rows >= 0;
+        $statement->close();
+
+        return $updated;
+    }
+
+    public function updateStrictModeScore(int $userId, int $roomId, int $score): bool
+    {
+        if ($userId <= 0 || $roomId <= 0) {
+            return false;
+        }
+
+        $normalizedScore = max(0, min(100, $score));
+        $statement = $this->connection->prepare(
+            'UPDATE room_players
+             SET strict_mode_score = ?,
+                 last_seen_at = CURRENT_TIMESTAMP
+             WHERE user_id = ?
+                AND room_id = ?
+             LIMIT 1'
+        );
+        $statement->bind_param('iii', $normalizedScore, $userId, $roomId);
         $statement->execute();
         $updated = $statement->affected_rows >= 0;
         $statement->close();

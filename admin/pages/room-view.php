@@ -63,6 +63,17 @@ $formatDurationRange = static function (?string $startedAt, ?string $completedAt
     return implode(' ', $parts);
 };
 
+$adminRoomPlayerDisplayStatus = static function (array $player, bool $roomEnded = false, bool $strictModeEnabled = false): string {
+    $baseStatus = adminPanelRoomPlayerStatusLabel($player, $roomEnded);
+
+    if ($strictModeEnabled && $roomEnded) {
+        $score = max(0, min(100, (int) ($player['strict_mode_score'] ?? 0)));
+        return $score . '%';
+    }
+
+    return $baseStatus;
+};
+
 $adminRoomViewBuildQuery = static function (array $overrides = []) use ($adminRoomViewId, $adminRoomPlayerStatusFilter, $adminRoomPlayerSearch): string {
     $query = [
         'c' => 'room-view',
@@ -171,10 +182,10 @@ $adminRoomViewBuildQuery = static function (array $overrides = []) use ($adminRo
                             <span class="teacher-pill <?= $strictModeEnabled ? 'bg-arcade-coral/25' : 'bg-arcade-cyan/25' ?>"><?= $strictModeEnabled ? 'Strict' : 'Normal' ?></span>
                         </div>
                     </div>
-                    <div class="admin-room-view-hero__actions">
-                        <button type="button" class="teacher-button teacher-button--primary gap-2" data-bs-toggle="modal" data-bs-target="#admin-room-challenge-modal">
-                            <i data-lucide="square-arrow-out-up-right" class="h-4 w-4" aria-hidden="true"></i>
-                            <span>Open Challenge</span>
+                <div class="admin-room-view-hero__actions">
+                    <button type="button" class="teacher-button teacher-button--primary gap-2" data-bs-toggle="modal" data-bs-target="#admin-room-challenge-modal">
+                        <i data-lucide="square-arrow-out-up-right" class="h-4 w-4" aria-hidden="true"></i>
+                        <span>Open Challenge</span>
                         </button>
                     </div>
                 </div>
@@ -301,13 +312,20 @@ $adminRoomViewBuildQuery = static function (array $overrides = []) use ($adminRo
                                         <?php
                                         $playerName = trim((string) ($playerRow['firstname'] ?? '') . ' ' . (string) ($playerRow['lastname'] ?? ''));
                                         $playerName = $playerName !== '' ? $playerName : (string) ($playerRow['username'] ?? 'Student');
-                                        $statusLabel = adminPanelRoomPlayerStatusLabel($playerRow, $roomEnded);
-                                        $statusClass = match ($statusLabel) {
-                                            'Completed' => 'bg-arcade-mint/35',
-                                            'Solving' => 'bg-arcade-yellow/35',
-                                            'Failed' => 'bg-arcade-coral/25',
+                                        $statusLabel = $adminRoomPlayerDisplayStatus($playerRow, $roomEnded, $strictModeEnabled);
+                                        $statusClass = match (true) {
+                                            $strictModeEnabled && $roomEnded && $statusLabel === '100%' => 'bg-arcade-mint/35',
+                                            $strictModeEnabled && $roomEnded && $statusLabel !== '0%' => 'bg-arcade-yellow/35',
+                                            $statusLabel === 'Completed' => 'bg-arcade-mint/35',
+                                            $statusLabel === 'Solving' => 'bg-arcade-yellow/35',
+                                            $statusLabel === 'Failed' => 'bg-arcade-coral/25',
                                             default => 'bg-white',
                                         };
+                                        $durationLabel = $formatDurationRange(
+                                            $playerRow['started_at'] ?? null,
+                                            $playerRow['completed_at'] ?? null,
+                                            $statusLabel
+                                        );
                                         ?>
                                         <tr class="border-b border-arcade-ink/10 align-top last:border-b-0">
                                             <td class="px-4 py-3 font-semibold text-arcade-ink break-words"><?= htmlspecialchars($playerName, ENT_QUOTES, 'UTF-8') ?></td>
@@ -317,7 +335,7 @@ $adminRoomViewBuildQuery = static function (array $overrides = []) use ($adminRo
                                             <td class="px-4 py-3">
                                                 <span class="teacher-pill <?= $statusClass ?>"><?= htmlspecialchars($statusLabel, ENT_QUOTES, 'UTF-8') ?></span>
                                             </td>
-                                            <td class="px-4 py-3 font-medium text-arcade-ink/65 break-words"><?= htmlspecialchars($formatDurationRange($playerRow['started_at'] ?? null, $playerRow['completed_at'] ?? null, $statusLabel), ENT_QUOTES, 'UTF-8') ?></td>
+                                            <td class="px-4 py-3 font-medium text-arcade-ink/65 break-words"><?= htmlspecialchars($durationLabel, ENT_QUOTES, 'UTF-8') ?></td>
                                         </tr>
                                     <?php endforeach; ?>
                                 </tbody>

@@ -31,22 +31,40 @@ if ($requestMethod === 'POST' && $requestedPage === 'pixelwar' && (string) ($_PO
             ], 409);
         }
 
-        if ((int) ($challenge['status'] ?? 0) !== 1) {
-            $userChallengeRepository->deleteOngoingForUser($userChallengeId, $userId);
+        $ongoing = $userChallengeRepository->findOwnedOngoing($userChallengeId, $userId, $challengeId);
+        $currentRun = $userChallengeRepository->findById($userChallengeId);
+
+        if (
+            $ongoing === null
+            && $currentRun !== null
+            && (int) ($currentRun['user_id'] ?? 0) === $userId
+            && (int) ($currentRun['challenge_id'] ?? 0) === $challengeId
+            && trim((string) ($currentRun['completed_at'] ?? '')) !== ''
+        ) {
             pixelwarJsonResponse([
-                'success' => false,
-                'available' => false,
-                'message' => 'This challenge is not available publicly right now. Your run was ended.',
-            ], 409);
+                'success' => true,
+                'available' => true,
+                'completed' => true,
+            ]);
         }
 
-        $ongoing = $userChallengeRepository->findOwnedOngoing($userChallengeId, $userId, $challengeId);
+        $activeRun = $ongoing ?? $currentRun;
+        $isRoomLinkedRun = $activeRun !== null && (int) ($activeRun['room_id'] ?? 0) > 0;
 
         if ($ongoing === null) {
             pixelwarJsonResponse([
                 'success' => false,
                 'available' => false,
                 'message' => 'Your run is no longer active.',
+            ], 409);
+        }
+
+        if ((int) ($challenge['status'] ?? 0) !== 1 && !$isRoomLinkedRun) {
+            $userChallengeRepository->deleteOngoingForUser($userChallengeId, $userId);
+            pixelwarJsonResponse([
+                'success' => false,
+                'available' => false,
+                'message' => 'This challenge is not available publicly right now. Your run was ended.',
             ], 409);
         }
 

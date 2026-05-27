@@ -68,5 +68,9 @@ if ($requestMethod === 'POST' && $requestedPage === 'pixelwar' && (string) ($_PO
         ];
     }
 
+    if ($roomId > 0) {
+        pixelwarRedirect('room&id=' . $roomId);
+    }
+
     pixelwarRedirect('challenge&id=' . $challengeId);
 }

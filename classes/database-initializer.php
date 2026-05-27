@@ -164,6 +164,7 @@ final class DatabaseInitializer
                 `user_id` INT NOT NULL,
                 `room_id` INT NOT NULL,
                 `status` INT NOT NULL DEFAULT 0,
+                `strict_mode_score` INT NOT NULL DEFAULT 0,
                 `last_seen_at` TIMESTAMP NULL NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 `started_at` TIMESTAMP NULL DEFAULT NULL,
                 `completed_at` TIMESTAMP NULL DEFAULT NULL,
@@ -341,8 +342,12 @@ final class DatabaseInitializer
             $connection->query('ALTER TABLE `room_players` ADD `status` INT NOT NULL DEFAULT 0 AFTER `room_id`');
         }
 
+        if ($this->tableExists($connection, 'room_players') && !$this->columnExists($connection, 'room_players', 'strict_mode_score')) {
+            $connection->query('ALTER TABLE `room_players` ADD `strict_mode_score` INT NOT NULL DEFAULT 0 AFTER `status`');
+        }
+
         if ($this->tableExists($connection, 'room_players') && !$this->columnExists($connection, 'room_players', 'last_seen_at')) {
-            $connection->query('ALTER TABLE `room_players` ADD `last_seen_at` TIMESTAMP NULL NOT NULL DEFAULT CURRENT_TIMESTAMP AFTER `status`');
+            $connection->query('ALTER TABLE `room_players` ADD `last_seen_at` TIMESTAMP NULL NOT NULL DEFAULT CURRENT_TIMESTAMP AFTER `strict_mode_score`');
         }
 
         if ($this->tableExists($connection, 'room_players') && !$this->columnExists($connection, 'room_players', 'started_at')) {

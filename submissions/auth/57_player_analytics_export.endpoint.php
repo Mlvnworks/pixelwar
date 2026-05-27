@@ -90,12 +90,18 @@ if (
                 ? new DateTimeImmutable((string) $exportRow['completed_at'])
                 : null;
             $attemptStatus = (string) ($exportRow['attempt_status'] ?? ($completedAt instanceof DateTimeImmutable ? 'completed' : 'ongoing'));
+            $isStrictRoomAttempt = (int) ($exportRow['room_id'] ?? 0) > 0 && (int) ($exportRow['room_strict_mode'] ?? 0) === 1;
+            $strictModeScore = max(0, min(100, (int) ($exportRow['strict_mode_score'] ?? 0)));
             $duration = $completedAt instanceof DateTimeImmutable
                 ? $formatDurationLabel(max(0, $completedAt->getTimestamp() - $startedAt->getTimestamp()))
                 : ($attemptStatus === 'gave_up' ? 'Gave Up' : 'Ongoing');
             $statusLabel = $completedAt instanceof DateTimeImmutable
                 ? 'Completed'
                 : ($attemptStatus === 'gave_up' ? 'Gave Up' : 'Ongoing');
+
+            if ($isStrictRoomAttempt && $attemptStatus !== 'ongoing') {
+                $statusLabel = $strictModeScore . '%';
+            }
 
             fputcsv($output, [
                 (string) $exportRow['name'],

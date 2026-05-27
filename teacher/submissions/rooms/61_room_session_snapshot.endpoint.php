@@ -33,6 +33,7 @@ if ($teacherRequestMethod === 'POST' && $teacherRequestedPage === 'room-session'
         }
 
         $roomEnded = trim((string) ($room['ended_at'] ?? '')) !== '';
+        $strictModeEnabled = (int) ($room['strict_mode'] ?? 0) === 1;
         $players = [];
         foreach ($roomPlayerRepository->listJoinedForRoom($roomId) as $player) {
             $displayName = trim((string) ($player['firstname'] ?? '') . ' ' . (string) ($player['lastname'] ?? ''))
@@ -54,6 +55,8 @@ if ($teacherRequestMethod === 'POST' && $teacherRequestedPage === 'room-session'
             } else {
                 $statusLabel = 'waiting';
             }
+
+            $strictModeScore = max(0, min(100, (int) ($player['strict_mode_score'] ?? 0)));
 
             if ($startedAt !== '' && $completedAt !== '') {
                 $startedTs = strtotime($startedAt);
@@ -79,6 +82,13 @@ if ($teacherRequestMethod === 'POST' && $teacherRequestedPage === 'room-session'
                 $durationLabel = $statusLabel;
             }
 
+            if ($strictModeEnabled && in_array($status, [2, 3], true)) {
+                $statusLabel = $strictModeScore . '%';
+                $durationLabel = $completedAt !== '' && $startedAt !== ''
+                    ? $durationLabel
+                    : ($strictModeScore . '%');
+            }
+
             $players[] = [
                 'rp_id' => (int) ($player['rp_id'] ?? 0),
                 'user_id' => (int) ($player['user_id'] ?? 0),
@@ -92,6 +102,7 @@ if ($teacherRequestMethod === 'POST' && $teacherRequestedPage === 'room-session'
                 'duration_label' => $durationLabel,
                 'started_at' => (string) ($player['started_at'] ?? ''),
                 'completed_at' => (string) ($player['completed_at'] ?? ''),
+                'strict_mode_score' => $strictModeScore,
             ];
         }
 

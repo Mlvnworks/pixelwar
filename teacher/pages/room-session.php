@@ -71,7 +71,32 @@ $statusForPlayer = static function (array $player, bool $roomEnded = false): arr
     return ['label' => 'Waiting', 'class' => 'room-session-pill--joined'];
 };
 
-$formatPlayerDuration = static function (array $player, bool $roomEnded = false) use ($statusForPlayer): string {
+$strictScoreForPlayer = static function (array $player): int {
+    return max(0, min(100, (int) ($player['strict_mode_score'] ?? 0)));
+};
+
+$displayStatusForPlayer = static function (array $player, bool $roomEnded = false, bool $strictModeEnabled = false) use ($statusForPlayer, $strictScoreForPlayer): array {
+    $statusMeta = $statusForPlayer($player, $roomEnded);
+    $status = (int) ($player['status'] ?? 0);
+
+    if ($strictModeEnabled && in_array($status, [2, 3], true)) {
+        $score = $strictScoreForPlayer($player);
+
+        if ($score >= 100) {
+            return ['label' => '100%', 'class' => 'room-session-pill--completed'];
+        }
+
+        if ($score > 0) {
+            return ['label' => $score . '%', 'class' => 'room-session-pill--started'];
+        }
+
+        return ['label' => '0%', 'class' => 'room-session-pill--gave-up'];
+    }
+
+    return $statusMeta;
+};
+
+$formatPlayerDuration = static function (array $player, bool $roomEnded = false, bool $strictModeEnabled = false) use ($statusForPlayer, $displayStatusForPlayer): string {
     $startedAt = trim((string) ($player['started_at'] ?? ''));
     $completedAt = trim((string) ($player['completed_at'] ?? ''));
 
@@ -97,7 +122,9 @@ $formatPlayerDuration = static function (array $player, bool $roomEnded = false)
         }
     }
 
-    $statusMeta = $statusForPlayer($player, $roomEnded);
+    $statusMeta = $strictModeEnabled
+        ? $displayStatusForPlayer($player, $roomEnded, $strictModeEnabled)
+        : $statusForPlayer($player, $roomEnded);
     return $statusMeta['label'];
 };
 
@@ -204,8 +231,8 @@ foreach ($roomSessionPlayers as $roomSessionPlayer) {
             <div id="room-session-player-list" class="mt-4 grid gap-3<?= $roomSessionPlayers === [] ? ' hidden' : '' ?>">
                 <?php foreach ($roomSessionPlayers as $roomSessionPlayer) : ?>
                     <?php
-                    $playerStatus = $statusForPlayer($roomSessionPlayer, $roomSessionIsEnded);
-                    $playerDuration = $formatPlayerDuration($roomSessionPlayer, $roomSessionIsEnded);
+                    $playerStatus = $displayStatusForPlayer($roomSessionPlayer, $roomSessionIsEnded, $strictModeEnabled);
+                    $playerDuration = $formatPlayerDuration($roomSessionPlayer, $roomSessionIsEnded, $strictModeEnabled);
                     $displayName = trim((string) ($roomSessionPlayer['firstname'] ?? '') . ' ' . (string) ($roomSessionPlayer['lastname'] ?? ''))
                         ?: trim((string) ($roomSessionPlayer['username'] ?? 'Student'))
                         ?: 'Student';
@@ -348,6 +375,7 @@ foreach ($roomSessionPlayers as $roomSessionPlayer) {
         const sessionCsrfToken = <?= json_encode(teacherPanelCsrfToken(), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?>;
         const pusherKey = <?= json_encode($pusherEnabled ? (string) PUSHER_KEY : '', JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?>;
         const pusherCluster = <?= json_encode($pusherEnabled ? (string) PUSHER_CLUSTER : '', JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?>;
+        const strictModeEnabled = <?= $strictModeEnabled ? 'true' : 'false' ?>;
         const playerList = document.getElementById('room-session-player-list');
         const emptyState = document.getElementById('room-session-empty-state');
         const recordCount = document.getElementById('room-session-record-count');
@@ -357,6 +385,7 @@ foreach ($roomSessionPlayers as $roomSessionPlayer) {
         const solvingCount = document.getElementById('room-session-solving-count');
         const completedCount = document.getElementById('room-session-completed-count');
         let roomEndSubmitting = false;
+        let roomEnded = <?= $roomSessionIsEnded ? 'true' : 'false' ?>;
 
         const statusClassMap = {
             waiting: 'room-session-pill--joined',
@@ -367,6 +396,16 @@ foreach ($roomSessionPlayers as $roomSessionPlayer) {
 
         const renderStatus = (label) => {
             const normalized = String(label || 'waiting').toLowerCase();
+            if (strictModeEnabled && /^\d{1,3}%$/.test(String(label || '').trim())) {
+                const score = Math.max(0, Math.min(100, Number.parseInt(String(label).trim(), 10) || 0));
+                if (score >= 100) {
+                    return { label: '100%', className: statusClassMap.completed };
+                }
+                if (score > 0) {
+                    return { label: `${score}%`, className: statusClassMap.solving };
+                }
+                return { label: '0%', className: statusClassMap.gave_up };
+            }
             if (normalized === 'failed' || normalized === 'gave_up' || normalized === 'gave up') {
                 return { label: 'Failed', className: statusClassMap.gave_up };
             }
@@ -459,7 +498,7 @@ foreach ($roomSessionPlayers as $roomSessionPlayer) {
                 const statusText = (pill?.textContent || '').trim().toLowerCase();
                 if (statusText === 'solving') {
                     solving++;
-                } else if (statusText === 'completed') {
+                } else if (statusText === 'completed' || statusText === '100%') {
                     completed++;
                 }
             });
@@ -612,10 +651,12 @@ foreach ($roomSessionPlayers as $roomSessionPlayer) {
 
                     if (startedPill) {
                         if (data.room_ended) {
+                            roomEnded = true;
                             startedPill.textContent = 'Room Ended';
                             startedPill.classList.remove('bg-white', 'bg-arcade-orange');
                             startedPill.classList.add('bg-arcade-coral', 'text-white');
                         } else if (data.room_started) {
+                            roomEnded = false;
                             startedPill.textContent = 'Room Started';
                             startedPill.classList.remove('bg-white', 'bg-arcade-coral');
                             startedPill.classList.add('bg-arcade-orange', 'text-white');
@@ -661,6 +702,7 @@ foreach ($roomSessionPlayers as $roomSessionPlayer) {
 
             channel.bind('session-ended', () => {
                 roomEndSubmitting = true;
+                roomEnded = true;
                 if (startedPill) {
                     startedPill.textContent = 'Room Ended';
                     startedPill.classList.remove('bg-white', 'bg-arcade-orange');

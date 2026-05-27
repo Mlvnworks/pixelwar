@@ -27,6 +27,42 @@ final class UserChallengeRepository
         return $row ?: null;
     }
 
+    public function findActiveRoomRunLock(int $userId): ?array
+    {
+        if ($userId <= 0) {
+            return null;
+        }
+
+        $statement = $this->connection->prepare(
+            'SELECT
+                user_challenge.uc_id,
+                user_challenge.challenge_id,
+                user_challenge.user_id,
+                user_challenge.room_id,
+                user_challenge.started_at,
+                user_challenge.completed_at
+             FROM user_challenge
+             INNER JOIN rooms ON rooms.room_id = user_challenge.room_id
+             LEFT JOIN room_players
+                ON room_players.room_id = user_challenge.room_id
+                AND room_players.user_id = user_challenge.user_id
+             WHERE user_challenge.user_id = ?
+                AND user_challenge.room_id IS NOT NULL
+                AND user_challenge.completed_at IS NULL
+                AND rooms.started_at IS NOT NULL
+                AND rooms.ended_at IS NULL
+                AND (room_players.status IS NULL OR room_players.status <> 3)
+             ORDER BY user_challenge.started_at DESC
+             LIMIT 1'
+        );
+        $statement->bind_param('i', $userId);
+        $statement->execute();
+        $row = $statement->get_result()->fetch_assoc();
+        $statement->close();
+
+        return $row ?: null;
+    }
+
     public function startOrFindOngoing(int $userId, int $challengeId, int $roomId = 0): array
     {
         $ongoing = $this->findOngoing($userId, $challengeId);
@@ -273,6 +309,8 @@ final class UserChallengeRepository
                 user_challenge.room_id,
                 user_challenge.started_at,
                 user_challenge.completed_at,
+                room_players.strict_mode_score,
+                rooms.strict_mode AS room_strict_mode,
                 challenges.name,
                 challenges.instruction,
                 difficulties.name AS difficulty_name,
@@ -336,6 +374,8 @@ final class UserChallengeRepository
                 user_challenge.room_id,
                 user_challenge.started_at,
                 user_challenge.completed_at,
+                room_players.strict_mode_score,
+                rooms.strict_mode AS room_strict_mode,
                 challenges.name,
                 challenges.instruction,
                 difficulties.name AS difficulty_name,

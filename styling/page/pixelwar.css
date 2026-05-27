@@ -621,6 +621,15 @@ body.is-resizing-split * {
     transform: translateY(-1px);
 }
 
+.give-up-button--submit {
+    background: rgba(76, 201, 240, 0.94);
+    color: #26190f;
+}
+
+.give-up-button--submit:hover {
+    background: #22c1ee;
+}
+
 .hud-pill.is-success {
     background: rgba(139, 211, 199, 0.9);
 }
