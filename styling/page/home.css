@@ -226,6 +226,230 @@ body.pixelwar-dark-mode .home-chart-summary__copy {
     color: rgba(255, 247, 232, 0.62);
 }
 
+.pvp-result-modal .modal-dialog {
+    max-width: 34rem;
+}
+
+.pvp-result-modal__content {
+    position: relative;
+    overflow: hidden;
+    background:
+        radial-gradient(circle at top left, rgba(76, 201, 240, 0.18), transparent 28%),
+        radial-gradient(circle at top right, rgba(255, 209, 102, 0.24), transparent 30%),
+        linear-gradient(180deg, rgba(255, 253, 246, 0.98), rgba(255, 247, 232, 0.96));
+}
+
+.pvp-result-modal__header {
+    position: relative;
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    z-index: 1;
+}
+
+.pvp-result-modal__badge {
+    display: grid;
+    flex: 0 0 auto;
+    width: 4.6rem;
+    height: 4.6rem;
+    place-items: center;
+    border: 4px solid #26190f;
+    border-radius: 1.5rem;
+    color: #26190f;
+    box-shadow: 6px 6px 0 rgba(38, 25, 15, 0.18);
+}
+
+.pvp-result-modal__badge--win {
+    background: linear-gradient(135deg, #ffd166, #ff8c42);
+    animation: homePvpBadgeFloat 1800ms ease-in-out infinite;
+}
+
+.pvp-result-modal__badge--loss {
+    background: linear-gradient(135deg, #f97373, #ffd9a8);
+}
+
+.pvp-result-modal__copy {
+    min-width: 0;
+}
+
+.pvp-result-modal__eyebrow {
+    margin: 0;
+    font-family: "Press Start 2P", cursive;
+    font-size: 0.62rem;
+    font-weight: 400;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+}
+
+.pvp-result-modal__title {
+    margin: 0.9rem 0 0;
+    font-size: clamp(2rem, 4vw, 2.75rem);
+    line-height: 0.96;
+    font-weight: 900;
+    color: #26190f;
+}
+
+.pvp-result-modal__message {
+    margin: 0.85rem 0 0;
+    max-width: 26rem;
+    font-size: 0.98rem;
+    line-height: 1.7;
+    font-weight: 700;
+    color: rgba(38, 25, 15, 0.74);
+}
+
+.pvp-result-modal__summary {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.85rem;
+}
+
+.pvp-result-modal__stat {
+    border: 2px solid rgba(38, 25, 15, 0.14);
+    border-radius: 1.2rem;
+    background: rgba(255, 255, 255, 0.86);
+    padding: 1rem 1rem 0.95rem;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.4);
+}
+
+.pvp-result-modal__stat-label {
+    margin: 0;
+    font-size: 0.72rem;
+    font-weight: 900;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: rgba(38, 25, 15, 0.48);
+}
+
+.pvp-result-modal__stat-value {
+    margin: 0.45rem 0 0;
+    font-size: 1.35rem;
+    line-height: 1.15;
+    font-weight: 900;
+    color: #26190f;
+}
+
+.pvp-result-modal__footer {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    justify-content: flex-end;
+}
+
+.pvp-result-modal__close {
+    min-width: 11rem;
+}
+
+.pvp-result-modal__confetti {
+    pointer-events: none;
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+}
+
+.pvp-result-modal__confetti-piece {
+    position: absolute;
+    top: -0.8rem;
+    width: 0.8rem;
+    height: 1.3rem;
+    border-radius: 0.35rem;
+    opacity: 0;
+    animation: homePvpConfettiDrop 1500ms ease-out forwards;
+}
+
+.pvp-result-modal__confetti-piece:nth-child(odd) {
+    width: 0.55rem;
+    height: 0.95rem;
+}
+
+.pvp-result-modal__confetti-piece:nth-child(1) { left: 6%; animation-delay: 30ms; }
+.pvp-result-modal__confetti-piece:nth-child(2) { left: 12%; animation-delay: 120ms; }
+.pvp-result-modal__confetti-piece:nth-child(3) { left: 18%; animation-delay: 60ms; }
+.pvp-result-modal__confetti-piece:nth-child(4) { left: 24%; animation-delay: 200ms; }
+.pvp-result-modal__confetti-piece:nth-child(5) { left: 31%; animation-delay: 80ms; }
+.pvp-result-modal__confetti-piece:nth-child(6) { left: 38%; animation-delay: 160ms; }
+.pvp-result-modal__confetti-piece:nth-child(7) { left: 46%; animation-delay: 40ms; }
+.pvp-result-modal__confetti-piece:nth-child(8) { left: 53%; animation-delay: 180ms; }
+.pvp-result-modal__confetti-piece:nth-child(9) { left: 59%; animation-delay: 110ms; }
+.pvp-result-modal__confetti-piece:nth-child(10) { left: 65%; animation-delay: 230ms; }
+.pvp-result-modal__confetti-piece:nth-child(11) { left: 71%; animation-delay: 70ms; }
+.pvp-result-modal__confetti-piece:nth-child(12) { left: 77%; animation-delay: 140ms; }
+.pvp-result-modal__confetti-piece:nth-child(13) { left: 82%; animation-delay: 90ms; }
+.pvp-result-modal__confetti-piece:nth-child(14) { left: 87%; animation-delay: 190ms; }
+.pvp-result-modal__confetti-piece:nth-child(15) { left: 91%; animation-delay: 50ms; }
+.pvp-result-modal__confetti-piece:nth-child(16) { left: 95%; animation-delay: 150ms; }
+.pvp-result-modal__confetti-piece:nth-child(17) { left: 28%; animation-delay: 240ms; }
+.pvp-result-modal__confetti-piece:nth-child(18) { left: 74%; animation-delay: 260ms; }
+
+.pvp-result-modal__confetti-piece--1 {
+    background: #ffd166;
+}
+
+.pvp-result-modal__confetti-piece--2 {
+    background: #ff8c42;
+}
+
+.pvp-result-modal__confetti-piece--3 {
+    background: #4cc9f0;
+}
+
+.pvp-result-modal__confetti-piece--4 {
+    background: #8bd3c7;
+}
+
+body.pixelwar-dark-mode .pvp-result-modal__content {
+    background:
+        radial-gradient(circle at top left, rgba(76, 201, 240, 0.16), transparent 28%),
+        radial-gradient(circle at top right, rgba(255, 209, 102, 0.18), transparent 30%),
+        linear-gradient(180deg, rgba(31, 22, 15, 0.98), rgba(19, 14, 10, 0.96));
+    border-color: #fff7e8;
+    color: #fff7e8;
+    box-shadow: 8px 8px 0 rgba(255, 140, 66, 0.42);
+}
+
+body.pixelwar-dark-mode .pvp-result-modal__title,
+body.pixelwar-dark-mode .pvp-result-modal__stat-value {
+    color: #fff7e8;
+}
+
+body.pixelwar-dark-mode .pvp-result-modal__message,
+body.pixelwar-dark-mode .pvp-result-modal__stat-label {
+    color: rgba(255, 247, 232, 0.72);
+}
+
+body.pixelwar-dark-mode .pvp-result-modal__stat {
+    border-color: rgba(255, 247, 232, 0.14);
+    background: rgba(255, 247, 232, 0.05);
+}
+
+@keyframes homePvpBadgeFloat {
+    0%, 100% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(-0.28rem);
+    }
+}
+
+@keyframes homePvpConfettiDrop {
+    0% {
+        opacity: 0;
+        transform: translateY(-0.8rem) rotate(0deg);
+    }
+
+    12% {
+        opacity: 1;
+    }
+
+    100% {
+        opacity: 0;
+        transform: translateY(16rem) rotate(240deg);
+    }
+}
+
 @media (max-width: 640px) {
     .home-dashboard {
         overflow-x: clip;
@@ -266,6 +490,38 @@ body.pixelwar-dark-mode .home-chart-summary__copy {
     .home-dashboard .shadow-arcade,
     .home-dashboard [class*="shadow-["] {
         box-shadow: 4px 4px 0 rgba(38, 25, 15, 0.22) !important;
+    }
+
+    .pvp-result-modal .modal-dialog {
+        max-width: min(100vw - 1rem, 34rem);
+        margin: 0.5rem auto;
+    }
+
+    .pvp-result-modal__header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.8rem;
+    }
+
+    .pvp-result-modal__summary {
+        grid-template-columns: 1fr;
+    }
+
+    .pvp-result-modal__title {
+        font-size: 1.8rem;
+    }
+
+    .pvp-result-modal__message {
+        font-size: 0.9rem;
+        line-height: 1.6;
+    }
+
+    .pvp-result-modal__footer {
+        justify-content: stretch;
+    }
+
+    .pvp-result-modal__close {
+        width: 100%;
     }
 
     .home-dashboard [class*="tracking-"] {

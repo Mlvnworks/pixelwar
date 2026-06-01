@@ -12,7 +12,10 @@ if ($requestMethod === 'POST' && $requestedPage === 'pixelwar' && (string) ($_PO
     $userChallengeId = (int) ($_POST['user_challenge_id'] ?? 0);
 
     try {
-        if (!$challengeRepository instanceof ChallengeRepository || !$userChallengeRepository instanceof UserChallengeRepository) {
+        if (
+            !$challengeRepository instanceof ChallengeRepository
+            || !$userChallengeRepository instanceof UserChallengeRepository
+        ) {
             throw new RuntimeException('Challenge progress is not available.');
         }
 
@@ -49,7 +52,38 @@ if ($requestMethod === 'POST' && $requestedPage === 'pixelwar' && (string) ($_PO
         }
 
         $activeRun = $ongoing ?? $currentRun;
+        $isPvpLinkedRun = $activeRun !== null && (int) ($activeRun['pvp_id'] ?? 0) > 0;
         $isRoomLinkedRun = $activeRun !== null && (int) ($activeRun['room_id'] ?? 0) > 0;
+
+        if ($isPvpLinkedRun && $pvpPlayerRepository instanceof PvpPlayerRepository) {
+            $pvpId = (int) ($activeRun['pvp_id'] ?? 0);
+            $pvpPlayer = $pvpPlayerRepository->findByMatchAndUser($pvpId, $userId);
+            $pvpStatus = (int) ($pvpPlayer['status'] ?? 0);
+
+            if ($pvpStatus === 2 || $pvpStatus === 3) {
+                $winnerUserId = 0;
+                $otherUsers = $pvpPlayerRepository->listUserIdsForMatch($pvpId);
+                foreach ($otherUsers as $matchUserId) {
+                    if ($matchUserId !== $userId) {
+                        $winnerUserId = $pvpStatus === 2 ? $userId : $matchUserId;
+                        break;
+                    }
+                }
+
+                pixelwarJsonResponse([
+                    'success' => false,
+                    'available' => false,
+                    'pvp_ended' => true,
+                    'message' => $pvpStatus === 2 ? 'You won the duel.' : 'You lost the duel.',
+                    'data' => [
+                        'winner_user_id' => $winnerUserId,
+                        'loser_user_id' => $pvpStatus === 3 ? $userId : 0,
+                        'duration_seconds' => $userChallengeRepository->pvpDurationSeconds($pvpId),
+                        'redirect_at_ms' => ((int) floor(microtime(true) * 1000)) + 900,
+                    ],
+                ], 409);
+            }
+        }
 
         if ($ongoing === null) {
             pixelwarJsonResponse([
@@ -59,7 +93,7 @@ if ($requestMethod === 'POST' && $requestedPage === 'pixelwar' && (string) ($_PO
             ], 409);
         }
 
-        if ((int) ($challenge['status'] ?? 0) !== 1 && !$isRoomLinkedRun) {
+        if ((int) ($challenge['status'] ?? 0) !== 1 && !$isRoomLinkedRun && !$isPvpLinkedRun) {
             $userChallengeRepository->deleteOngoingForUser($userChallengeId, $userId);
             pixelwarJsonResponse([
                 'success' => false,

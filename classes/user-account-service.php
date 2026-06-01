@@ -72,6 +72,16 @@ class UserAccountService
         bool $emailChanged
     ): int {
         return $this->transaction(function () use ($userId, $firstname, $lastname, $email, $isVerified, $imageId, $newAvatarUrl, $emailChanged): int {
+            $existingDetails = $this->users->findUserDetailsAvatar($userId);
+            $existingIdPicture = null;
+            $existingStudentNumber = null;
+
+            if ($existingDetails !== null) {
+                $existingIdPicture = isset($existingDetails['id_picture']) ? (int) $existingDetails['id_picture'] : null;
+                $studentNumberValue = trim((string) ($existingDetails['student_number'] ?? ''));
+                $existingStudentNumber = $studentNumberValue !== '' ? $studentNumberValue : null;
+            }
+
             if ($newAvatarUrl !== null) {
                 $imageId = $this->users->insertImage($newAvatarUrl);
             }
@@ -82,7 +92,14 @@ class UserAccountService
                 $this->verifications->expirePending($userId, 'account verification');
             }
 
-            $this->users->upsertUserDetails($userId, $imageId, $firstname, $lastname);
+            $this->users->upsertUserDetails(
+                $userId,
+                $imageId,
+                $firstname,
+                $lastname,
+                $existingIdPicture,
+                $existingStudentNumber
+            );
 
             return $imageId;
         });

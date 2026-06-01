@@ -9,6 +9,8 @@ $pendingStudentVerificationCount = $userRepository instanceof UserRepository
     : 0;
 $roomCount = 0;
 $roomCountToday = 0;
+$challengeCount = $challengeRepository instanceof ChallengeRepository ? $challengeRepository->countCreated() : 0;
+$challengeCountToday = $challengeRepository instanceof ChallengeRepository ? $challengeRepository->countCreatedToday() : 0;
 $summaryCards = [
     [
         'label' => 'Students',
@@ -32,6 +34,11 @@ $summaryCards = [
         'value' => $roomCount,
         'today' => $roomCountToday,
     ],
+    [
+        'label' => 'Challenges Created',
+        'value' => $challengeCount,
+        'today' => $challengeCountToday,
+    ],
 ];
 
 $chartEndDate = new DateTimeImmutable('today');
@@ -42,10 +49,14 @@ $studentCountsByDate = $userRepository instanceof UserRepository
 $teacherCountsByDate = $userRepository instanceof UserRepository
     ? $userRepository->countRegistrationsByDayAndRole(2, $chartStartDate, $chartEndDate)
     : [];
+$challengeCountsByDate = $challengeRepository instanceof ChallengeRepository
+    ? $challengeRepository->countCreatedByDay($chartStartDate, $chartEndDate)
+    : [];
 $chartLabels = [];
 $studentChartValues = [];
 $teacherChartValues = [];
 $roomChartValues = [];
+$challengeChartValues = [];
 $chartPeak = 0;
 
 for ($offset = 0; $offset < 30; $offset++) {
@@ -54,11 +65,13 @@ for ($offset = 0; $offset < 30; $offset++) {
     $studentTotal = (int) ($studentCountsByDate[$dateKey] ?? 0);
     $teacherTotal = (int) ($teacherCountsByDate[$dateKey] ?? 0);
     $roomTotal = 0;
+    $challengeTotal = (int) ($challengeCountsByDate[$dateKey] ?? 0);
     $chartLabels[] = $date->format('M j');
     $studentChartValues[] = $studentTotal;
     $teacherChartValues[] = $teacherTotal;
     $roomChartValues[] = $roomTotal;
-    $chartPeak = max($chartPeak, $studentTotal, $teacherTotal, $roomTotal);
+    $challengeChartValues[] = $challengeTotal;
+    $chartPeak = max($chartPeak, $studentTotal, $teacherTotal, $roomTotal, $challengeTotal);
 }
 
 $latestLogs = $activityLogRepository instanceof ActivityLogRepository
@@ -83,7 +96,26 @@ $roleLabels = [
             </p>
         </section>
 
-        <section class="grid gap-4 lg:grid-cols-3">
+        <section class="teacher-panel p-5 md:p-6">
+            <div class="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+                <div>
+                    <p class="text-sm font-semibold uppercase tracking-[0.08em] text-arcade-ink/60">Growth</p>
+                    <h2 class="mt-1 text-2xl font-bold">Last 30 days</h2>
+                    <p class="mt-1 text-sm font-medium text-arcade-ink/60">
+                        Daily totals for students added, teachers added, room creation, and challenges created.
+                    </p>
+                </div>
+                <p class="text-xs font-semibold uppercase tracking-[0.08em] text-arcade-ink/55">
+                    Peak <?= (int) $chartPeak ?> in one day
+                </p>
+            </div>
+
+            <div class="mt-5 h-[20rem] rounded-2xl border border-arcade-ink/10 bg-white/70 p-4">
+                <canvas id="admin-activity-chart" aria-label="Admin growth chart for the last 30 days"></canvas>
+            </div>
+        </section>
+
+        <section class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             <?php foreach ($summaryCards as $summaryCard) : ?>
                 <article class="teacher-panel p-5">
                     <div class="flex items-start justify-between gap-3">
@@ -102,25 +134,6 @@ $roleLabels = [
                     </div>
                 </article>
             <?php endforeach; ?>
-        </section>
-
-        <section class="teacher-panel p-5 md:p-6">
-            <div class="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-                <div>
-                    <p class="text-sm font-semibold uppercase tracking-[0.08em] text-arcade-ink/60">Growth</p>
-                    <h2 class="mt-1 text-2xl font-bold">Last 30 days</h2>
-                    <p class="mt-1 text-sm font-medium text-arcade-ink/60">
-                        Daily totals for students added, teachers added, and room creation.
-                    </p>
-                </div>
-                <p class="text-xs font-semibold uppercase tracking-[0.08em] text-arcade-ink/55">
-                    Peak <?= (int) $chartPeak ?> in one day
-                </p>
-            </div>
-
-            <div class="mt-5 h-[20rem] rounded-2xl border border-arcade-ink/10 bg-white/70 p-4">
-                <canvas id="admin-activity-chart" aria-label="Admin growth chart for the last 30 days"></canvas>
-            </div>
         </section>
 
         <section class="teacher-panel p-5 md:p-6">
@@ -249,6 +262,20 @@ window.addEventListener('load', () => {
                     pointRadius: 0,
                     pointHoverRadius: 4,
                     pointHoverBackgroundColor: '#7c3aed',
+                    pointHoverBorderColor: '#ffffff',
+                    pointHoverBorderWidth: 2,
+                    tension: 0.35,
+                },
+                {
+                    label: 'Challenges',
+                    data: <?= json_encode($challengeChartValues, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?>,
+                    borderColor: '#10b981',
+                    backgroundColor: 'rgba(16, 185, 129, 0.12)',
+                    fill: false,
+                    borderWidth: 2,
+                    pointRadius: 0,
+                    pointHoverRadius: 4,
+                    pointHoverBackgroundColor: '#10b981',
                     pointHoverBorderColor: '#ffffff',
                     pointHoverBorderWidth: 2,
                     tension: 0.35,

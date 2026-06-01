@@ -46,6 +46,7 @@ try {
     }
 
     teacherPanelRefreshSession($teacherSessionUser);
+    $users->touchLastSeen((int) ($teacherSessionUser['user_id'] ?? 0));
 } catch (Throwable $err) {
     error_log('Pixelwar teacher auth error: ' . $err->getMessage());
     teacherPanelRootRedirect('login');

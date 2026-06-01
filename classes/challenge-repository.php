@@ -60,6 +60,60 @@ final class ChallengeRepository
         return $challengeId;
     }
 
+    public function countCreated(): int
+    {
+        $result = $this->connection->query(
+            'SELECT COUNT(*) AS total
+             FROM challenges
+             WHERE date_deleted IS NULL'
+        );
+        $row = $result instanceof mysqli_result ? $result->fetch_assoc() : null;
+
+        return (int) ($row['total'] ?? 0);
+    }
+
+    public function countCreatedToday(): int
+    {
+        $result = $this->connection->query(
+            'SELECT COUNT(*) AS total
+             FROM challenges
+             WHERE date_deleted IS NULL
+                AND DATE(date_created) = CURRENT_DATE'
+        );
+        $row = $result instanceof mysqli_result ? $result->fetch_assoc() : null;
+
+        return (int) ($row['total'] ?? 0);
+    }
+
+    /**
+     * @return array<string, int>
+     */
+    public function countCreatedByDay(DateTimeInterface $startDate, DateTimeInterface $endDate): array
+    {
+        $start = $startDate->format('Y-m-d 00:00:00');
+        $end = $endDate->format('Y-m-d 23:59:59');
+        $statement = $this->connection->prepare(
+            'SELECT DATE(date_created) AS created_day, COUNT(*) AS total
+             FROM challenges
+             WHERE date_deleted IS NULL
+                AND date_created >= ?
+                AND date_created <= ?
+             GROUP BY DATE(date_created)
+             ORDER BY created_day ASC'
+        );
+        $statement->bind_param('ss', $start, $end);
+        $statement->execute();
+        $rows = $statement->get_result()->fetch_all(MYSQLI_ASSOC);
+        $statement->close();
+
+        $counts = [];
+        foreach ($rows as $row) {
+            $counts[(string) $row['created_day']] = (int) ($row['total'] ?? 0);
+        }
+
+        return $counts;
+    }
+
     public function updateChallenge(
         int $challengeId,
         int $difficultyId,

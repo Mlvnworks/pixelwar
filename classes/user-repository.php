@@ -75,6 +75,112 @@ class UserRepository
         return $exists;
     }
 
+    public function totalPlayerProgressPointsForUser(int $userId): int
+    {
+        if ($userId <= 0) {
+            return 0;
+        }
+
+        $statement = $this->connection->prepare(
+            'SELECT COALESCE(SUM(points), 0) AS total_points
+             FROM player_progress
+             WHERE user_id = ?'
+        );
+        $statement->bind_param('i', $userId);
+        $statement->execute();
+        $row = $statement->get_result()->fetch_assoc();
+        $statement->close();
+
+        return (int) ($row['total_points'] ?? 0);
+    }
+
+    public function addPlayerProgressPoints(int $userId, int $points): void
+    {
+        if ($userId <= 0 || $points <= 0) {
+            return;
+        }
+
+        $statement = $this->connection->prepare(
+            'INSERT INTO player_progress (user_id, points)
+             VALUES (?, ?)
+             ON DUPLICATE KEY UPDATE points = points + VALUES(points)'
+        );
+        $statement->bind_param('ii', $userId, $points);
+        $statement->execute();
+        $statement->close();
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    public function listLeaderboardPlayers(int $limit = 100): array
+    {
+        $limit = max(1, min(500, $limit));
+        $statement = $this->connection->prepare(
+            'SELECT
+                users.user_id,
+                users.username,
+                images.source AS avatar_url,
+                COALESCE(player_points.points, 0) AS points
+             FROM users
+             LEFT JOIN user_details ON user_details.user_id = users.user_id
+             LEFT JOIN images ON images.img_id = user_details.image_id
+             LEFT JOIN (
+                SELECT user_id, SUM(points) AS points
+                FROM player_progress
+                GROUP BY user_id
+             ) AS player_points ON player_points.user_id = users.user_id
+             WHERE users.role_id = 3
+                AND users.is_verified = 1
+                AND users.is_active = 1
+                AND users.date_deleted IS NULL
+             ORDER BY COALESCE(player_points.points, 0) DESC, users.username ASC
+             LIMIT ?'
+        );
+        $statement->bind_param('i', $limit);
+        $statement->execute();
+        $players = $statement->get_result()->fetch_all(MYSQLI_ASSOC);
+        $statement->close();
+
+        return $players;
+    }
+
+    public function leaderboardRankForUser(int $userId): ?int
+    {
+        if ($userId <= 0) {
+            return null;
+        }
+
+        $statement = $this->connection->prepare(
+            'SELECT ranked.rank_position
+             FROM (
+                SELECT
+                    users.user_id,
+                    ROW_NUMBER() OVER (
+                        ORDER BY COALESCE(player_points.points, 0) DESC, users.username ASC
+                    ) AS rank_position
+                FROM users
+                LEFT JOIN (
+                    SELECT user_id, SUM(points) AS points
+                    FROM player_progress
+                    GROUP BY user_id
+                ) AS player_points ON player_points.user_id = users.user_id
+                WHERE users.role_id = 3
+                    AND users.is_verified = 1
+                    AND users.is_active = 1
+                    AND users.date_deleted IS NULL
+             ) AS ranked
+             WHERE ranked.user_id = ?
+             LIMIT 1'
+        );
+        $statement->bind_param('i', $userId);
+        $statement->execute();
+        $row = $statement->get_result()->fetch_assoc();
+        $statement->close();
+
+        return $row ? (int) ($row['rank_position'] ?? 0) : null;
+    }
+
     public function findLoginUser(string $identity): ?array
     {
         $statement = $this->connection->prepare(
@@ -348,6 +454,7 @@ class UserRepository
                     users.email,
                     users.is_verified,
                     users.is_active,
+                    users.last_seen_at,
                     users.registration_date,
                     user_details.ud_id AS user_details_id,
                     user_details.firstname,
@@ -382,6 +489,113 @@ class UserRepository
         }
 
         $sql .= ' ORDER BY users.registration_date DESC LIMIT ? OFFSET ?';
+        $types .= 'ii';
+        $params[] = $limit;
+        $params[] = $offset;
+
+        $statement = $this->connection->prepare($sql);
+        $statement->bind_param($types, ...$params);
+        $statement->execute();
+        $users = $statement->get_result()->fetch_all(MYSQLI_ASSOC);
+        $statement->close();
+
+        return $users;
+    }
+
+    public function countOnlineUsersByRoleFiltered(int $roleId, string $search = '', ?int $activeStatus = null, int $thresholdSeconds = 90): int
+    {
+        $search = trim($search);
+        $threshold = $this->presenceThreshold($thresholdSeconds);
+        $sql = 'SELECT COUNT(*) AS total
+                FROM users
+                LEFT JOIN user_details ON user_details.user_id = users.user_id
+                WHERE users.role_id = ?
+                    AND users.date_deleted IS NULL
+                    AND users.last_seen_at IS NOT NULL
+                    AND users.last_seen_at >= ?';
+        $types = 'is';
+        $params = [$roleId, $threshold];
+
+        if ($activeStatus !== null) {
+            $sql .= ' AND users.is_active = ?';
+            $types .= 'i';
+            $params[] = $activeStatus;
+        }
+
+        if ($search !== '') {
+            $sql .= ' AND (
+                users.username LIKE ?
+                OR users.email LIKE ?
+                OR CONCAT(COALESCE(user_details.firstname, \'\'), \' \', COALESCE(user_details.lastname, \'\')) LIKE ?
+            )';
+            $searchLike = '%' . $search . '%';
+            $types .= 'sss';
+            $params[] = $searchLike;
+            $params[] = $searchLike;
+            $params[] = $searchLike;
+        }
+
+        $statement = $this->connection->prepare($sql);
+        $statement->bind_param($types, ...$params);
+        $statement->execute();
+        $row = $statement->get_result()->fetch_assoc();
+        $statement->close();
+
+        return (int) ($row['total'] ?? 0);
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    public function listOnlineUsersByRoleFiltered(int $roleId, string $search = '', ?int $activeStatus = null, int $limit = 25, int $offset = 0, int $thresholdSeconds = 90): array
+    {
+        $search = trim($search);
+        $limit = max(1, min(100, $limit));
+        $offset = max(0, $offset);
+        $threshold = $this->presenceThreshold($thresholdSeconds);
+        $sql = 'SELECT
+                    users.user_id,
+                    users.username,
+                    users.email,
+                    users.is_verified,
+                    users.is_active,
+                    users.last_seen_at,
+                    users.registration_date,
+                    user_details.ud_id AS user_details_id,
+                    user_details.firstname,
+                    user_details.lastname,
+                    user_details.student_number,
+                    images.source AS avatar_url
+                FROM users
+                LEFT JOIN user_details ON user_details.user_id = users.user_id
+                LEFT JOIN images ON images.img_id = user_details.image_id
+                WHERE users.role_id = ?
+                    AND users.date_deleted IS NULL
+                    AND users.last_seen_at IS NOT NULL
+                    AND users.last_seen_at >= ?';
+        $types = 'is';
+        $params = [$roleId, $threshold];
+
+        if ($activeStatus !== null) {
+            $sql .= ' AND users.is_active = ?';
+            $types .= 'i';
+            $params[] = $activeStatus;
+        }
+
+        if ($search !== '') {
+            $sql .= ' AND (
+                users.username LIKE ?
+                OR users.email LIKE ?
+                OR CONCAT(COALESCE(user_details.firstname, \'\'), \' \', COALESCE(user_details.lastname, \'\')) LIKE ?
+            )';
+            $searchLike = '%' . $search . '%';
+            $types .= 'sss';
+            $params[] = $searchLike;
+            $params[] = $searchLike;
+            $params[] = $searchLike;
+        }
+
+        $sql .= ' ORDER BY users.last_seen_at DESC, users.registration_date DESC LIMIT ? OFFSET ?';
         $types .= 'ii';
         $params[] = $limit;
         $params[] = $offset;
@@ -629,6 +843,7 @@ class UserRepository
                 users.email,
                 users.is_verified,
                 users.is_active,
+                users.last_seen_at,
                 user_details.firstname,
                 user_details.lastname,
                 images.source AS avatar_url
@@ -644,6 +859,130 @@ class UserRepository
         $statement->close();
 
         return $user ?: null;
+    }
+
+    public function touchLastSeen(int $userId): bool
+    {
+        if ($userId <= 0) {
+            return false;
+        }
+
+        $statement = $this->connection->prepare(
+            'UPDATE users
+             SET last_seen_at = CURRENT_TIMESTAMP
+             WHERE user_id = ?
+                AND date_deleted IS NULL'
+        );
+        $statement->bind_param('i', $userId);
+        $statement->execute();
+        $updated = $statement->affected_rows >= 0;
+        $statement->close();
+
+        return $updated;
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    public function listOnlineStudentsForVersus(int $excludeUserId = 0, int $limit = 100, int $thresholdSeconds = 90): array
+    {
+        $limit = max(1, min(200, $limit));
+        $threshold = $this->presenceThreshold($thresholdSeconds);
+        $sql = 'SELECT
+                    users.user_id,
+                    users.username,
+                    users.email,
+                    users.last_seen_at,
+                    user_details.firstname,
+                    user_details.lastname,
+                    images.source AS avatar_url,
+                    COALESCE(solve_stats.solves, 0) AS solves,
+                    COALESCE(point_stats.points, 0) AS points
+                FROM users
+                LEFT JOIN user_details ON user_details.user_id = users.user_id
+                LEFT JOIN images ON images.img_id = user_details.image_id
+                LEFT JOIN (
+                    SELECT user_id, COUNT(*) AS solves
+                    FROM user_challenge
+                    WHERE completed_at IS NOT NULL
+                    GROUP BY user_id
+                ) AS solve_stats ON solve_stats.user_id = users.user_id
+                LEFT JOIN (
+                    SELECT user_id, SUM(points) AS points
+                    FROM player_progress
+                    GROUP BY user_id
+                ) AS point_stats ON point_stats.user_id = users.user_id
+                WHERE users.role_id = 3
+                    AND users.is_verified = 1
+                    AND users.is_active = 1
+                    AND users.date_deleted IS NULL
+                    AND users.last_seen_at IS NOT NULL
+                    AND users.last_seen_at >= ?';
+        $types = 's';
+        $params = [$threshold];
+
+        if ($excludeUserId > 0) {
+            $sql .= ' AND users.user_id <> ?';
+            $types .= 'i';
+            $params[] = $excludeUserId;
+        }
+
+        $sql .= ' ORDER BY users.last_seen_at DESC, COALESCE(point_stats.points, 0) DESC, COALESCE(solve_stats.solves, 0) DESC LIMIT ?';
+        $types .= 'i';
+        $params[] = $limit;
+
+        $statement = $this->connection->prepare($sql);
+        $statement->bind_param($types, ...$params);
+        $statement->execute();
+        $rows = $statement->get_result()->fetch_all(MYSQLI_ASSOC);
+        $statement->close();
+
+        return $rows;
+    }
+
+    public function findOnlineStudentForVersus(int $targetUserId, int $excludeUserId = 0, int $thresholdSeconds = 90): ?array
+    {
+        if ($targetUserId <= 0) {
+            return null;
+        }
+
+        $threshold = $this->presenceThreshold($thresholdSeconds);
+        $sql = 'SELECT
+                    users.user_id,
+                    users.username,
+                    users.email,
+                    users.last_seen_at,
+                    user_details.firstname,
+                    user_details.lastname,
+                    images.source AS avatar_url
+                FROM users
+                LEFT JOIN user_details ON user_details.user_id = users.user_id
+                LEFT JOIN images ON images.img_id = user_details.image_id
+                WHERE users.user_id = ?
+                    AND users.role_id = 3
+                    AND users.is_verified = 1
+                    AND users.is_active = 1
+                    AND users.date_deleted IS NULL
+                    AND users.last_seen_at IS NOT NULL
+                    AND users.last_seen_at >= ?';
+        $types = 'is';
+        $params = [$targetUserId, $threshold];
+
+        if ($excludeUserId > 0) {
+            $sql .= ' AND users.user_id <> ?';
+            $types .= 'i';
+            $params[] = $excludeUserId;
+        }
+
+        $sql .= ' LIMIT 1';
+
+        $statement = $this->connection->prepare($sql);
+        $statement->bind_param($types, ...$params);
+        $statement->execute();
+        $player = $statement->get_result()->fetch_assoc();
+        $statement->close();
+
+        return $player ?: null;
     }
 
     public function usernameExistsForOtherUser(string $username, int $userId): bool
@@ -761,6 +1100,12 @@ class UserRepository
         $statement->bind_param('si', $passwordHash, $userId);
         $statement->execute();
         $statement->close();
+    }
+
+    private function presenceThreshold(int $thresholdSeconds): string
+    {
+        $safeSeconds = max(15, min(600, $thresholdSeconds));
+        return (new DateTimeImmutable('-' . $safeSeconds . ' seconds'))->format('Y-m-d H:i:s');
     }
 
     public function updateTeacherSetupCredentials(int $userId, string $username, string $passwordHash, int $isVerified): void

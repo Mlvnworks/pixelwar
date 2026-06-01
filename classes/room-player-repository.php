@@ -81,11 +81,17 @@ final class RoomPlayerRepository
                 user_details.firstname,
                 user_details.lastname,
                 user_details.student_number,
-                avatar_images.source AS avatar_url
+                avatar_images.source AS avatar_url,
+                COALESCE(player_points.points, 0) AS points
              FROM room_players
              INNER JOIN users ON users.user_id = room_players.user_id
              LEFT JOIN user_details ON user_details.user_id = users.user_id
              LEFT JOIN images AS avatar_images ON avatar_images.img_id = user_details.image_id
+             LEFT JOIN (
+                SELECT user_id, SUM(points) AS points
+                FROM player_progress
+                GROUP BY user_id
+             ) AS player_points ON player_points.user_id = users.user_id
              WHERE room_players.room_id = ?
                 AND users.date_deleted IS NULL
              ORDER BY room_players.rp_id ASC'

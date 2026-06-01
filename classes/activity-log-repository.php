@@ -303,6 +303,103 @@ final class ActivityLogRepository
     /**
      * @return array<int, array<string, mixed>>
      */
+    public function listOverallPaginated(int $limit = 100, int $offset = 0, ?string $category = null): array
+    {
+        $limit = max(1, min(500, $limit));
+        $offset = max(0, $offset);
+        $normalizedCategory = $category !== null ? strtolower(trim($category)) : null;
+        $where = '';
+        $types = '';
+        $params = [];
+
+        if ($normalizedCategory !== null && $normalizedCategory !== '' && $normalizedCategory !== 'all') {
+            $where = 'WHERE LOWER(activity_logs.category) = ?';
+            $types .= 's';
+            $params[] = $normalizedCategory;
+        }
+
+        $sql = 'SELECT
+                activity_logs.al_id,
+                activity_logs.user_id,
+                activity_logs.category,
+                activity_logs.log_text,
+                activity_logs.date_created,
+                users.username,
+                users.email,
+                users.role_id,
+                user_details.firstname,
+                user_details.lastname
+             FROM activity_logs
+             LEFT JOIN users ON users.user_id = activity_logs.user_id
+             LEFT JOIN user_details ON user_details.user_id = users.user_id
+             ' . $where . '
+             ORDER BY activity_logs.date_created DESC
+             LIMIT ? OFFSET ?';
+        $types .= 'ii';
+        $params[] = $limit;
+        $params[] = $offset;
+
+        $statement = $this->connection->prepare($sql);
+        $statement->bind_param($types, ...$params);
+        $statement->execute();
+        $logs = $statement->get_result()->fetch_all(MYSQLI_ASSOC);
+        $statement->close();
+
+        return $logs;
+    }
+
+    public function countOverall(?string $category = null): int
+    {
+        $normalizedCategory = $category !== null ? strtolower(trim($category)) : null;
+
+        if ($normalizedCategory !== null && $normalizedCategory !== '' && $normalizedCategory !== 'all') {
+            $statement = $this->connection->prepare(
+                'SELECT COUNT(*) AS total
+                 FROM activity_logs
+                 WHERE LOWER(category) = ?'
+            );
+            $statement->bind_param('s', $normalizedCategory);
+            $statement->execute();
+            $row = $statement->get_result()->fetch_assoc();
+            $statement->close();
+
+            return (int) ($row['total'] ?? 0);
+        }
+
+        $result = $this->connection->query('SELECT COUNT(*) AS total FROM activity_logs');
+        $row = $result instanceof mysqli_result ? $result->fetch_assoc() : null;
+
+        return (int) ($row['total'] ?? 0);
+    }
+
+    /**
+     * @return array<string, int>
+     */
+    public function countGroupedByCategory(): array
+    {
+        $result = $this->connection->query(
+            'SELECT LOWER(COALESCE(NULLIF(TRIM(category), \'\'), \'general\')) AS category_name,
+                    COUNT(*) AS total
+             FROM activity_logs
+             GROUP BY category_name
+             ORDER BY category_name ASC'
+        );
+
+        if (!$result instanceof mysqli_result) {
+            return [];
+        }
+
+        $counts = [];
+        foreach ($result->fetch_all(MYSQLI_ASSOC) as $row) {
+            $counts[(string) ($row['category_name'] ?? 'general')] = (int) ($row['total'] ?? 0);
+        }
+
+        return $counts;
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
     public function listOverallByDateRange(
         DateTimeInterface $startDate,
         DateTimeInterface $endDate,

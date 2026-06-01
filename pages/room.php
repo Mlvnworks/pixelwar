@@ -119,10 +119,14 @@ if ($isRealRoom) {
             $joinedName = trim((string) ($joinedRow['firstname'] ?? '') . ' ' . (string) ($joinedRow['lastname'] ?? ''))
                 ?: (string) ($joinedRow['username'] ?? 'Player');
             $joinedStatus = (int) ($joinedRow['status'] ?? 0);
+            $joinedPoints = (int) ($joinedRow['points'] ?? 0);
+            $joinedRankProgress = $rankRepository instanceof RankRepository
+                ? $rankRepository->progressForPoints($joinedPoints)
+                : ['current_name' => 'Student'];
             $joinedPlayers[] = [
                 'name' => $joinedName,
                 'role' => (int) ($joinedRow['user_id'] ?? 0) === $sessionUserId ? 'You' : 'Player',
-                'rank' => 'Student',
+                'rank' => (string) ($joinedRankProgress['current_name'] ?? 'Student'),
                 'status' => $joinedStatus === 3 ? 'Gave Up' : ($joinedStatus === 2 ? 'Completed' : ($joinedStatus === 1 ? 'Solving' : 'Waiting')),
                 'accent' => (int) ($joinedRow['user_id'] ?? 0) === $sessionUserId ? 'yellow' : 'mint',
             ];

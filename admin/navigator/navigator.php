@@ -20,6 +20,7 @@ $adminTitles = [
     'student-view' => 'Student Overview | ' . APP_NAME,
     'student-submissions' => 'Student Submissions | ' . APP_NAME,
     'student-verification' => 'Pending Student Verification | ' . APP_NAME,
+    'rank-management' => 'Rank Management | ' . APP_NAME,
     'logs' => 'Activity Logs | ' . APP_NAME,
     'settings' => 'Admin Settings | ' . APP_NAME,
 ];
@@ -104,6 +105,42 @@ $appDescription = 'Admin workspace for managing Pixelwar teachers and platform c
         require $rootPath . '/components/404.php';
     }
     ?>
+    <?php if (isset($_SESSION['user_id'])) : ?>
+        <script>
+            (() => {
+                const csrfToken = <?= json_encode(adminPanelCsrfToken(), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?>;
+                const heartbeatUrl = window.location.pathname + window.location.search;
+                const sendHeartbeat = () => {
+                    if (!csrfToken) {
+                        return;
+                    }
+
+                    const body = new URLSearchParams({
+                        presence_action: 'heartbeat',
+                        _csrf_token: csrfToken,
+                    });
+
+                    fetch(heartbeatUrl, {
+                        method: 'POST',
+                        credentials: 'same-origin',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+                            'X-Requested-With': 'XMLHttpRequest',
+                        },
+                        body: body.toString(),
+                    }).catch(() => {});
+                };
+
+                sendHeartbeat();
+                window.setInterval(sendHeartbeat, 30000);
+                document.addEventListener('visibilitychange', () => {
+                    if (document.visibilityState === 'visible') {
+                        sendHeartbeat();
+                    }
+                });
+            })();
+        </script>
+    <?php endif; ?>
 </body>
 
 </html>

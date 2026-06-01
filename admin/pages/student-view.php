@@ -17,27 +17,40 @@ $studentLogPage = min($studentLogPage, $studentLogPages);
 $studentLogOffset = ($studentLogPage - 1) * $studentLogsPerPage;
 $studentLogRows = array_slice($studentLogs, $studentLogOffset, $studentLogsPerPage);
 
-$analyticsTrackedDays = 235;
+$analyticsTrackedDays = 30;
 $currentYear = (int) date('Y');
-$yearStart = new DateTimeImmutable($currentYear . '-01-01');
-$analyticsEndDate = $yearStart->modify('+' . ($analyticsTrackedDays - 1) . ' days');
+$analyticsEndDate = new DateTimeImmutable('today');
+$analyticsStartDate = $analyticsEndDate->modify('-' . ($analyticsTrackedDays - 1) . ' days');
 $completedCountsByDate = $userChallengeRepository instanceof UserChallengeRepository
-    ? $userChallengeRepository->completedCountsByDate($studentViewId, $yearStart, $analyticsEndDate)
+    ? $userChallengeRepository->completedCountsByDate($studentViewId, $analyticsStartDate, $analyticsEndDate)
     : [];
 $totalSolveCount = $userChallengeRepository instanceof UserChallengeRepository
     ? $userChallengeRepository->countCompletedForUser($studentViewId)
     : 0;
-$totalPoints = $userChallengeRepository instanceof UserChallengeRepository
-    ? $userChallengeRepository->totalCompletedPointsForUser($studentViewId)
+$totalPoints = $userRepository instanceof UserRepository
+    ? $userRepository->totalPlayerProgressPointsForUser($studentViewId)
     : 0;
-$rankRequirementPoints = 500;
-$rankProgressPercent = min(100, (int) round(($totalPoints / max(1, $rankRequirementPoints)) * 100));
+$rankProgress = $rankRepository instanceof RankRepository
+    ? $rankRepository->progressForPoints($totalPoints)
+    : [
+        'current_name' => 'Beginner',
+        'display_requirement' => 500,
+        'progress_percent' => min(100, (int) round(($totalPoints / 500) * 100)),
+        'next_name' => 'Next Rank',
+        'is_max_rank' => false,
+    ];
+$rankRequirementPoints = (int) ($rankProgress['display_requirement'] ?? 500);
+$rankProgressPercent = (int) ($rankProgress['progress_percent'] ?? 0);
+$currentRankName = (string) ($rankProgress['current_name'] ?? 'Beginner');
+$currentRankInitial = strtoupper(substr(preg_replace('/[^a-z0-9]+/i', '', $currentRankName) ?: 'R', 0, 1));
+$nextRankName = (string) ($rankProgress['next_name'] ?? '');
+$isMaxRank = (bool) ($rankProgress['is_max_rank'] ?? false);
 $activityDays = [];
 $studentChartLabels = [];
 $studentChartValues = [];
 
 for ($dayIndex = 0; $dayIndex < $analyticsTrackedDays; $dayIndex++) {
-    $date = $yearStart->modify('+' . $dayIndex . ' days');
+    $date = $analyticsStartDate->modify('+' . $dayIndex . ' days');
     $dateKey = $date->format('Y-m-d');
     $solves = (int) ($completedCountsByDate[$dateKey] ?? 0);
     $activityDays[] = [
@@ -62,7 +75,6 @@ $studentJoinedAt = trim((string) ($studentLogs[0]['date_created'] ?? ($studentVi
 $studentActiveState = (int) ($studentViewProfile['is_active'] ?? 0);
 $studentStatusLabel = $studentActiveState === 1 ? 'Verified' : ($studentActiveState === -1 ? 'Rejected' : 'Pending');
 $studentStatusClass = $studentActiveState === 1 ? 'bg-arcade-mint/35' : ($studentActiveState === -1 ? 'bg-arcade-coral/35' : 'bg-arcade-yellow/35');
-$dummyRank = 'Beginner';
 
 $studentViewBuildQuery = static function (array $overrides = []) use ($studentViewId, $studentLogPage): string {
     $query = [
@@ -99,88 +111,109 @@ $studentViewBuildQuery = static function (array $overrides = []) use ($studentVi
             </section>
         <?php else : ?>
             <section class="student-view-shell grid gap-5 xl:grid-cols-[minmax(0,0.78fr)_minmax(0,1.22fr)]">
-                <aside class="teacher-panel min-w-0 p-5 md:p-6">
-                    <div class="flex flex-col items-start gap-4 sm:flex-row">
-                        <span class="grid h-20 w-20 shrink-0 place-items-center overflow-hidden rounded-[24px] border-4 border-arcade-ink bg-arcade-yellow font-arcade text-xl text-arcade-ink shadow-[6px_6px_0_rgba(38,25,15,0.18)]">
-                            <?php if ($studentAvatarUrl !== '') : ?>
-                                <img src="<?= htmlspecialchars($studentAvatarUrl, ENT_QUOTES, 'UTF-8') ?>" alt="" class="h-full w-full object-cover">
-                            <?php else : ?>
-                                <?= htmlspecialchars($studentInitials, ENT_QUOTES, 'UTF-8') ?>
-                            <?php endif; ?>
-                        </span>
-                        <div class="min-w-0 w-full">
-                            <p class="text-sm font-semibold uppercase tracking-[0.08em] text-arcade-ink/60">Student Profile</p>
-                            <h1 class="mt-1 break-words text-3xl font-bold leading-tight"><?= htmlspecialchars($studentDisplayName, ENT_QUOTES, 'UTF-8') ?></h1>
-                            <p class="mt-2 break-all text-sm font-medium text-arcade-ink/60">@<?= htmlspecialchars($studentUsername, ENT_QUOTES, 'UTF-8') ?></p>
-                            <p class="break-all text-sm font-medium text-arcade-ink/60"><?= htmlspecialchars($studentEmail, ENT_QUOTES, 'UTF-8') ?></p>
-                            <div class="mt-3 flex flex-wrap gap-2">
-                                <span class="teacher-pill <?= htmlspecialchars($studentStatusClass, ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars($studentStatusLabel, ENT_QUOTES, 'UTF-8') ?></span>
-                                <span class="teacher-pill bg-arcade-cyan/25"><?= (int) ($studentViewProfile['is_verified'] ?? 0) === 1 ? 'Email verified' : 'Email pending' ?></span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="mt-5 grid gap-3 sm:grid-cols-2">
-                        <div class="rounded-2xl border border-arcade-ink/10 bg-white/80 px-4 py-3">
-                            <p class="text-[11px] font-semibold uppercase tracking-[0.08em] text-arcade-ink/55">Student ID</p>
-                            <p class="mt-1 text-sm font-semibold text-arcade-ink"><?= htmlspecialchars($studentNumber !== '' ? $studentNumber : 'Not assigned yet', ENT_QUOTES, 'UTF-8') ?></p>
-                        </div>
-                        <div class="rounded-2xl border border-arcade-ink/10 bg-white/80 px-4 py-3">
-                            <p class="text-[11px] font-semibold uppercase tracking-[0.08em] text-arcade-ink/55">Joined</p>
-                            <p class="mt-1 text-sm font-semibold text-arcade-ink"><?= htmlspecialchars(date('M j, Y', strtotime((string) ($studentViewProfile['registration_date'] ?? 'now'))), ENT_QUOTES, 'UTF-8') ?></p>
-                        </div>
-                    </div>
-
-                    <div class="mt-5 rounded-[22px] border border-arcade-ink/10 bg-white/80 p-4">
-                        <div class="flex items-center justify-between gap-2">
-                            <div>
-                                <p class="text-[11px] font-semibold uppercase tracking-[0.08em] text-arcade-ink/55">Rank Progress</p>
-                                <h2 class="mt-1 text-xl font-bold"><?= htmlspecialchars($dummyRank, ENT_QUOTES, 'UTF-8') ?></h2>
-                            </div>
-                            <span class="teacher-pill bg-arcade-yellow/35"><?= (int) $totalPoints ?> pts</span>
-                        </div>
-                        <div class="mt-3 h-3 overflow-hidden rounded-full border border-arcade-ink/10 bg-arcade-cream">
-                            <span class="block h-full rounded-full bg-gradient-to-r from-arcade-orange via-arcade-yellow to-arcade-cyan" style="width: <?= (int) $rankProgressPercent ?>%;"></span>
-                        </div>
-                        <p class="mt-2 text-xs font-semibold uppercase tracking-[0.08em] text-arcade-ink/55"><?= (int) $totalPoints ?> / <?= (int) $rankRequirementPoints ?> points</p>
-                    </div>
-
-                    <div class="mt-5 grid gap-3 sm:grid-cols-2">
-                        <article class="teacher-panel min-w-0 px-4 py-3">
-                            <p class="text-xs font-semibold uppercase tracking-[0.08em] text-arcade-ink/55">Total Solve</p>
-                            <strong class="mt-1 block text-2xl font-bold"><?= (int) $totalSolveCount ?></strong>
-                        </article>
-                        <article class="teacher-panel min-w-0 px-4 py-3">
-                            <p class="text-xs font-semibold uppercase tracking-[0.08em] text-arcade-ink/55">Points</p>
-                            <strong class="mt-1 block text-2xl font-bold"><?= (int) $totalPoints ?></strong>
-                        </article>
-                    </div>
-
-                    <div class="mt-5 rounded-[22px] border border-arcade-ink/10 bg-white/80 p-4">
-                        <div class="flex items-center justify-between gap-2">
-                            <p class="text-sm font-semibold uppercase tracking-[0.08em] text-arcade-ink/60">Submitted ID</p>
-                            <?php if ($studentIdPictureUrl !== '') : ?>
-                                <button type="button" class="teacher-link-button" data-bs-toggle="modal" data-bs-target="#admin-student-id-modal">Open</button>
-                            <?php endif; ?>
-                        </div>
-                        <div class="mt-3 overflow-hidden rounded-2xl border border-arcade-ink/10 bg-arcade-cream/70">
-                            <div class="grid min-h-[12rem] place-items-center p-3">
-                                <?php if ($studentIdPictureUrl !== '') : ?>
-                                    <img src="<?= htmlspecialchars($studentIdPictureUrl, ENT_QUOTES, 'UTF-8') ?>" alt="Student ID preview" class="max-h-[16rem] w-full object-contain">
+                <aside class="teacher-panel student-admin-profile min-w-0 overflow-hidden p-0">
+                    <div class="student-admin-profile__hero relative overflow-hidden border-b-4 border-arcade-ink bg-gradient-to-br from-arcade-yellow via-arcade-peach to-arcade-cyan/55 p-5 md:p-6">
+                        <div class="student-admin-profile__orb student-admin-profile__orb--one"></div>
+                        <div class="student-admin-profile__orb student-admin-profile__orb--two"></div>
+                        <div class="relative flex flex-col items-start gap-4 sm:flex-row">
+                            <span class="grid h-24 w-24 shrink-0 place-items-center overflow-hidden rounded-[28px] border-4 border-arcade-ink bg-white font-arcade text-xl text-arcade-ink shadow-[7px_7px_0_#26190f]">
+                                <?php if ($studentAvatarUrl !== '') : ?>
+                                    <img src="<?= htmlspecialchars($studentAvatarUrl, ENT_QUOTES, 'UTF-8') ?>" alt="" class="h-full w-full object-cover">
                                 <?php else : ?>
-                                    <span class="px-3 text-center text-xs font-semibold leading-5 text-arcade-ink/45">No ID picture uploaded.</span>
+                                    <?= htmlspecialchars($studentInitials, ENT_QUOTES, 'UTF-8') ?>
                                 <?php endif; ?>
+                            </span>
+                            <div class="min-w-0 w-full">
+                                <p class="text-xs font-black uppercase tracking-[0.16em] text-arcade-ink/62">Student Profile</p>
+                                <h1 class="mt-2 break-words text-3xl font-black leading-tight md:text-4xl"><?= htmlspecialchars($studentDisplayName, ENT_QUOTES, 'UTF-8') ?></h1>
+                                <div class="mt-3 grid gap-1 rounded-2xl border-2 border-arcade-ink/10 bg-white/55 px-3 py-2 backdrop-blur">
+                                    <p class="break-all text-sm font-bold text-arcade-ink/70">@<?= htmlspecialchars($studentUsername, ENT_QUOTES, 'UTF-8') ?></p>
+                                    <p class="break-all text-sm font-semibold text-arcade-ink/62"><?= htmlspecialchars($studentEmail, ENT_QUOTES, 'UTF-8') ?></p>
+                                </div>
+                                <div class="mt-3 flex flex-wrap gap-2">
+                                    <span class="teacher-pill <?= htmlspecialchars($studentStatusClass, ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars($studentStatusLabel, ENT_QUOTES, 'UTF-8') ?></span>
+                                    <span class="teacher-pill bg-white/70"><?= (int) ($studentViewProfile['is_verified'] ?? 0) === 1 ? 'Email verified' : 'Email pending' ?></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="p-5 md:p-6">
+                        <div class="grid gap-3 sm:grid-cols-2">
+                            <div class="student-admin-info-card rounded-2xl px-4 py-3">
+                                <p class="text-[11px] font-semibold uppercase tracking-[0.08em] text-arcade-ink/55">Student ID</p>
+                                <p class="mt-1 text-sm font-semibold text-arcade-ink"><?= htmlspecialchars($studentNumber !== '' ? $studentNumber : 'Not assigned yet', ENT_QUOTES, 'UTF-8') ?></p>
+                            </div>
+                            <div class="student-admin-info-card rounded-2xl px-4 py-3">
+                                <p class="text-[11px] font-semibold uppercase tracking-[0.08em] text-arcade-ink/55">Joined</p>
+                                <p class="mt-1 text-sm font-semibold text-arcade-ink"><?= htmlspecialchars(date('M j, Y', strtotime((string) ($studentViewProfile['registration_date'] ?? 'now'))), ENT_QUOTES, 'UTF-8') ?></p>
+                            </div>
+                        </div>
+
+                        <div class="student-admin-rank-card mt-5 rounded-[26px] border-4 border-arcade-ink bg-white p-4 shadow-[6px_6px_0_#26190f]">
+                            <div class="flex items-center justify-between gap-4">
+                                <div class="flex shrink-0 items-center gap-3">
+                                    <span class="grid h-16 w-16 shrink-0 place-items-center rounded-2xl border-4 border-arcade-ink bg-arcade-yellow font-arcade text-xl text-arcade-orange shadow-[4px_4px_0_rgba(38,25,15,0.25)]">
+                                        <?= htmlspecialchars($currentRankInitial, ENT_QUOTES, 'UTF-8') ?>
+                                    </span>
+                                    <div>
+                                        <p class="text-[11px] font-black uppercase tracking-[0.14em] text-arcade-orange">Rank Progress</p>
+                                        <p class="mt-1 text-xs font-bold uppercase tracking-[0.12em] text-arcade-ink/55">Current rank</p>
+                                    </div>
+                                </div>
+                                <span class="rounded-full border-2 border-arcade-ink bg-arcade-cyan/35 px-3 py-1 text-xs font-black text-arcade-ink"><?= (int) $rankProgressPercent ?>%</span>
+                            </div>
+                            <h2 class="mt-4 w-full overflow-x-auto whitespace-nowrap rounded-2xl border-2 border-arcade-ink/10 bg-arcade-cream/80 px-4 py-3 text-2xl font-black leading-tight text-arcade-ink"><?= htmlspecialchars($currentRankName, ENT_QUOTES, 'UTF-8') ?></h2>
+                            <div class="mt-4 h-4 overflow-hidden rounded-full border-2 border-arcade-ink bg-arcade-cream">
+                                <span class="block h-full rounded-full bg-gradient-to-r from-arcade-orange via-arcade-yellow to-arcade-cyan" style="width: <?= (int) $rankProgressPercent ?>%;"></span>
+                            </div>
+                            <div class="mt-3 flex flex-wrap items-center justify-between gap-2">
+                                <p class="text-sm font-black text-arcade-ink"><?= (int) $totalPoints ?><?= $isMaxRank ? ' points' : ' / ' . (int) $rankRequirementPoints . ' points' ?></p>
+                                <?php if (!$isMaxRank && $nextRankName !== '') : ?>
+                                    <p class="rounded-full bg-arcade-yellow/35 px-3 py-1 text-[11px] font-black uppercase tracking-[0.12em] text-arcade-ink/70">Next: <?= htmlspecialchars($nextRankName, ENT_QUOTES, 'UTF-8') ?></p>
+                                <?php else : ?>
+                                    <p class="rounded-full bg-arcade-mint/45 px-3 py-1 text-[11px] font-black uppercase tracking-[0.12em] text-arcade-ink/70">Top rank</p>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+
+                        <div class="mt-5 grid gap-3 sm:grid-cols-2">
+                            <article class="student-admin-metric min-w-0 rounded-2xl px-4 py-3">
+                                <p class="text-xs font-semibold uppercase tracking-[0.08em] text-arcade-ink/55">Total Solve</p>
+                                <strong class="mt-1 block text-2xl font-bold"><?= (int) $totalSolveCount ?></strong>
+                            </article>
+                            <article class="student-admin-metric min-w-0 rounded-2xl px-4 py-3">
+                                <p class="text-xs font-semibold uppercase tracking-[0.08em] text-arcade-ink/55">Points</p>
+                                <strong class="mt-1 block text-2xl font-bold"><?= (int) $totalPoints ?></strong>
+                            </article>
+                        </div>
+
+                        <div class="student-admin-info-card mt-5 rounded-[22px] p-4">
+                            <div class="flex items-center justify-between gap-2">
+                                <p class="text-sm font-semibold uppercase tracking-[0.08em] text-arcade-ink/60">Submitted ID</p>
+                                <?php if ($studentIdPictureUrl !== '') : ?>
+                                    <button type="button" class="teacher-link-button" data-bs-toggle="modal" data-bs-target="#admin-student-id-modal">Open</button>
+                                <?php endif; ?>
+                            </div>
+                            <div class="mt-3 overflow-hidden rounded-2xl border border-arcade-ink/10 bg-arcade-cream/70">
+                                <div class="grid min-h-[12rem] place-items-center p-3">
+                                    <?php if ($studentIdPictureUrl !== '') : ?>
+                                        <img src="<?= htmlspecialchars($studentIdPictureUrl, ENT_QUOTES, 'UTF-8') ?>" alt="Student ID preview" class="max-h-[16rem] w-full object-contain">
+                                    <?php else : ?>
+                                        <span class="px-3 text-center text-xs font-semibold leading-5 text-arcade-ink/45">No ID picture uploaded.</span>
+                                    <?php endif; ?>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </aside>
 
                 <section class="grid min-w-0 gap-5">
-                    <article class="teacher-panel min-w-0 p-5 md:p-6">
+                    <article class="teacher-panel student-admin-panel min-w-0 p-5 md:p-6">
                         <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                             <div>
                                 <p class="text-sm font-semibold uppercase tracking-[0.08em] text-arcade-ink/60">Solving Analytics</p>
-                                <h2 class="mt-1 text-2xl font-bold"><?= (int) $currentYear ?> activity</h2>
+                                <h2 class="mt-1 text-2xl font-black">Last 30 Days</h2>
                             </div>
                             <div class="flex flex-wrap items-center gap-2">
                                 <p class="text-sm font-medium text-arcade-ink/55"><?= (int) $totalSolveCount ?> total solve<?= $totalSolveCount === 1 ? '' : 's' ?></p>
@@ -191,14 +224,14 @@ $studentViewBuildQuery = static function (array $overrides = []) use ($studentVi
                             </div>
                         </div>
 
-                        <div class="admin-student-chart-shell mt-4" aria-label="<?= (int) $currentYear ?> student solving chart">
+                        <div class="admin-student-chart-shell mt-4" aria-label="Student solving chart for the last <?= (int) $analyticsTrackedDays ?> days">
                             <div class="admin-student-chart-stage">
-                                <canvas id="admin-student-activity-chart" aria-label="<?= (int) $currentYear ?> student solving analytics chart"></canvas>
+                                <canvas id="admin-student-activity-chart" aria-label="Student solving analytics chart for the last <?= (int) $analyticsTrackedDays ?> days"></canvas>
                             </div>
                         </div>
                     </article>
 
-                    <article class="teacher-panel min-w-0 p-5 md:p-6">
+                    <article class="teacher-panel student-admin-panel min-w-0 p-5 md:p-6">
                         <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                             <div>
                                 <p class="text-sm font-semibold uppercase tracking-[0.08em] text-arcade-ink/60">Student Logs</p>
@@ -289,11 +322,78 @@ $studentViewBuildQuery = static function (array $overrides = []) use ($studentVi
     min-width: 0;
 }
 
+.student-admin-profile {
+    background:
+        linear-gradient(180deg, rgba(255, 253, 246, 0.96), rgba(255, 247, 232, 0.92)),
+        radial-gradient(circle at 20% 10%, rgba(255, 209, 102, 0.22), transparent 28%);
+}
+
+.student-admin-profile__orb {
+    position: absolute;
+    border-radius: 999px;
+    pointer-events: none;
+}
+
+.student-admin-profile__orb--one {
+    right: -3rem;
+    top: -3.5rem;
+    width: 11rem;
+    height: 11rem;
+    border: 1.2rem solid rgba(255, 255, 255, 0.34);
+}
+
+.student-admin-profile__orb--two {
+    right: 5rem;
+    bottom: 1rem;
+    width: 3.5rem;
+    height: 3.5rem;
+    background: rgba(255, 255, 255, 0.28);
+    box-shadow: 0 0 0 4px rgba(38, 25, 15, 0.06);
+}
+
+.student-admin-info-card,
+.student-admin-metric {
+    border: 1px solid rgba(38, 25, 15, 0.1);
+    background: rgba(255, 255, 255, 0.82);
+    box-shadow: 0 14px 30px rgba(38, 25, 15, 0.06);
+}
+
+.student-admin-rank-card {
+    position: relative;
+    overflow: hidden;
+}
+
+.student-admin-rank-card::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto;
+    height: 0.42rem;
+    background: linear-gradient(90deg, #ff8c42, #ffd166, #4cc9f0);
+}
+
+.student-admin-rank-card > * {
+    position: relative;
+}
+
+.student-admin-metric {
+    border-width: 2px;
+    border-color: rgba(38, 25, 15, 0.12);
+}
+
+.student-admin-panel {
+    background:
+        linear-gradient(180deg, rgba(255, 253, 246, 0.96), rgba(255, 255, 255, 0.88)),
+        radial-gradient(circle at top right, rgba(76, 201, 240, 0.14), transparent 34%);
+}
+
 .admin-student-chart-shell {
-    border: 1px solid rgba(17, 24, 39, 0.08);
-    border-radius: 1rem;
-    background: rgba(255, 255, 255, 0.78);
+    border: 2px solid rgba(38, 25, 15, 0.1);
+    border-radius: 1.35rem;
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(255, 247, 232, 0.72)),
+        radial-gradient(circle at 12% 0%, rgba(255, 209, 102, 0.18), transparent 30%);
     padding: 1rem;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72);
 }
 
 .admin-student-chart-stage {
@@ -305,6 +405,15 @@ $studentViewBuildQuery = static function (array $overrides = []) use ($studentVi
 body.pixelwar-dark-mode .admin-student-chart-shell {
     border-color: rgba(148, 163, 184, 0.16);
     background: linear-gradient(180deg, rgba(15, 23, 42, 0.92) 0%, rgba(15, 23, 42, 0.82) 100%);
+}
+
+body.pixelwar-dark-mode .student-admin-profile,
+body.pixelwar-dark-mode .student-admin-panel,
+body.pixelwar-dark-mode .student-admin-info-card,
+body.pixelwar-dark-mode .student-admin-metric,
+body.pixelwar-dark-mode .student-admin-rank-card {
+    background: linear-gradient(180deg, rgba(15, 23, 42, 0.94), rgba(30, 41, 59, 0.88));
+    border-color: rgba(148, 163, 184, 0.18);
 }
 </style>
 

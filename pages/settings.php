@@ -153,11 +153,15 @@ if (isset($connection) && $connection instanceof mysqli && isset($_SESSION['user
                     <p class="text-sm font-bold leading-6 text-arcade-ink/62">Leave the file empty if you want to keep
                         your current avatar.</p>
                     <button type="submit"
-                        class="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl border-2 border-arcade-ink bg-arcade-yellow px-5 py-2.5 text-sm font-bold text-arcade-ink shadow-[0_4px_0_#26190f] transition hover:-translate-y-0.5 hover:bg-arcade-orange hover:text-white">
-                        <svg class="h-4 w-4" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
-                            <path fill="currentColor" d="M3 2h8l2 2v10H3V2Zm2 2v3h5V4H5Zm0 6v2h6v-2H5Z" />
-                        </svg>
-                        Save Changes
+                        class="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl border-2 border-arcade-ink bg-arcade-yellow px-5 py-2.5 text-sm font-bold text-arcade-ink shadow-[0_4px_0_#26190f] transition hover:-translate-y-0.5 hover:bg-arcade-orange hover:text-white disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:translate-y-0 disabled:hover:bg-arcade-yellow disabled:hover:text-arcade-ink"
+                        data-settings-save-button>
+                        <span class="settings-save-button__content inline-flex items-center gap-2">
+                            <span class="settings-save-button__spinner hidden h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" aria-hidden="true"></span>
+                            <svg class="settings-save-button__icon h-4 w-4" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+                                <path fill="currentColor" d="M3 2h8l2 2v10H3V2Zm2 2v3h5V4H5Zm0 6v2h6v-2H5Z" />
+                            </svg>
+                            <span class="settings-save-button__text">Save Changes</span>
+                        </span>
                     </button>
                 </div>
             </form>
@@ -174,6 +178,10 @@ if (isset($connection) && $connection instanceof mysqli && isset($_SESSION['user
         const form = document.querySelector('.settings-form');
         const emailInput = document.querySelector('#settings-email');
         const emailMessage = document.querySelector('#settings-email-message');
+        const saveButton = document.querySelector('[data-settings-save-button]');
+        const saveButtonSpinner = saveButton?.querySelector('.settings-save-button__spinner');
+        const saveButtonText = saveButton?.querySelector('.settings-save-button__text');
+        const saveButtonIcon = saveButton?.querySelector('.settings-save-button__icon');
         let emailIsAvailable = true;
 
         if (!input || !preview || !fileName || !form || !emailInput || !emailMessage) {
@@ -281,6 +289,14 @@ if (isset($connection) && $connection instanceof mysqli && isset($_SESSION['user
             if (!canUseEmail || !emailIsAvailable) {
                 emailInput.focus();
                 return;
+            }
+
+            if (saveButton && saveButtonSpinner && saveButtonText && saveButtonIcon) {
+                saveButton.disabled = true;
+                saveButtonSpinner.classList.remove('hidden');
+                saveButtonIcon.classList.add('hidden');
+                saveButtonText.textContent = 'Saving...';
+                saveButton.setAttribute('aria-busy', 'true');
             }
 
             form.submit();

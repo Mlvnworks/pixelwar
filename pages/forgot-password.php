@@ -43,9 +43,13 @@ unset($_SESSION['forgot_password_errors'], $_SESSION['forgot_password_notices'],
                 type="submit"
                 class="mt-4 w-full rounded-xl border-2 border-arcade-ink bg-arcade-yellow px-6 py-2.5 text-sm font-bold shadow-[0_4px_0_#26190f] transition hover:-translate-y-0.5 hover:bg-arcade-orange hover:text-white disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0 disabled:hover:bg-arcade-yellow disabled:hover:text-arcade-ink"
                 data-forgot-password-button
+                data-forgot-password-label="Send Reset Link"
                 data-cooldown-available-at="<?= htmlspecialchars((string) $forgotCooldownAvailableAt, ENT_QUOTES, 'UTF-8') ?>"
                 <?= $forgotCooldownSecondsLeft > 0 ? 'disabled' : '' ?>>
-                Send Reset Link
+                <span class="forgot-password-button__content inline-flex items-center gap-2">
+                    <span class="forgot-password-button__spinner hidden h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" aria-hidden="true"></span>
+                    <span class="forgot-password-button__text">Send Reset Link</span>
+                </span>
             </button>
             <p
                 class="mt-2 min-h-5 text-center text-xs font-bold leading-5 text-arcade-ink/55"
@@ -234,9 +238,27 @@ unset($_SESSION['forgot_password_errors'], $_SESSION['forgot_password_notices'],
 (() => {
     const button = document.querySelector('[data-forgot-password-button]');
     const cooldownText = document.querySelector('[data-forgot-password-cooldown]');
+    const form = button?.closest('form');
 
     if (!button || !cooldownText) {
         return;
+    }
+
+    const spinner = button.querySelector('.forgot-password-button__spinner');
+    const label = button.querySelector('.forgot-password-button__text');
+    const defaultLabel = button.getAttribute('data-forgot-password-label') || 'Send Reset Link';
+
+    if (form && spinner && label) {
+        form.addEventListener('submit', () => {
+            if (button.disabled) {
+                return;
+            }
+
+            button.disabled = true;
+            spinner.classList.remove('hidden');
+            label.textContent = 'Sending...';
+            button.setAttribute('aria-busy', 'true');
+        });
     }
 
     const availableAt = Number(button.getAttribute('data-cooldown-available-at') || '0');
@@ -251,12 +273,22 @@ unset($_SESSION['forgot_password_errors'], $_SESSION['forgot_password_notices'],
             button.disabled = false;
             cooldownText.hidden = true;
             cooldownText.textContent = '';
+            if (spinner && label) {
+                spinner.classList.add('hidden');
+                label.textContent = defaultLabel;
+                button.removeAttribute('aria-busy');
+            }
             return false;
         }
 
         button.disabled = true;
         cooldownText.hidden = false;
         cooldownText.textContent = `Please wait ${secondsLeft} seconds before requesting another reset link.`;
+        if (spinner && label) {
+            spinner.classList.add('hidden');
+            label.textContent = defaultLabel;
+            button.removeAttribute('aria-busy');
+        }
         return true;
     };
 

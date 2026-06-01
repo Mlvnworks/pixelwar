@@ -52,6 +52,15 @@ function adminPanelRequireActivityLogRepository($activityLogRepository): Activit
     return $activityLogRepository;
 }
 
+function adminPanelRequireRankRepository($rankRepository): RankRepository
+{
+    if (!$rankRepository instanceof RankRepository) {
+        throw new RuntimeException('Rank repository is not available.');
+    }
+
+    return $rankRepository;
+}
+
 function adminPanelRequireTools($tools): Tools
 {
     if (!$tools instanceof Tools) {

@@ -32,6 +32,7 @@ try {
     }
 
     adminPanelRefreshSession($adminSessionUser);
+    $users->touchLastSeen((int) ($adminSessionUser['user_id'] ?? 0));
 } catch (Throwable $err) {
     error_log('Pixelwar admin auth error: ' . $err->getMessage());
     adminPanelRootRedirect('login');

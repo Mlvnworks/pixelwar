@@ -17,10 +17,10 @@ $studentLogPage = min($studentLogPage, $studentLogPages);
 $studentLogOffset = ($studentLogPage - 1) * $studentLogsPerPage;
 $studentLogRows = array_slice($studentLogs, $studentLogOffset, $studentLogsPerPage);
 
-$analyticsTrackedDays = 235;
+$analyticsTrackedDays = 30;
 $currentYear = (int) date('Y');
-$yearStart = new DateTimeImmutable($currentYear . '-01-01');
-$analyticsEndDate = $yearStart->modify('+' . ($analyticsTrackedDays - 1) . ' days');
+$analyticsEndDate = new DateTimeImmutable('today');
+$yearStart = $analyticsEndDate->modify('-' . ($analyticsTrackedDays - 1) . ' days');
 $completedCountsByDate = $userChallengeRepository instanceof UserChallengeRepository
     ? $userChallengeRepository->completedCountsByDate($studentViewId, $yearStart, $analyticsEndDate)
     : [];
@@ -30,9 +30,26 @@ $totalSolveCount = $userChallengeRepository instanceof UserChallengeRepository
 $totalPoints = $userChallengeRepository instanceof UserChallengeRepository
     ? $userChallengeRepository->totalCompletedPointsForUser($studentViewId)
     : 0;
-$rankRequirementPoints = 500;
-$rankProgressPercent = min(100, (int) round(($totalPoints / max(1, $rankRequirementPoints)) * 100));
+if ($userRepository instanceof UserRepository) {
+    $totalPoints = $userRepository->totalPlayerProgressPointsForUser($studentViewId);
+}
+$rankProgress = $rankRepository instanceof RankRepository
+    ? $rankRepository->progressForPoints($totalPoints)
+    : [
+        'current_name' => 'Beginner',
+        'display_requirement' => 500,
+        'progress_percent' => min(100, (int) round(($totalPoints / 500) * 100)),
+        'next_name' => 'Next Rank',
+        'is_max_rank' => false,
+    ];
+$rankRequirementPoints = (int) ($rankProgress['display_requirement'] ?? 500);
+$rankProgressPercent = (int) ($rankProgress['progress_percent'] ?? 0);
+$currentRankName = (string) ($rankProgress['current_name'] ?? 'Beginner');
+$nextRankName = (string) ($rankProgress['next_name'] ?? '');
+$isMaxRank = (bool) ($rankProgress['is_max_rank'] ?? false);
 $activityDays = [];
+$studentAnalyticsChartLabels = [];
+$studentAnalyticsChartValues = [];
 
 for ($dayIndex = 0; $dayIndex < $analyticsTrackedDays; $dayIndex++) {
     $date = $yearStart->modify('+' . $dayIndex . ' days');
@@ -43,6 +60,8 @@ for ($dayIndex = 0; $dayIndex < $analyticsTrackedDays; $dayIndex++) {
         'solves' => $solves,
         'level' => min($solves, 5),
     ];
+    $studentAnalyticsChartLabels[] = $date->format('M j');
+    $studentAnalyticsChartValues[] = $solves;
 }
 
 $studentFirstname = trim((string) ($studentViewProfile['firstname'] ?? ''));
@@ -57,7 +76,6 @@ $studentIdPictureUrl = trim((string) ($studentViewDetails['id_picture_url'] ?? '
 $studentActiveState = (int) ($studentViewProfile['is_active'] ?? 0);
 $studentStatusLabel = $studentActiveState === 1 ? 'Verified' : ($studentActiveState === -1 ? 'Rejected' : 'Pending');
 $studentStatusClass = $studentActiveState === 1 ? 'student-view-pill--verified' : ($studentActiveState === -1 ? 'student-view-pill--rejected' : 'student-view-pill--pending');
-$dummyRank = 'Beginner';
 
 $studentViewBuildQuery = static function (array $overrides = []) use ($studentViewId, $studentLogPage): string {
     $query = [
@@ -130,14 +148,19 @@ $studentViewBuildQuery = static function (array $overrides = []) use ($studentVi
                         <div class="flex items-center justify-between gap-2">
                             <div>
                                 <p class="student-view-label text-[11px] font-semibold uppercase tracking-[0.08em]">Rank Progress</p>
-                                <h2 class="mt-1 text-xl font-bold"><?= htmlspecialchars($dummyRank, ENT_QUOTES, 'UTF-8') ?></h2>
+                                <h2 class="mt-1 text-xl font-bold"><?= htmlspecialchars($currentRankName, ENT_QUOTES, 'UTF-8') ?></h2>
                             </div>
                             <span class="teacher-pill student-view-pill student-view-pill--points"><?= (int) $totalPoints ?> pts</span>
                         </div>
                         <div class="mt-3 h-3 overflow-hidden rounded-full border border-arcade-ink/10 bg-arcade-cream">
                             <span class="block h-full rounded-full bg-gradient-to-r from-arcade-orange via-arcade-yellow to-arcade-cyan" style="width: <?= (int) $rankProgressPercent ?>%;"></span>
                         </div>
-                        <p class="student-view-label mt-2 text-xs font-semibold uppercase tracking-[0.08em]"><?= (int) $totalPoints ?> / <?= (int) $rankRequirementPoints ?> points</p>
+                        <p class="student-view-label mt-2 text-xs font-semibold uppercase tracking-[0.08em]">
+                            <?= (int) $totalPoints ?><?= $isMaxRank ? ' points' : ' / ' . (int) $rankRequirementPoints . ' points' ?>
+                            <?php if (!$isMaxRank && $nextRankName !== '') : ?>
+                                · Next: <?= htmlspecialchars($nextRankName, ENT_QUOTES, 'UTF-8') ?>
+                            <?php endif; ?>
+                        </p>
                     </div>
 
                     <div class="mt-5 grid gap-3 sm:grid-cols-2">
@@ -172,38 +195,24 @@ $studentViewBuildQuery = static function (array $overrides = []) use ($studentVi
                         <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                             <div>
                                 <p class="student-view-label text-sm font-semibold uppercase tracking-[0.08em]">Solving Analytics</p>
-                                <h2 class="mt-1 text-2xl font-bold"><?= (int) $currentYear ?> activity</h2>
+                                <h2 class="mt-1 text-2xl font-bold">Last 30 Days</h2>
                             </div>
-                            <p class="student-view-muted text-sm font-medium"><?= (int) $totalSolveCount ?> total solve<?= $totalSolveCount === 1 ? '' : 's' ?></p>
-                        </div>
-
-                        <div class="teacher-student-activity-scroll mt-4">
-                            <div class="teacher-student-activity-grid" aria-label="<?= (int) $currentYear ?> student solving analytics">
-                                <?php foreach ($activityDays as $activityDay) : ?>
-                                    <?php
-                                    $level = (int) ($activityDay['level'] ?? 0);
-                                    $tooltip = $activityDay['date']->format('M j, Y')
-                                        . ': ' . (int) ($activityDay['solves'] ?? 0) . ' solve'
-                                        . ((int) ($activityDay['solves'] ?? 0) === 1 ? '' : 's');
-                                    ?>
-                                    <span
-                                        class="teacher-student-activity-cell teacher-student-activity-cell--<?= $level ?>"
-                                        tabindex="0"
-                                        role="button"
-                                        aria-label="<?= htmlspecialchars($tooltip, ENT_QUOTES, 'UTF-8') ?>"
-                                        data-tooltip="<?= htmlspecialchars($tooltip, ENT_QUOTES, 'UTF-8') ?>"
-                                        title="<?= htmlspecialchars($tooltip, ENT_QUOTES, 'UTF-8') ?>"></span>
-                                <?php endforeach; ?>
+                            <div class="flex flex-wrap items-center gap-2">
+                                <p class="student-view-muted text-sm font-medium"><?= (int) $totalSolveCount ?> total solve<?= $totalSolveCount === 1 ? '' : 's' ?></p>
+                                <a href="./?c=student-submissions&id=<?= (int) $studentViewId ?>" class="teacher-button teacher-button--light gap-2 no-underline">
+                                    <i data-lucide="list-checks" class="h-4 w-4" aria-hidden="true"></i>
+                                    <span>View Submissions</span>
+                                </a>
                             </div>
                         </div>
 
-                        <div class="student-view-label mt-3 flex flex-wrap items-center gap-2 text-xs font-black">
-                            <span>Less</span>
-                            <span class="teacher-student-activity-cell teacher-student-activity-cell--0"></span>
-                            <span class="teacher-student-activity-cell teacher-student-activity-cell--1"></span>
-                            <span class="teacher-student-activity-cell teacher-student-activity-cell--3"></span>
-                            <span class="teacher-student-activity-cell teacher-student-activity-cell--5"></span>
-                            <span>More</span>
+                        <div class="student-view-chart-shell mt-4" aria-label="Student solving analytics chart for the last <?= (int) $analyticsTrackedDays ?> days">
+                            <div class="student-view-chart-summary">
+                                <p class="student-view-chart-summary__copy">Shows the student solve count day by day for the selected range.</p>
+                            </div>
+                            <div class="student-view-chart-stage">
+                                <canvas id="student-view-analytics-chart" height="230"></canvas>
+                            </div>
                         </div>
                     </article>
 
@@ -266,8 +275,6 @@ $studentViewBuildQuery = static function (array $overrides = []) use ($studentVi
         <?php endif; ?>
     </section>
 </main>
-
-<div id="teacher-student-analytics-tooltip" class="analytics-activity-tooltip" role="status" hidden></div>
 
 <style>
 .student-view-shell,
@@ -336,80 +343,43 @@ $studentViewBuildQuery = static function (array $overrides = []) use ($studentVi
     background: rgba(249, 115, 115, 0.32) !important;
 }
 
-.teacher-student-activity-grid {
-    display: grid;
-    grid-auto-flow: column;
-    grid-template-rows: repeat(7, 0.92rem);
-    grid-auto-columns: 0.92rem;
-    gap: 0.28rem;
-    min-width: max-content;
-    padding: 0.2rem;
+.student-view-chart-shell {
+    border: 2px solid rgba(38, 25, 15, 0.12);
+    border-radius: 1.25rem;
+    background: linear-gradient(180deg, rgba(255, 253, 246, 0.92), rgba(255, 247, 232, 0.82));
+    padding: 1rem;
 }
 
-.teacher-student-activity-scroll {
-    margin-inline: -0.25rem;
-    max-width: 100%;
-    overflow-x: auto;
-    overflow-y: visible;
-    padding: 0.3rem 0.25rem 1rem;
-    scrollbar-width: thin;
+.student-view-chart-summary {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 0.85rem;
 }
 
-.teacher-student-activity-cell {
+.student-view-chart-summary__copy {
+    margin: 0;
+    font-size: 0.78rem;
+    font-weight: 700;
+    line-height: 1.45;
+    color: rgba(38, 25, 15, 0.58);
+}
+
+.student-view-chart-stage {
     position: relative;
-    display: inline-block;
-    width: 0.92rem;
-    height: 0.92rem;
-    border: 1px solid rgba(38, 25, 15, 0.1);
-    border-radius: 0.32rem;
-    background: rgba(38, 25, 15, 0.06);
-    outline: none;
-    transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+    height: 13.2rem;
+    width: 100%;
 }
 
-.teacher-student-activity-cell--1 {
-    background: rgba(255, 209, 102, 0.52);
+body.pixelwar-dark-mode .student-view-chart-shell {
+    border-color: rgba(255, 247, 232, 0.12);
+    background: #1f160f;
 }
 
-.teacher-student-activity-cell--2 {
-    background: rgba(255, 209, 102, 0.78);
-}
-
-.teacher-student-activity-cell--3 {
-    background: rgba(255, 140, 66, 0.74);
-}
-
-.teacher-student-activity-cell--4 {
-    background: rgba(255, 140, 66, 0.9);
-}
-
-.teacher-student-activity-cell--5 {
-    background: #f97373;
-}
-
-.teacher-student-activity-cell:hover,
-.teacher-student-activity-cell:focus {
-    z-index: 5;
-    border-color: rgba(38, 25, 15, 0.3);
-    box-shadow: 0 8px 18px rgba(38, 25, 15, 0.14);
-    transform: translateY(-1px) scale(1.08);
-}
-
-.analytics-activity-tooltip {
-    position: fixed;
-    z-index: 9999;
-    max-width: min(18rem, calc(100vw - 1.5rem));
-    border: 2px solid #26190f;
-    border-radius: 0.9rem;
-    background: #fffdf6;
-    color: #26190f;
-    padding: 0.55rem 0.75rem;
-    font-size: 0.72rem;
-    font-weight: 800;
-    line-height: 1.35;
-    box-shadow: 6px 6px 0 rgba(38, 25, 15, 0.18);
-    pointer-events: none;
-    transform: translate(-50%, 0);
+body.pixelwar-dark-mode .student-view-chart-summary__copy {
+    color: rgba(255, 247, 232, 0.62);
 }
 
 body.pixelwar-dark-mode .student-view-surface {
@@ -453,35 +423,6 @@ body.pixelwar-dark-mode .student-view-table-head {
     color: rgba(255, 247, 232, 0.74);
 }
 
-body.pixelwar-dark-mode .teacher-student-activity-cell {
-    border-color: rgba(255, 247, 232, 0.26);
-    background: rgba(255, 247, 232, 0.14);
-}
-
-body.pixelwar-dark-mode .teacher-student-activity-cell--1 {
-    background: rgba(255, 209, 102, 0.38);
-}
-
-body.pixelwar-dark-mode .teacher-student-activity-cell--2 {
-    background: rgba(255, 209, 102, 0.58);
-}
-
-body.pixelwar-dark-mode .teacher-student-activity-cell--3 {
-    background: rgba(255, 140, 66, 0.62);
-}
-
-body.pixelwar-dark-mode .teacher-student-activity-cell--4 {
-    background: rgba(255, 140, 66, 0.82);
-}
-
-body.pixelwar-dark-mode .teacher-student-activity-cell--5 {
-    background: #ff8c42;
-}
-
-body.pixelwar-dark-mode .student-view-pill--points {
-    background: rgba(255, 209, 102, 0.24) !important;
-}
-
 body.pixelwar-dark-mode .student-view-pill--category {
     background: rgba(255, 217, 168, 0.18) !important;
 }
@@ -499,51 +440,107 @@ body.pixelwar-dark-mode .student-view-pill--rejected {
 }
 </style>
 
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.min.js"></script>
 <script>
 (() => {
-    const tooltip = document.getElementById('teacher-student-analytics-tooltip');
-    const cells = Array.from(document.querySelectorAll('.teacher-student-activity-cell[data-tooltip]'));
+    const canvas = document.getElementById('student-view-analytics-chart');
 
-    const hideTooltip = () => {
-        if (tooltip) {
-            tooltip.hidden = true;
-        }
-    };
+    if (!canvas || typeof window.Chart === 'undefined') {
+        return;
+    }
 
-    const showTooltip = (cell) => {
-        if (!tooltip) {
-            return;
-        }
+    const context = canvas.getContext('2d');
+    if (!context) {
+        return;
+    }
 
-        tooltip.textContent = cell.getAttribute('data-tooltip') || '';
-        tooltip.hidden = false;
+    const labels = <?= json_encode($studentAnalyticsChartLabels, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?>;
+    const values = <?= json_encode($studentAnalyticsChartValues, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?>;
+    const isDarkMode = document.body.classList.contains('pixelwar-dark-mode');
+    const gradient = context.createLinearGradient(0, 0, 0, canvas.height || 230);
+    gradient.addColorStop(0, isDarkMode ? 'rgba(255, 140, 66, 0.52)' : 'rgba(255, 140, 66, 0.4)');
+    gradient.addColorStop(0.55, isDarkMode ? 'rgba(255, 209, 102, 0.24)' : 'rgba(255, 209, 102, 0.18)');
+    gradient.addColorStop(1, 'rgba(255, 209, 102, 0)');
 
-        const rect = cell.getBoundingClientRect();
-        const tooltipRect = tooltip.getBoundingClientRect();
-        const viewportPadding = 12;
-        let left = rect.left + rect.width / 2;
-        let top = rect.top - tooltipRect.height - 10;
-
-        if (top < viewportPadding) {
-            top = rect.bottom + 10;
-        }
-
-        const minLeft = viewportPadding + tooltipRect.width / 2;
-        const maxLeft = window.innerWidth - viewportPadding - tooltipRect.width / 2;
-        left = Math.max(minLeft, Math.min(maxLeft, left));
-
-        tooltip.style.left = `${left}px`;
-        tooltip.style.top = `${top}px`;
-    };
-
-    cells.forEach((cell) => {
-        cell.addEventListener('mouseenter', () => showTooltip(cell));
-        cell.addEventListener('focus', () => showTooltip(cell));
-        cell.addEventListener('mouseleave', hideTooltip);
-        cell.addEventListener('blur', hideTooltip);
+    new window.Chart(context, {
+        type: 'line',
+        data: {
+            labels,
+            datasets: [{
+                label: 'Solved challenges',
+                data: values,
+                fill: true,
+                backgroundColor: gradient,
+                borderColor: '#ff8c42',
+                borderWidth: 3,
+                pointRadius: 0,
+                pointHoverRadius: 5,
+                pointHoverBorderWidth: 2,
+                pointHoverBackgroundColor: '#ffd166',
+                pointHoverBorderColor: '#26190f',
+                tension: 0.32,
+            }],
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: {
+                mode: 'index',
+                intersect: false,
+            },
+            plugins: {
+                legend: {
+                    display: false,
+                },
+                tooltip: {
+                    backgroundColor: isDarkMode ? '#1f160f' : '#fffdf6',
+                    titleColor: isDarkMode ? '#fff7e8' : '#26190f',
+                    bodyColor: isDarkMode ? '#fff7e8' : '#26190f',
+                    borderColor: '#26190f',
+                    borderWidth: 2,
+                    padding: 12,
+                    displayColors: false,
+                    titleFont: { weight: '800' },
+                    bodyFont: { weight: '700' },
+                    callbacks: {
+                        title(items) {
+                            return items[0]?.label || '';
+                        },
+                        label(item) {
+                            return `${item.raw || 0} solved challenge${item.raw === 1 ? '' : 's'}`;
+                        },
+                    },
+                },
+            },
+            scales: {
+                x: {
+                    ticks: {
+                        color: isDarkMode ? 'rgba(255,247,232,0.7)' : 'rgba(38,25,15,0.58)',
+                        autoSkip: true,
+                        maxTicksLimit: 10,
+                        font: { weight: '700' },
+                    },
+                    grid: { display: false },
+                    border: {
+                        color: isDarkMode ? 'rgba(255,247,232,0.12)' : 'rgba(38,25,15,0.12)',
+                    },
+                },
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        precision: 0,
+                        color: isDarkMode ? 'rgba(255,247,232,0.7)' : 'rgba(38,25,15,0.58)',
+                        font: { weight: '700' },
+                    },
+                    grid: {
+                        color: isDarkMode ? 'rgba(255,247,232,0.08)' : 'rgba(38,25,15,0.08)',
+                    },
+                    border: {
+                        color: isDarkMode ? 'rgba(255,247,232,0.12)' : 'rgba(38,25,15,0.12)',
+                    },
+                },
+            },
+        },
     });
-
-    window.addEventListener('scroll', hideTooltip, true);
-    window.addEventListener('resize', hideTooltip);
 })();
 </script>

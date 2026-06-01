@@ -1,0 +1,192 @@
+.analytics-page {
+    min-height: calc(100vh - 4.25rem);
+}
+
+.analytics-page__grid {
+    background-image: linear-gradient(rgba(38, 25, 15, 0.045) 1px, transparent 1px), linear-gradient(90deg, rgba(38, 25, 15, 0.045) 1px, transparent 1px);
+    background-size: 42px 42px;
+    mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.75), transparent 86%);
+}
+
+.analytics-row[hidden] {
+    display: none;
+}
+
+.analytics-range-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.55rem;
+}
+
+.analytics-range-chip {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid rgba(38, 25, 15, 0.12);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.9);
+    padding: 0.5rem 0.9rem;
+    color: #26190f;
+    font-size: 0.76rem;
+    font-weight: 900;
+    letter-spacing: 0.08em;
+    text-decoration: none;
+    text-transform: uppercase;
+    transition: transform 160ms ease, background-color 160ms ease, border-color 160ms ease;
+}
+
+.analytics-range-chip:hover {
+    transform: translateY(-1px);
+    background: rgba(255, 209, 102, 0.4);
+}
+
+.analytics-range-chip.is-active {
+    border-color: #26190f;
+    background: #ffd166;
+    box-shadow: 3px 3px 0 rgba(38, 25, 15, 0.18);
+}
+
+.analytics-chart-shell {
+    border: 2px solid rgba(38, 25, 15, 0.12);
+    border-radius: 1.25rem;
+    background: linear-gradient(180deg, rgba(255, 253, 246, 0.92), rgba(255, 247, 232, 0.82));
+    padding: 1rem;
+}
+
+.analytics-chart-summary {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 0.85rem;
+}
+
+.analytics-chart-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+    border: 2px solid rgba(38, 25, 15, 0.12);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.9);
+    padding: 0.45rem 0.8rem;
+    font-size: 0.72rem;
+    font-weight: 900;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: rgba(38, 25, 15, 0.72);
+}
+
+.analytics-chart-chip__dot {
+    width: 0.8rem;
+    height: 0.8rem;
+    border: 2px solid #26190f;
+    border-radius: 999px;
+    background: linear-gradient(135deg, #ff8c42, #ffd166);
+    box-shadow: 2px 2px 0 rgba(38, 25, 15, 0.18);
+}
+
+.analytics-chart-summary__copy {
+    margin: 0;
+    font-size: 0.78rem;
+    font-weight: 700;
+    line-height: 1.45;
+    color: rgba(38, 25, 15, 0.58);
+}
+
+.analytics-chart-stage {
+    position: relative;
+    height: 14rem;
+    width: 100%;
+}
+
+.export-date-field {
+    display: grid;
+    gap: 0.45rem;
+}
+
+.export-date-field span {
+    font-size: 0.76rem;
+    font-weight: 900;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: rgba(38, 25, 15, 0.62);
+}
+
+.export-date-field input {
+    width: 100%;
+    border: 2px solid rgba(38, 25, 15, 0.16);
+    border-radius: 1rem;
+    background: rgba(255, 255, 255, 0.92);
+    padding: 0.8rem 0.95rem;
+    color: #26190f;
+    font-size: 0.92rem;
+    font-weight: 800;
+    outline: none;
+    transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.export-date-field input:focus {
+    border-color: #ff8c42;
+    box-shadow: 0 0 0 4px rgba(255, 140, 66, 0.16);
+}
+
+.analytics-row {
+    transition: background-color 160ms ease;
+}
+
+.analytics-row:hover {
+    background: rgba(255, 209, 102, 0.18);
+}
+
+.analytics-filter.is-active {
+    border-color: rgba(38, 25, 15, 0.22);
+}
+
+body.pixelwar-dark-mode .analytics-range-chip {
+    border-color: rgba(255, 247, 232, 0.12);
+    background: rgba(255, 247, 232, 0.04);
+    color: rgba(255, 247, 232, 0.74);
+}
+
+body.pixelwar-dark-mode .analytics-range-chip.is-active {
+    border-color: rgba(255, 247, 232, 0.28);
+    background: #ffd166;
+    color: #26190f;
+}
+
+body.pixelwar-dark-mode .analytics-chart-shell {
+    border-color: rgba(255, 247, 232, 0.12);
+    background: linear-gradient(180deg, rgba(31, 22, 15, 0.96), rgba(19, 14, 10, 0.94));
+}
+
+body.pixelwar-dark-mode .analytics-chart-chip {
+    border-color: rgba(255, 247, 232, 0.12);
+    background: rgba(255, 247, 232, 0.04);
+    color: rgba(255, 247, 232, 0.74);
+}
+
+body.pixelwar-dark-mode .analytics-chart-summary__copy {
+    color: rgba(255, 247, 232, 0.62);
+}
+
+#analytics-prev:disabled,
+#analytics-next:disabled {
+    cursor: not-allowed;
+    opacity: 0.45;
+}
+
+@media (max-width: 640px) {
+    .analytics-chart-shell {
+        padding: 0.85rem;
+    }
+
+    .analytics-chart-summary {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .analytics-chart-stage {
+        height: 12rem;
+    }
+}

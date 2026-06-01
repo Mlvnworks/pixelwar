@@ -92,6 +92,28 @@ $formatDuration = static function (?string $startedAt, ?string $completedAt, str
 
     return implode(' ', $parts);
 };
+
+$formatSubmissionType = static function (array $row): string {
+    if ((int) ($row['pvp_id'] ?? 0) > 0) {
+        return '1v1';
+    }
+
+    if ((int) ($row['room_id'] ?? 0) > 0) {
+        return 'room';
+    }
+
+    return 'solo';
+};
+
+$formatSubmissionOutcome = static function (string $attemptStatus): array {
+    return match ($attemptStatus) {
+        'pvp_win' => ['Win', 'bg-arcade-cyan/35'],
+        'pvp_loss' => ['Loss', 'bg-arcade-coral/25'],
+        'completed' => ['Done', 'bg-arcade-mint/35'],
+        'gave_up' => ['Failed', 'bg-arcade-coral/25'],
+        default => ['In progress', 'bg-arcade-yellow/35'],
+    };
+};
 ?>
 
 <main class="teacher-shell relative overflow-hidden px-4 py-6 text-arcade-ink md:py-8">
@@ -111,7 +133,7 @@ $formatDuration = static function (?string $startedAt, ?string $completedAt, str
                         <p class="text-sm font-semibold uppercase tracking-[0.08em] text-arcade-ink/60">Student Submissions</p>
                         <h1 class="mt-2 text-3xl font-bold leading-tight md:text-4xl"><?= htmlspecialchars($studentSubmissionName, ENT_QUOTES, 'UTF-8') ?></h1>
                         <p class="mt-2 text-sm font-medium leading-7 text-arcade-ink/65">
-                            Review the student's challenge attempts, completion status, and awarded points.
+                            Review the student's challenge attempts, outcome type, and awarded points.
                         </p>
                     </div>
                     <a href="./?c=student-view&id=<?= (int) $studentSubmissionId ?>" class="teacher-button teacher-button--light gap-2 no-underline">
@@ -149,10 +171,10 @@ $formatDuration = static function (?string $startedAt, ?string $completedAt, str
             </article>
 
             <section class="teacher-panel p-0 overflow-hidden">
-                <div class="flex flex-col gap-3 border-b border-arcade-ink/10 px-5 py-4 md:flex-row md:items-center md:justify-between">
+                    <div class="flex flex-col gap-3 border-b border-arcade-ink/10 px-5 py-4 md:flex-row md:items-center md:justify-between">
                     <div>
                         <p class="text-sm font-semibold uppercase tracking-[0.08em] text-arcade-ink/60">Records</p>
-                        <h2 class="mt-1 text-2xl font-bold">Submitted challenges</h2>
+                        <h2 class="mt-1 text-2xl font-bold">Submission outcomes</h2>
                     </div>
                     <button type="button" class="teacher-button teacher-button--primary gap-2" data-bs-toggle="modal" data-bs-target="#admin-student-submissions-export-modal">
                         <i data-lucide="download" class="h-4 w-4" aria-hidden="true"></i>
@@ -170,10 +192,10 @@ $formatDuration = static function (?string $startedAt, ?string $completedAt, str
                             <thead class="sticky top-0 z-[1] bg-white/95">
                                 <tr class="border-b border-arcade-ink/10 text-xs uppercase tracking-[0.08em] text-arcade-ink/55">
                                     <th class="px-4 py-3 font-semibold">Challenge</th>
-                                    <th class="px-4 py-3 font-semibold">Status</th>
+                                    <th class="px-4 py-3 font-semibold">Type</th>
+                                    <th class="px-4 py-3 font-semibold">Outcome</th>
                                     <th class="px-4 py-3 font-semibold">Difficulty</th>
                                     <th class="px-4 py-3 font-semibold">Started</th>
-                                    <th class="px-4 py-3 font-semibold">Completed</th>
                                     <th class="px-4 py-3 font-semibold">Duration</th>
                                     <th class="px-4 py-3 font-semibold">Awarded</th>
                                     <th class="px-4 py-3 font-semibold">Action</th>
@@ -183,12 +205,9 @@ $formatDuration = static function (?string $startedAt, ?string $completedAt, str
                                 <?php foreach ($studentSubmissionPageRows as $row) : ?>
                                     <?php
                                     $attemptStatus = (string) ($row['attempt_status'] ?? (trim((string) ($row['completed_at'] ?? '')) !== '' ? 'completed' : 'ongoing'));
-                                    $isCompleted = $attemptStatus === 'completed';
                                     $difficulty = ucfirst(strtolower((string) ($row['difficulty_name'] ?? 'Unknown')));
-                                    $statusLabel = $isCompleted ? 'Completed' : ($attemptStatus === 'gave_up' ? 'Gave Up' : 'In progress');
-                                    $statusClass = $isCompleted
-                                        ? 'bg-arcade-mint/35'
-                                        : ($attemptStatus === 'gave_up' ? 'bg-arcade-coral/25' : 'bg-arcade-yellow/35');
+                                    $submissionType = $formatSubmissionType($row);
+                                    [$outcomeLabel, $outcomeClass] = $formatSubmissionOutcome($attemptStatus);
                                     ?>
                                     <tr class="border-b border-arcade-ink/10 align-top last:border-b-0">
                                         <td class="px-4 py-3">
@@ -198,15 +217,17 @@ $formatDuration = static function (?string $startedAt, ?string $completedAt, str
                                             </div>
                                         </td>
                                         <td class="px-4 py-3">
-                                            <span class="teacher-pill <?= $statusClass ?>">
-                                                <?= htmlspecialchars($statusLabel, ENT_QUOTES, 'UTF-8') ?>
+                                            <span class="teacher-pill bg-arcade-yellow/35">
+                                                <?= htmlspecialchars($submissionType, ENT_QUOTES, 'UTF-8') ?>
+                                            </span>
+                                        </td>
+                                        <td class="px-4 py-3">
+                                            <span class="teacher-pill <?= $outcomeClass ?>">
+                                                <?= htmlspecialchars($outcomeLabel, ENT_QUOTES, 'UTF-8') ?>
                                             </span>
                                         </td>
                                         <td class="px-4 py-3 font-medium text-arcade-ink/65"><?= htmlspecialchars($difficulty, ENT_QUOTES, 'UTF-8') ?></td>
                                         <td class="px-4 py-3 whitespace-nowrap font-medium text-arcade-ink/65"><?= htmlspecialchars(date('M j, Y g:i A', strtotime((string) ($row['started_at'] ?? 'now'))), ENT_QUOTES, 'UTF-8') ?></td>
-                                        <td class="px-4 py-3 whitespace-nowrap font-medium text-arcade-ink/65">
-                                            <?= $isCompleted ? htmlspecialchars(date('M j, Y g:i A', strtotime((string) $row['completed_at'])), ENT_QUOTES, 'UTF-8') : 'Not yet' ?>
-                                        </td>
                                         <td class="px-4 py-3 font-semibold text-arcade-ink"><?= htmlspecialchars($formatDuration((string) ($row['started_at'] ?? ''), (string) ($row['completed_at'] ?? ''), $attemptStatus), ENT_QUOTES, 'UTF-8') ?></td>
                                         <td class="px-4 py-3 font-semibold text-arcade-ink"><?= (int) ($row['awarded_points'] ?? 0) ?> pts</td>
                                         <td class="px-4 py-3">

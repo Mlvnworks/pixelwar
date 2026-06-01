@@ -50,23 +50,39 @@ for ($dayIndex = 0; $dayIndex < $selectedRangeDays; $dayIndex++) {
 
 foreach ($attemptHistoryRows as $attemptRow) {
     $isRoomAttempt = (int) ($attemptRow['room_id'] ?? 0) > 0;
+    $isPvpAttempt = (int) ($attemptRow['pvp_id'] ?? 0) > 0;
     $isStrictRoomAttempt = $isRoomAttempt && (int) ($attemptRow['room_strict_mode'] ?? 0) === 1;
     $strictModeScore = max(0, min(100, (int) ($attemptRow['strict_mode_score'] ?? 0)));
-    $status = !empty($attemptRow['completed_at'])
-        ? 'completed'
-        : ($isRoomAttempt ? 'failed' : 'ongoing');
+    $attemptStatus = (string) ($attemptRow['attempt_status'] ?? '');
+    $status = match ($attemptStatus) {
+        'pvp_win' => 'completed',
+        'pvp_loss' => 'failed',
+        default => (!empty($attemptRow['completed_at'])
+            ? 'completed'
+            : ($isRoomAttempt ? 'failed' : 'ongoing')),
+    };
+    $modeLabel = $isPvpAttempt ? '1v1' : ($isRoomAttempt ? 'Room' : 'Solo');
     $startedAt = new DateTimeImmutable((string) $attemptRow['started_at']);
     $completedAt = !empty($attemptRow['completed_at'])
         ? new DateTimeImmutable((string) $attemptRow['completed_at'])
         : null;
     $durationLabel = $status === 'failed' ? 'Failed' : 'Ongoing';
     $durationDetails = 'Taken ' . $startedAt->format('M j, Y g:i A');
-    $statusBadgeLabel = ucfirst($status);
+    $statusBadgeLabel = match ($attemptStatus) {
+        'pvp_win' => 'Win',
+        'pvp_loss' => 'Loss',
+        default => ucfirst($status),
+    };
 
     if ($completedAt instanceof DateTimeImmutable) {
         $durationSeconds = max(0, $completedAt->getTimestamp() - $startedAt->getTimestamp());
         $durationLabel = $formatDurationLabel($durationSeconds);
         $durationDetails = 'Taken ' . $startedAt->format('M j, Y g:i A') . ' - Completed in ' . $durationLabel;
+    } elseif ($attemptStatus === 'pvp_loss') {
+        $durationDetails = 'Taken ' . $startedAt->format('M j, Y g:i A') . ' - 1v1 duel result recorded as a loss.';
+    } elseif ($attemptStatus === 'pvp_win') {
+        $durationLabel = 'Win';
+        $durationDetails = 'Taken ' . $startedAt->format('M j, Y g:i A') . ' - 1v1 duel result recorded as a win.';
     } elseif ($status === 'failed') {
         $durationDetails = 'Taken ' . $startedAt->format('M j, Y g:i A') . ' - This room run was not completed.';
     } else {
@@ -87,6 +103,7 @@ foreach ($attemptHistoryRows as $attemptRow) {
         'title' => (string) $attemptRow['name'],
         'status' => $status,
         'statusBadgeLabel' => $statusBadgeLabel,
+        'modeLabel' => $modeLabel,
         'isStrictRoomAttempt' => $isStrictRoomAttempt,
         'strictModeScore' => $strictModeScore,
         'level' => ucfirst(strtolower((string) ($attemptRow['difficulty_name'] ?? 'Beginner'))),
@@ -97,14 +114,18 @@ foreach ($attemptHistoryRows as $attemptRow) {
         'summary' => $status === 'completed'
             ? ($isStrictRoomAttempt
                 ? 'Submitted this strict mode room challenge and recorded the final match score.'
-                : 'Completed this CSS matching challenge and locked in the solve.')
+                : ($isPvpAttempt && $attemptStatus === 'pvp_win'
+                    ? 'Won this 1v1 duel challenge and locked in the match result.'
+                    : 'Completed this CSS matching challenge and locked in the solve.'))
             : ($status === 'failed'
                 ? ($isStrictRoomAttempt
                     ? 'Submitted this strict mode room challenge and recorded the final match score.'
-                    : 'Started this CSS matching challenge inside a room, but the run was not completed.')
+                    : ($isPvpAttempt && $attemptStatus === 'pvp_loss'
+                        ? 'Lost this 1v1 duel challenge and recorded the match result.'
+                        : 'Started this CSS matching challenge inside a room, but the run was not completed.'))
                 : 'Started this CSS matching challenge and still has an active run.'),
         'href' => $status === 'ongoing'
-            ? './?c=pixelwar&intro=1&challenge_id=' . (int) $attemptRow['challenge_id']
+            ? './?c=pixelwar&intro=1&challenge_id=' . (int) $attemptRow['challenge_id'] . ($isPvpAttempt ? '&pvp_id=' . (int) ($attemptRow['pvp_id'] ?? 0) : '')
             : './?c=challenge&id=' . (int) $attemptRow['challenge_id'],
         'points' => (int) ($attemptRow['awarded_points'] ?? 0),
     ];
@@ -194,6 +215,14 @@ foreach ($attemptHistoryRows as $attemptRow) {
                         <div>
                             <p class="text-sm font-bold"><?= htmlspecialchars($row['title'], ENT_QUOTES, 'UTF-8') ?></p>
                             <p class="text-xs font-semibold text-arcade-ink/55"><?= htmlspecialchars($row['summary'], ENT_QUOTES, 'UTF-8') ?></p>
+                            <div class="mt-1 flex flex-wrap items-center gap-2">
+                                <span class="rounded-full <?= $row['modeLabel'] === '1v1' ? 'bg-arcade-cyan/30' : ($row['modeLabel'] === 'Room' ? 'bg-arcade-orange/20' : 'bg-arcade-mint/35') ?> px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-arcade-ink">
+                                    <?= htmlspecialchars($row['modeLabel'], ENT_QUOTES, 'UTF-8') ?>
+                                </span>
+                                <span class="rounded-full bg-arcade-orange/12 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-arcade-orange">
+                                    +<?= (int) $row['points'] ?> pts
+                                </span>
+                            </div>
                         </div>
                         <div>
                             <span class="rounded-full <?= $row['status'] === 'completed' ? 'bg-arcade-mint/70' : ($row['status'] === 'failed' ? 'bg-arcade-coral/30' : 'bg-arcade-yellow/70') ?> px-3 py-1 text-xs font-bold">

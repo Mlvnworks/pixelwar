@@ -1,25 +1,37 @@
 <?php
-$onlinePlayers = [];
-$playerNames = [
-    'PixelRookie', 'CSSRunner', 'BorderBuddy', 'TinyCascade', 'BoxShadowFan', 'LayoutKid', 'PanelPilot', 'ArcadeBox',
-    'HeroFixer', 'TypeTuner', 'SelectorMage', 'PixelProof', 'GridPilot', 'FlexNinja', 'CascadeRay', 'StyleSprinter',
-    'RadiusRider', 'ShadowScout', 'ButtonBee', 'MarginMage', 'PaddingPunk', 'DesignDuelist', 'SyntaxFox', 'HoverHawk',
-    'ClipPathKai', 'MediaQueryMia', 'TokenTuner', 'PanelPacer', 'BadgeBrawler', 'CSSCobra', 'PixelMika', 'RuleRanger',
-    'StackSage', 'LayerLeo', 'ColorCraft', 'UnitUma', 'AlignAce', 'GapGhost', 'FontFighter', 'CardKai',
-];
-$rankLabels = ['Beginner', 'Builder', 'Matcher', 'Stylist', 'Arcade Pro'];
+$versusCurrentUserId = (int) ($_SESSION['user_id'] ?? 0);
+$rankForPoints = static function (int $points) use ($rankRepository): string {
+    if ($rankRepository instanceof RankRepository) {
+        $rankProgress = $rankRepository->progressForPoints($points);
 
-foreach ($playerNames as $playerIndex => $playerName) {
-    $onlinePlayers[] = [
-        'name' => $playerName,
-        'initials' => strtoupper(substr(preg_replace('/[^a-z0-9]+/i', '', $playerName), 0, 2)),
-        'rank' => $rankLabels[$playerIndex % count($rankLabels)],
-        'status' => 'Online',
-        'solves' => 12 + (($playerIndex * 7) % 96),
-        'streak' => 1 + ($playerIndex % 14),
-        'points' => 180 + ($playerIndex * 45),
-        'accent' => ['yellow', 'cyan', 'orange', 'mint'][$playerIndex % 4],
-    ];
+        return (string) ($rankProgress['current_name'] ?? 'Beginner');
+    }
+
+    return 'Beginner';
+};
+$onlinePlayers = [];
+
+if ($userRepository instanceof UserRepository) {
+    $onlinePlayers = array_map(static function (array $player) use ($rankForPoints): array {
+        $displayName = trim((string) ($player['username'] ?? 'Student')) ?: 'Student';
+        $accentOptions = ['yellow', 'cyan', 'orange', 'mint'];
+        $accent = $accentOptions[((int) ($player['user_id'] ?? 0)) % count($accentOptions)];
+        $points = (int) ($player['points'] ?? 0);
+        $solves = (int) ($player['solves'] ?? 0);
+
+        return [
+            'user_id' => (int) ($player['user_id'] ?? 0),
+            'name' => $displayName,
+            'initials' => strtoupper(substr(preg_replace('/[^a-z0-9]+/i', '', $displayName) ?: 'ST', 0, 2)),
+            'avatar_url' => (string) ($player['avatar_url'] ?? ''),
+            'rank' => $rankForPoints($points),
+            'status' => 'Online',
+            'solves' => $solves,
+            'streak' => 1 + ($solves % 14),
+            'points' => $points,
+            'accent' => $accent,
+        ];
+    }, $userRepository->listOnlineStudentsForVersus($versusCurrentUserId, 120));
 }
 ?>
 
@@ -38,7 +50,7 @@ foreach ($playerNames as $playerIndex => $playerName) {
                 <div>
                     <p class="font-arcade text-[10px] uppercase tracking-[0.28em] text-arcade-cyan">1v1 Arena</p>
                     <h1 class="mt-3 text-3xl font-bold leading-tight md:text-5xl">Find an online player.</h1>
-                    <p class="mt-3 max-w-2xl text-sm leading-7 text-arcade-ink/68">Search active players, check their cards, then send a duel invite when you are ready.</p>
+                    <p class="mt-3 max-w-2xl text-sm leading-7 text-arcade-ink/68">Search online students, check their cards, then send a duel invite when you are ready.</p>
                 </div>
             </div>
 
@@ -61,11 +73,12 @@ foreach ($playerNames as $playerIndex => $playerName) {
 
 <script>
 (() => {
-    const players = <?= json_encode($onlinePlayers, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?>;
+    let players = <?= json_encode($onlinePlayers, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?>;
     const grid = document.getElementById('versus-player-grid');
     const searchInput = document.getElementById('versus-search');
     const emptyState = document.getElementById('versus-empty');
     const sentinel = document.getElementById('versus-scroll-sentinel');
+    const csrfToken = <?= json_encode(pixelwarCsrfToken(), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?>;
     const pageSize = 9;
     let filteredPlayers = [...players];
     let renderedCount = 0;
@@ -78,37 +91,98 @@ foreach ($playerNames as $playerIndex => $playerName) {
         '"': '&quot;',
     }[character]));
 
+    const normalizePlayers = (nextPlayers) => {
+        players = Array.isArray(nextPlayers) ? nextPlayers : [];
+        filteredPlayers = [...players];
+        renderedCount = 0;
+        if (grid) {
+            grid.innerHTML = '';
+        }
+        renderNextPlayers();
+        applySearch();
+    };
+
     const playerCard = (player) => `
         <article class="versus-player-card versus-player-card--${escapeHtml(player.accent)} rounded-[24px] border-4 border-arcade-ink bg-white p-4 shadow-[7px_7px_0_rgba(38,25,15,0.22)] transition hover:-translate-y-1 hover:shadow-[9px_9px_0_rgba(38,25,15,0.26)]">
             <div class="flex items-start justify-between gap-4">
                 <div class="flex min-w-0 items-center gap-3">
-                    <span class="versus-player-avatar grid h-14 w-14 shrink-0 place-items-center rounded-2xl border-4 border-arcade-ink font-arcade text-sm text-arcade-ink">${escapeHtml(player.initials)}</span>
+                    <span class="versus-player-avatar grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-2xl border-4 border-arcade-ink bg-arcade-yellow font-arcade text-sm text-arcade-ink">
+                        ${player.avatar_url
+                            ? `<img src="${escapeHtml(player.avatar_url)}" alt="" class="h-full w-full object-cover">`
+                            : escapeHtml(player.initials)}
+                    </span>
                     <div class="min-w-0">
                         <h2 class="truncate text-lg font-black">${escapeHtml(player.name)}</h2>
-                        <p class="mt-1 text-xs font-bold uppercase tracking-[0.14em] text-arcade-ink/52">${escapeHtml(player.rank)}</p>
+                        <div class="mt-2 flex flex-wrap items-center gap-2">
+                            <span class="inline-flex max-w-full items-center rounded-full border-2 border-arcade-ink bg-arcade-yellow px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-arcade-ink shadow-[2px_2px_0_rgba(38,25,15,0.22)]">
+                                ${escapeHtml(player.rank)}
+                            </span>
+                            <span class="text-xs font-black text-arcade-ink/55">${Number(player.points || 0)} pts</span>
+                        </div>
                     </div>
                 </div>
                 <span class="versus-status rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-[0.14em]">${escapeHtml(player.status)}</span>
             </div>
-            <div class="mt-4 grid grid-cols-3 gap-2 text-center">
-                <div class="rounded-2xl bg-arcade-cream p-2">
-                    <p class="text-[10px] font-black uppercase tracking-[0.12em] text-arcade-ink/48">Solved</p>
-                    <p class="mt-1 text-lg font-black">${Number(player.solves)}</p>
-                </div>
-                <div class="rounded-2xl bg-arcade-cream p-2">
-                    <p class="text-[10px] font-black uppercase tracking-[0.12em] text-arcade-ink/48">Streak</p>
-                    <p class="mt-1 text-lg font-black">${Number(player.streak)}d</p>
-                </div>
-                <div class="rounded-2xl bg-arcade-cream p-2">
-                    <p class="text-[10px] font-black uppercase tracking-[0.12em] text-arcade-ink/48">Points</p>
-                    <p class="mt-1 text-lg font-black">${Number(player.points)}</p>
-                </div>
-            </div>
-            <button type="button" class="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl border-2 border-arcade-ink bg-arcade-orange px-4 py-2 text-sm font-bold text-white shadow-[0_4px_0_#26190f] transition hover:-translate-y-0.5 hover:bg-arcade-yellow hover:text-arcade-ink">
+            <button type="button" data-versus-invite-button data-player-id="${Number(player.user_id || 0)}" class="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl border-2 border-arcade-ink bg-arcade-orange px-4 py-2 text-sm font-bold text-white shadow-[0_4px_0_#26190f] transition hover:-translate-y-0.5 hover:bg-arcade-yellow hover:text-arcade-ink">
                 <svg class="h-4 w-4" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path fill="currentColor" d="M5 7a2 2 0 1 0 0-4 2 2 0 0 0 0 4Zm6 0a2 2 0 1 0 0-4 2 2 0 0 0 0 4ZM2 13c0-2.2 1.4-4 3-4s3 1.8 3 4H2Zm6 0c0-2.2 1.4-4 3-4s3 1.8 3 4H8Z" /></svg>
                 Invite Player
             </button>
         </article>`;
+
+    const setInviteButtonState = (button, label, disabled) => {
+        if (!(button instanceof HTMLButtonElement)) {
+            return;
+        }
+
+        button.disabled = disabled;
+        button.dataset.originalLabel = button.dataset.originalLabel || button.innerHTML;
+        button.innerHTML = label;
+    };
+
+    const sendInvite = (targetUserId, button) => {
+        if (!targetUserId || !csrfToken) {
+            return;
+        }
+
+        setInviteButtonState(button, 'Sending...', true);
+        const body = new URLSearchParams({
+            versus_action: 'invite',
+            target_user_id: String(targetUserId),
+            _csrf_token: csrfToken,
+        });
+
+        fetch('./?c=versus', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+            body: body.toString(),
+        })
+            .then((response) => response.ok ? response.json() : Promise.reject(new Error('Invite failed')))
+            .then((payload) => {
+                if (!payload?.success) {
+                    throw new Error(payload?.message || 'Invite failed');
+                }
+
+                setInviteButtonState(button, 'Invite Sent', true);
+                window.setTimeout(() => {
+                    if (!(button instanceof HTMLButtonElement)) {
+                        return;
+                    }
+                    button.innerHTML = button.dataset.originalLabel || 'Invite Player';
+                    button.disabled = false;
+                }, 2200);
+            })
+            .catch(() => {
+                if (!(button instanceof HTMLButtonElement)) {
+                    return;
+                }
+                button.innerHTML = button.dataset.originalLabel || 'Invite Player';
+                button.disabled = false;
+            });
+    };
 
     const renderNextPlayers = () => {
         if (!grid) {
@@ -139,6 +213,41 @@ foreach ($playerNames as $playerIndex => $playerName) {
     };
 
     searchInput?.addEventListener('input', applySearch);
+    grid?.addEventListener('click', (event) => {
+        const button = event.target instanceof Element ? event.target.closest('[data-versus-invite-button]') : null;
+        if (!(button instanceof HTMLButtonElement)) {
+            return;
+        }
+
+        const targetUserId = Number(button.getAttribute('data-player-id') || 0);
+        if (targetUserId > 0) {
+            sendInvite(targetUserId, button);
+        }
+    });
+
+    const syncOnlinePlayers = () => {
+        const body = new URLSearchParams({
+            versus_action: 'snapshot',
+            _csrf_token: csrfToken,
+        });
+
+        fetch('./?c=versus', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+            body: body.toString(),
+        })
+            .then((response) => response.ok ? response.json() : Promise.reject(new Error('Snapshot failed')))
+            .then((payload) => {
+                if (payload?.success) {
+                    normalizePlayers(payload.players || []);
+                }
+            })
+            .catch(() => {});
+    };
 
     if ('IntersectionObserver' in window && sentinel) {
         const observer = new IntersectionObserver((entries) => {
@@ -159,5 +268,10 @@ foreach ($playerNames as $playerIndex => $playerName) {
     }
 
     renderNextPlayers();
+    window.setInterval(() => {
+        if (document.visibilityState === 'visible') {
+            syncOnlinePlayers();
+        }
+    }, 15000);
 })();
 </script>

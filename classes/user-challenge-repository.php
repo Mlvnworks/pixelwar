@@ -6,20 +6,22 @@ final class UserChallengeRepository
     {
     }
 
-    public function findOngoing(int $userId, int $challengeId): ?array
+    public function findOngoing(int $userId, int $challengeId, int $roomId = 0, int $pvpId = 0): ?array
     {
         $statement = $this->connection->prepare(
-            'SELECT user_challenge.uc_id, user_challenge.challenge_id, user_challenge.user_id, user_challenge.room_id, user_challenge.started_at, user_challenge.completed_at
+            'SELECT user_challenge.uc_id, user_challenge.challenge_id, user_challenge.user_id, user_challenge.room_id, user_challenge.pvp_id, user_challenge.started_at, user_challenge.completed_at
              FROM user_challenge
              LEFT JOIN rooms ON rooms.room_id = user_challenge.room_id
              WHERE user_challenge.user_id = ?
                 AND user_challenge.challenge_id = ?
+                AND ((? > 0 AND user_challenge.room_id = ?) OR (? <= 0 AND user_challenge.room_id IS NULL))
+                AND ((? > 0 AND user_challenge.pvp_id = ?) OR (? <= 0 AND user_challenge.pvp_id IS NULL))
                 AND user_challenge.completed_at IS NULL
                 AND (user_challenge.room_id IS NULL OR rooms.ended_at IS NULL)
              ORDER BY user_challenge.started_at DESC
              LIMIT 1'
         );
-        $statement->bind_param('ii', $userId, $challengeId);
+        $statement->bind_param('iiiiiiii', $userId, $challengeId, $roomId, $roomId, $roomId, $pvpId, $pvpId, $pvpId);
         $statement->execute();
         $row = $statement->get_result()->fetch_assoc();
         $statement->close();
@@ -63,9 +65,44 @@ final class UserChallengeRepository
         return $row ?: null;
     }
 
-    public function startOrFindOngoing(int $userId, int $challengeId, int $roomId = 0): array
+    public function findActivePvpRunLock(int $userId): ?array
     {
-        $ongoing = $this->findOngoing($userId, $challengeId);
+        if ($userId <= 0) {
+            return null;
+        }
+
+        $statement = $this->connection->prepare(
+            'SELECT
+                user_challenge.uc_id,
+                user_challenge.challenge_id,
+                user_challenge.user_id,
+                user_challenge.room_id,
+                user_challenge.pvp_id,
+                user_challenge.started_at,
+                user_challenge.completed_at
+             FROM user_challenge
+             INNER JOIN pvp_players
+                ON pvp_players.pvp_id = user_challenge.pvp_id
+                AND pvp_players.user_id = user_challenge.user_id
+             WHERE user_challenge.user_id = ?
+                AND user_challenge.room_id IS NULL
+                AND user_challenge.pvp_id IS NOT NULL
+                AND user_challenge.completed_at IS NULL
+                AND pvp_players.status NOT IN (2, 3)
+             ORDER BY user_challenge.started_at DESC
+             LIMIT 1'
+        );
+        $statement->bind_param('i', $userId);
+        $statement->execute();
+        $row = $statement->get_result()->fetch_assoc();
+        $statement->close();
+
+        return $row ?: null;
+    }
+
+    public function startOrFindOngoing(int $userId, int $challengeId, int $roomId = 0, int $pvpId = 0): array
+    {
+        $ongoing = $this->findOngoing($userId, $challengeId, $roomId, $pvpId);
 
         if ($ongoing !== null) {
             if ($roomId > 0 && (int) ($ongoing['room_id'] ?? 0) <= 0) {
@@ -83,18 +120,38 @@ final class UserChallengeRepository
                 $ongoing['room_id'] = $roomId;
             }
 
+            if ($pvpId > 0 && (int) ($ongoing['pvp_id'] ?? 0) <= 0) {
+                $statement = $this->connection->prepare(
+                    'UPDATE user_challenge
+                     SET pvp_id = ?
+                     WHERE uc_id = ?
+                        AND pvp_id IS NULL
+                     LIMIT 1'
+                );
+                $ongoingId = (int) ($ongoing['uc_id'] ?? 0);
+                $statement->bind_param('ii', $pvpId, $ongoingId);
+                $statement->execute();
+                $statement->close();
+                $ongoing['pvp_id'] = $pvpId;
+            }
+
             $ongoing['was_created'] = false;
             return $ongoing;
         }
 
         if ($roomId > 0) {
             $statement = $this->connection->prepare(
-                'INSERT INTO user_challenge (challenge_id, user_id, room_id) VALUES (?, ?, ?)'
+                'INSERT INTO user_challenge (challenge_id, user_id, room_id, pvp_id) VALUES (?, ?, ?, NULL)'
             );
             $statement->bind_param('iii', $challengeId, $userId, $roomId);
+        } elseif ($pvpId > 0) {
+            $statement = $this->connection->prepare(
+                'INSERT INTO user_challenge (challenge_id, user_id, room_id, pvp_id) VALUES (?, ?, NULL, ?)'
+            );
+            $statement->bind_param('iii', $challengeId, $userId, $pvpId);
         } else {
             $statement = $this->connection->prepare(
-                'INSERT INTO user_challenge (challenge_id, user_id, room_id) VALUES (?, ?, NULL)'
+                'INSERT INTO user_challenge (challenge_id, user_id, room_id, pvp_id) VALUES (?, ?, NULL, NULL)'
             );
             $statement->bind_param('ii', $challengeId, $userId);
         }
@@ -307,21 +364,28 @@ final class UserChallengeRepository
                 user_challenge.uc_id,
                 user_challenge.challenge_id,
                 user_challenge.room_id,
+                user_challenge.pvp_id,
                 user_challenge.started_at,
                 user_challenge.completed_at,
                 room_players.strict_mode_score,
                 rooms.strict_mode AS room_strict_mode,
+                pvp_players.status AS pvp_player_status,
                 challenges.name,
                 challenges.instruction,
                 difficulties.name AS difficulty_name,
                 difficulties.points,
                 CASE
+                    WHEN user_challenge.pvp_id IS NOT NULL AND pvp_players.status = 2 THEN "pvp_win"
+                    WHEN user_challenge.pvp_id IS NOT NULL AND pvp_players.status = 3 THEN "pvp_loss"
                     WHEN user_challenge.completed_at IS NOT NULL THEN "completed"
                     WHEN user_challenge.room_id IS NOT NULL AND (room_players.status = 3 OR rooms.ended_at IS NOT NULL) THEN "gave_up"
                     ELSE "ongoing"
                 END AS attempt_status,
                 CASE
-                    WHEN user_challenge.completed_at IS NOT NULL
+                    WHEN user_challenge.pvp_id IS NOT NULL AND pvp_players.status = 2 THEN difficulties.points
+                    WHEN user_challenge.room_id IS NOT NULL AND user_challenge.completed_at IS NOT NULL THEN difficulties.points
+                    WHEN user_challenge.room_id IS NULL
+                        AND user_challenge.completed_at IS NOT NULL
                         AND NOT EXISTS (
                             SELECT 1
                             FROM user_challenge AS previous_completion
@@ -339,6 +403,7 @@ final class UserChallengeRepository
              INNER JOIN difficulties ON difficulties.difficulty_id = challenges.difficulty_id
              LEFT JOIN rooms ON rooms.room_id = user_challenge.room_id
              LEFT JOIN room_players ON room_players.room_id = user_challenge.room_id AND room_players.user_id = user_challenge.user_id
+             LEFT JOIN pvp_players ON pvp_players.pvp_id = user_challenge.pvp_id AND pvp_players.user_id = user_challenge.user_id
              WHERE user_challenge.user_id = ?
              ORDER BY COALESCE(user_challenge.completed_at, user_challenge.started_at) DESC
              LIMIT ?'
@@ -372,21 +437,28 @@ final class UserChallengeRepository
                 user_challenge.uc_id,
                 user_challenge.challenge_id,
                 user_challenge.room_id,
+                user_challenge.pvp_id,
                 user_challenge.started_at,
                 user_challenge.completed_at,
                 room_players.strict_mode_score,
                 rooms.strict_mode AS room_strict_mode,
+                pvp_players.status AS pvp_player_status,
                 challenges.name,
                 challenges.instruction,
                 difficulties.name AS difficulty_name,
                 difficulties.points,
                 CASE
+                    WHEN user_challenge.pvp_id IS NOT NULL AND pvp_players.status = 2 THEN "pvp_win"
+                    WHEN user_challenge.pvp_id IS NOT NULL AND pvp_players.status = 3 THEN "pvp_loss"
                     WHEN user_challenge.completed_at IS NOT NULL THEN "completed"
                     WHEN user_challenge.room_id IS NOT NULL AND (room_players.status = 3 OR rooms.ended_at IS NOT NULL) THEN "gave_up"
                     ELSE "ongoing"
                 END AS attempt_status,
                 CASE
-                    WHEN user_challenge.completed_at IS NOT NULL
+                    WHEN user_challenge.pvp_id IS NOT NULL AND pvp_players.status = 2 THEN difficulties.points
+                    WHEN user_challenge.room_id IS NOT NULL AND user_challenge.completed_at IS NOT NULL THEN difficulties.points
+                    WHEN user_challenge.room_id IS NULL
+                        AND user_challenge.completed_at IS NOT NULL
                         AND NOT EXISTS (
                             SELECT 1
                             FROM user_challenge AS previous_completion
@@ -404,6 +476,7 @@ final class UserChallengeRepository
              INNER JOIN difficulties ON difficulties.difficulty_id = challenges.difficulty_id
              LEFT JOIN rooms ON rooms.room_id = user_challenge.room_id
              LEFT JOIN room_players ON room_players.room_id = user_challenge.room_id AND room_players.user_id = user_challenge.user_id
+             LEFT JOIN pvp_players ON pvp_players.pvp_id = user_challenge.pvp_id AND pvp_players.user_id = user_challenge.user_id
              WHERE user_challenge.user_id = ?
                 AND COALESCE(user_challenge.completed_at, user_challenge.started_at) BETWEEN ? AND ?
              ORDER BY COALESCE(user_challenge.completed_at, user_challenge.started_at) DESC
@@ -466,7 +539,7 @@ final class UserChallengeRepository
     public function findById(int $userChallengeId): ?array
     {
         $statement = $this->connection->prepare(
-            'SELECT uc_id, challenge_id, user_id, room_id, started_at, completed_at
+            'SELECT uc_id, challenge_id, user_id, room_id, pvp_id, started_at, completed_at
              FROM user_challenge
              WHERE uc_id = ?
              LIMIT 1'
@@ -486,7 +559,7 @@ final class UserChallengeRepository
         }
 
         $statement = $this->connection->prepare(
-            'SELECT uc_id, challenge_id, user_id, room_id, started_at, completed_at
+            'SELECT uc_id, challenge_id, user_id, room_id, pvp_id, started_at, completed_at
              FROM user_challenge
              WHERE uc_id = ?
                 AND user_id = ?
@@ -544,6 +617,34 @@ final class UserChallengeRepository
         return (int) ($row['total'] ?? 0);
     }
 
+    public function countOutcomesByChallenge(int $challengeId): int
+    {
+        if ($challengeId <= 0) {
+            return 0;
+        }
+
+        $statement = $this->connection->prepare(
+            'SELECT COUNT(*) AS total
+             FROM user_challenge
+             INNER JOIN challenges ON challenges.challenge_id = user_challenge.challenge_id
+             LEFT JOIN rooms ON rooms.room_id = user_challenge.room_id
+             LEFT JOIN room_players ON room_players.room_id = user_challenge.room_id AND room_players.user_id = user_challenge.user_id
+             LEFT JOIN pvp_players ON pvp_players.pvp_id = user_challenge.pvp_id AND pvp_players.user_id = user_challenge.user_id
+             WHERE user_challenge.challenge_id = ?
+                AND (
+                    user_challenge.completed_at IS NOT NULL
+                    OR (user_challenge.room_id IS NOT NULL AND (room_players.status = 3 OR rooms.ended_at IS NOT NULL))
+                    OR (user_challenge.pvp_id IS NOT NULL AND pvp_players.status IN (2, 3))
+                )'
+        );
+        $statement->bind_param('i', $challengeId);
+        $statement->execute();
+        $row = $statement->get_result()->fetch_assoc();
+        $statement->close();
+
+        return (int) ($row['total'] ?? 0);
+    }
+
     /**
      * @return array<int, array<string, mixed>>
      */
@@ -576,6 +677,145 @@ final class UserChallengeRepository
              LIMIT ?'
         );
         $statement->bind_param('ii', $challengeId, $limit);
+        $statement->execute();
+        $rows = $statement->get_result()->fetch_all(MYSQLI_ASSOC);
+        $statement->close();
+
+        return $rows;
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    public function listOutcomesByChallengePaged(int $challengeId, int $limit = 20, int $offset = 0): array
+    {
+        if ($challengeId <= 0) {
+            return [];
+        }
+
+        $limit = max(1, min(200, $limit));
+        $offset = max(0, $offset);
+        $statement = $this->connection->prepare(
+            'SELECT
+                user_challenge.uc_id,
+                user_challenge.challenge_id,
+                user_challenge.room_id,
+                user_challenge.pvp_id,
+                user_challenge.started_at,
+                user_challenge.completed_at,
+                room_players.strict_mode_score,
+                rooms.strict_mode AS room_strict_mode,
+                rooms.status AS room_status,
+                rooms.ended_at AS room_ended_at,
+                room_players.status AS room_player_status,
+                pvp_players.status AS pvp_player_status,
+                pvp_players.created_at AS pvp_created_at,
+                users.username,
+                users.email,
+                user_details.firstname,
+                user_details.lastname,
+                avatar_images.source AS avatar_url,
+                CASE
+                    WHEN user_challenge.pvp_id IS NOT NULL AND pvp_players.status = 2 THEN "win"
+                    WHEN user_challenge.pvp_id IS NOT NULL AND pvp_players.status = 3 THEN "loss"
+                    WHEN user_challenge.room_id IS NOT NULL AND (room_players.status = 3 OR rooms.ended_at IS NOT NULL) THEN
+                        CASE
+                            WHEN user_challenge.completed_at IS NOT NULL THEN "pass"
+                            ELSE "failed"
+                        END
+                    WHEN user_challenge.completed_at IS NOT NULL THEN "done"
+                    ELSE "ongoing"
+                END AS outcome_type
+             FROM user_challenge
+             INNER JOIN users ON users.user_id = user_challenge.user_id
+             LEFT JOIN user_details ON user_details.user_id = users.user_id
+             LEFT JOIN images AS avatar_images ON avatar_images.img_id = user_details.image_id
+             LEFT JOIN rooms ON rooms.room_id = user_challenge.room_id
+             LEFT JOIN room_players ON room_players.room_id = user_challenge.room_id AND room_players.user_id = user_challenge.user_id
+             LEFT JOIN pvp_players ON pvp_players.pvp_id = user_challenge.pvp_id AND pvp_players.user_id = user_challenge.user_id
+             WHERE user_challenge.challenge_id = ?
+                AND (
+                    user_challenge.completed_at IS NOT NULL
+                    OR (user_challenge.room_id IS NOT NULL AND (room_players.status = 3 OR rooms.ended_at IS NOT NULL))
+                    OR (user_challenge.pvp_id IS NOT NULL AND pvp_players.status IN (2, 3))
+                )
+             ORDER BY COALESCE(user_challenge.completed_at, pvp_players.created_at, rooms.ended_at, user_challenge.started_at) DESC
+             LIMIT ? OFFSET ?'
+        );
+        $statement->bind_param('iii', $challengeId, $limit, $offset);
+        $statement->execute();
+        $rows = $statement->get_result()->fetch_all(MYSQLI_ASSOC);
+        $statement->close();
+
+        return $rows;
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    public function listOutcomesByChallengeAndDateRange(
+        int $challengeId,
+        DateTimeInterface $startDate,
+        DateTimeInterface $endDate,
+        int $limit = 1000
+    ): array {
+        if ($challengeId <= 0) {
+            return [];
+        }
+
+        $limit = max(1, min(2000, $limit));
+        $start = $startDate->format('Y-m-d 00:00:00');
+        $end = $endDate->format('Y-m-d 23:59:59');
+        $statement = $this->connection->prepare(
+            'SELECT
+                user_challenge.uc_id,
+                user_challenge.challenge_id,
+                user_challenge.room_id,
+                user_challenge.pvp_id,
+                user_challenge.started_at,
+                user_challenge.completed_at,
+                room_players.strict_mode_score,
+                rooms.strict_mode AS room_strict_mode,
+                rooms.status AS room_status,
+                rooms.ended_at AS room_ended_at,
+                room_players.status AS room_player_status,
+                pvp_players.status AS pvp_player_status,
+                pvp_players.created_at AS pvp_created_at,
+                users.username,
+                users.email,
+                user_details.firstname,
+                user_details.lastname,
+                avatar_images.source AS avatar_url,
+                CASE
+                    WHEN user_challenge.pvp_id IS NOT NULL AND pvp_players.status = 2 THEN "win"
+                    WHEN user_challenge.pvp_id IS NOT NULL AND pvp_players.status = 3 THEN "loss"
+                    WHEN user_challenge.room_id IS NOT NULL AND (room_players.status = 3 OR rooms.ended_at IS NOT NULL) THEN
+                        CASE
+                            WHEN user_challenge.completed_at IS NOT NULL THEN "pass"
+                            ELSE "failed"
+                        END
+                    WHEN user_challenge.completed_at IS NOT NULL THEN "done"
+                    ELSE "ongoing"
+                END AS outcome_type
+             FROM user_challenge
+             INNER JOIN users ON users.user_id = user_challenge.user_id
+             LEFT JOIN user_details ON user_details.user_id = users.user_id
+             LEFT JOIN images AS avatar_images ON avatar_images.img_id = user_details.image_id
+             LEFT JOIN rooms ON rooms.room_id = user_challenge.room_id
+             LEFT JOIN room_players ON room_players.room_id = user_challenge.room_id AND room_players.user_id = user_challenge.user_id
+             LEFT JOIN pvp_players ON pvp_players.pvp_id = user_challenge.pvp_id AND pvp_players.user_id = user_challenge.user_id
+             WHERE user_challenge.challenge_id = ?
+                AND COALESCE(user_challenge.completed_at, pvp_players.created_at, rooms.ended_at, user_challenge.started_at) >= ?
+                AND COALESCE(user_challenge.completed_at, pvp_players.created_at, rooms.ended_at, user_challenge.started_at) <= ?
+                AND (
+                    user_challenge.completed_at IS NOT NULL
+                    OR (user_challenge.room_id IS NOT NULL AND (room_players.status = 3 OR rooms.ended_at IS NOT NULL))
+                    OR (user_challenge.pvp_id IS NOT NULL AND pvp_players.status IN (2, 3))
+                )
+             ORDER BY COALESCE(user_challenge.completed_at, pvp_players.created_at, rooms.ended_at, user_challenge.started_at) DESC
+             LIMIT ?'
+        );
+        $statement->bind_param('issi', $challengeId, $start, $end, $limit);
         $statement->execute();
         $rows = $statement->get_result()->fetch_all(MYSQLI_ASSOC);
         $statement->close();
@@ -721,6 +961,35 @@ final class UserChallengeRepository
         $statement->close();
 
         return $deleted;
+    }
+
+    public function pvpDurationSeconds(int $pvpId): int
+    {
+        if ($pvpId <= 0) {
+            return 0;
+        }
+
+        $statement = $this->connection->prepare(
+            'SELECT MIN(started_at) AS started_at
+             FROM user_challenge
+             WHERE pvp_id = ?'
+        );
+        $statement->bind_param('i', $pvpId);
+        $statement->execute();
+        $row = $statement->get_result()->fetch_assoc();
+        $statement->close();
+
+        $startedAt = trim((string) ($row['started_at'] ?? ''));
+        if ($startedAt === '') {
+            return 0;
+        }
+
+        $startedAtTs = strtotime($startedAt);
+        if ($startedAtTs === false) {
+            return 0;
+        }
+
+        return max(0, time() - $startedAtTs);
     }
 
     public function hasOwnedOngoing(int $userChallengeId, int $userId): bool

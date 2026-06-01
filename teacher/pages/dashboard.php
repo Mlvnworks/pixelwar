@@ -140,7 +140,7 @@ $latestCreatedItems = array_slice($latestCreatedItems, 0, 10);
                     </div>
                 </div>
 
-                <div class="teacher-created-grid teacher-created-grid--compact mt-4">
+                <div class="teacher-created-grid teacher-created-grid--compact teacher-dashboard-created-grid mt-4">
                         <?php if ($latestCreatedItems === []) : ?>
                         <div class="rounded-2xl border-2 border-dashed border-arcade-ink/18 bg-white/80 p-5">
                             <p class="text-sm font-black text-arcade-ink/58">You have not created any challenges or rooms yet.</p>

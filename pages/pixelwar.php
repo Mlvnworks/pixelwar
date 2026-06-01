@@ -1,6 +1,7 @@
 <?php
 $gameChallengeId = (int) ($_GET['challenge_id'] ?? 0);
 $gameRoomId = (int) ($_GET['room_id'] ?? 0);
+$gamePvpId = (int) ($_GET['pvp_id'] ?? 0);
 $gameChallenge = null;
 $gameUserChallenge = null;
 $gameChallengeError = '';
@@ -68,13 +69,37 @@ if ($gameChallengeId > 0) {
             }
         }
 
+        if ($gamePvpId > 0) {
+            if (!$pvpPlayerRepository instanceof PvpPlayerRepository || !$pvpMatchRepository instanceof PvpMatchRepository) {
+                throw new RuntimeException('1v1 match progress is not available.');
+            }
+
+            $gamePvpMatch = $pvpMatchRepository->findById($gamePvpId);
+            if ($gamePvpMatch === null) {
+                throw new RuntimeException('This 1v1 match is no longer available.');
+            }
+
+            if ((int) ($gamePvpMatch['challenge_id'] ?? 0) !== $gameChallengeId) {
+                throw new RuntimeException('This 1v1 match is not linked to the selected challenge.');
+            }
+
+            $gamePvpPlayer = $pvpPlayerRepository->findByMatchAndUser($gameUserId > 0 ? $gamePvpId : 0, $gameUserId);
+            if ($gamePvpPlayer === null) {
+                throw new RuntimeException('You are not part of this 1v1 match.');
+            }
+
+            if (in_array((int) ($gamePvpPlayer['status'] ?? 0), [2, 3], true)) {
+                throw new RuntimeException('This 1v1 match is already ended.');
+            }
+        }
+
         $gameChallengeIsPublic = (int) ($gameChallenge['status'] ?? 0) === 1;
         $gameIsRoomChallengeAccess = $gameRoomId > 0 && $gameRoom !== null;
         if (!$gameChallengeIsPublic && !$gameIsRoomChallengeAccess) {
             throw new RuntimeException('This challenge is not available publicly right now.');
         }
 
-        $gameUserChallenge = $userChallengeRepository->startOrFindOngoing($gameUserId, $gameChallengeId, $gameRoomId);
+        $gameUserChallenge = $userChallengeRepository->startOrFindOngoing($gameUserId, $gameChallengeId, $gameRoomId, $gamePvpId);
 
         if (!empty($gameUserChallenge['was_created']) && $activityLogRepository instanceof ActivityLogRepository) {
             $activityLogRepository->create(
@@ -176,6 +201,7 @@ $gameUserChallengeId = $gameUserChallenge !== null ? (int) $gameUserChallenge['u
                             <input type="hidden" name="gameplay_action" value="give_up">
                             <input type="hidden" name="challenge_id" value="<?= (int) $gameChallengeId ?>">
                             <input type="hidden" name="room_id" value="<?= (int) $gameRoomId ?>">
+                            <input type="hidden" name="pvp_id" value="<?= (int) $gamePvpId ?>">
                             <input type="hidden" name="user_challenge_id" value="<?= (int) $gameUserChallenge['uc_id'] ?>">
                             <button type="submit" class="give-up-button">Give Up</button>
                         </form>
@@ -399,7 +425,7 @@ $gameUserChallengeId = $gameUserChallenge !== null ? (int) $gameUserChallenge['u
     </div>
 </div>
 
-<?php if ($gameRoomId > 0 && $gamePusherEnabled) : ?>
+<?php if (($gameRoomId > 0 || $gamePvpId > 0) && $gamePusherEnabled) : ?>
     <script src="https://js.pusher.com/8.4.0/pusher.min.js"></script>
 <?php endif; ?>
 <script>
@@ -420,6 +446,8 @@ $gameUserChallengeId = $gameUserChallenge !== null ? (int) $gameUserChallenge['u
         hasChallenge: <?= $gameChallenge !== null ? 'true' : 'false' ?>,
         challengeId: <?= (int) $gameChallengeId ?>,
         roomId: <?= (int) $gameRoomId ?>,
+        pvpId: <?= (int) $gamePvpId ?>,
+        currentUserId: <?= (int) ($_SESSION['user_id'] ?? 0) ?>,
         roomDeadlineAt: <?= json_encode($gameRoomDeadlineIso, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?: "''" ?>,
         roomTimerLimit: <?= (int) $gameRoomTimerLimit ?>,
         strictMode: <?= $gameRoomStrictMode ? 'true' : 'false' ?>,
@@ -609,7 +637,8 @@ ${css}
         }
 
         const params = new URLSearchParams(window.location.search);
-        if (params.get('intro') !== '1') {
+        const shouldPlayIntro = params.get('intro') === '1' || challengeConfig.roomId > 0 || challengeConfig.pvpId > 0;
+        if (!shouldPlayIntro) {
             openingEffect.remove();
             return;
         }
@@ -755,6 +784,7 @@ ${css}
                 gameplay_action: 'complete',
                 challenge_id: String(challengeConfig.challengeId),
                 room_id: String(challengeConfig.roomId || 0),
+                pvp_id: String(challengeConfig.pvpId || 0),
                 user_challenge_id: String(challengeConfig.userChallengeId),
             });
 
@@ -771,6 +801,11 @@ ${css}
 
             if (!response.ok || !payload?.success) {
                 throw new Error(payload?.message || 'Unable to complete this challenge right now.');
+            }
+
+            if (payload?.pvp_ended && payload?.data) {
+                handlePvpEnded(payload.data);
+                return;
             }
 
             state.isCompleted = true;
@@ -824,6 +859,67 @@ ${css}
         }, 900);
     };
 
+    const handlePvpEnded = (payload) => {
+        if (state.isUnavailable) {
+            return;
+        }
+
+        const winnerUserId = Number(payload?.winner_user_id || 0);
+        const durationSeconds = Math.max(0, Number(payload?.duration_seconds || 0));
+        const redirectAtMs = Number(payload?.redirect_at_ms || 0);
+        const result = winnerUserId === Number(challengeConfig.currentUserId || 0) ? 'win' : 'loss';
+
+        state.isUnavailable = true;
+        state.isCompleted = true;
+        state.skipUnloadWarning = true;
+        state.isCompletionSubmitting = false;
+        setStatus(result === 'win' ? 'You won the duel.' : 'You lost the duel.');
+        exitModal?.hide();
+        completionModal?.hide();
+        strictResultModal?.hide();
+
+        const redirectUrl = `./?c=home&pvp_notice=${encodeURIComponent(result)}&pvp_duration=${encodeURIComponent(String(durationSeconds))}`;
+        const delay = Math.max(0, redirectAtMs > 0 ? redirectAtMs - Date.now() : 900);
+        window.setTimeout(() => {
+            window.location.href = redirectUrl;
+        }, delay);
+    };
+
+    const submitPvpGiveUp = async () => {
+        if (!giveUpForm || !challengeConfig.pvpId || state.isCompleted || state.isCompletionSubmitting || state.isUnavailable) {
+            return;
+        }
+
+        state.skipUnloadWarning = true;
+        state.isCompletionSubmitting = true;
+        exitModal?.hide();
+        setStatus('Ending 1v1 match...');
+
+        try {
+            const body = new URLSearchParams(new FormData(giveUpForm));
+            const response = await fetch('./?c=pixelwar', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                body: body.toString(),
+            });
+
+            const payload = await response.json();
+            if (!response.ok || !payload?.success) {
+                throw new Error(payload?.message || 'Unable to give up this challenge right now.');
+            }
+
+            handlePvpEnded(payload?.data || {});
+        } catch (error) {
+            console.error(error);
+            state.isCompletionSubmitting = false;
+            state.skipUnloadWarning = false;
+            setStatus(error instanceof Error ? error.message : 'Unable to give up this challenge right now.');
+        }
+    };
+
     const validateChallengeAvailability = async () => {
         if (!challengeConfig.hasChallenge || !challengeConfig.challengeId || !challengeConfig.userChallengeId) {
             return;
@@ -853,6 +949,11 @@ ${css}
             const payload = await response.json().catch(() => null);
 
             if (state.isCompleted || state.isCompletionSubmitting || state.isUnavailable) {
+                return;
+            }
+
+            if (payload?.pvp_ended && payload?.data) {
+                handlePvpEnded(payload.data);
                 return;
             }
 
@@ -1795,6 +1896,11 @@ ${css}
             return;
         }
 
+        if (challengeConfig.pvpId > 0) {
+            submitPvpGiveUp();
+            return;
+        }
+
         state.skipUnloadWarning = true;
         exitModal?.hide();
         giveUpForm.submit();
@@ -1817,17 +1923,27 @@ ${css}
         handleRoomTimerTick();
         window.setInterval(handleRoomTimerTick, 1000);
     }
-    if (challengeConfig.roomId > 0 && challengeConfig.pusherKey && challengeConfig.pusherCluster && window.Pusher) {
+    if ((challengeConfig.roomId > 0 || challengeConfig.pvpId > 0) && challengeConfig.pusherKey && challengeConfig.pusherCluster && window.Pusher) {
         const pusher = new window.Pusher(challengeConfig.pusherKey, {
             cluster: challengeConfig.pusherCluster,
         });
-        const channel = pusher.subscribe(`room-${challengeConfig.roomId}`);
-        channel.bind('session-ended', (payload) => {
-            handleRoomEnded(
-                payload?.message || 'The room was ended. Your challenge run was not completed.',
-                payload?.redirect_url || challengeConfig.endedRedirectUrl
-            );
-        });
+
+        if (challengeConfig.roomId > 0) {
+            const roomChannel = pusher.subscribe(`room-${challengeConfig.roomId}`);
+            roomChannel.bind('session-ended', (payload) => {
+                handleRoomEnded(
+                    payload?.message || 'The room was ended. Your challenge run was not completed.',
+                    payload?.redirect_url || challengeConfig.endedRedirectUrl
+                );
+            });
+        }
+
+        if (challengeConfig.pvpId > 0) {
+            const pvpChannel = pusher.subscribe(`pvp-${challengeConfig.pvpId}`);
+            pvpChannel.bind('pvp-ended', (payload) => {
+                handlePvpEnded(payload);
+            });
+        }
     }
     boot();
     validateChallengeAvailability();

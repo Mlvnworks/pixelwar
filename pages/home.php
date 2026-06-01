@@ -13,8 +13,28 @@ $seasonDaysLeft = max(0, (int) $today->diff($seasonEndsAt)->format('%r%a'));
 $currentRankPoints = $userChallengeRepository instanceof UserChallengeRepository
     ? $userChallengeRepository->totalCompletedPointsForUser($currentStudentId)
     : 0;
-$rankRequirementPoints = 500;
-$rankProgressPercent = min(100, (int) round(($currentRankPoints / $rankRequirementPoints) * 100));
+if ($userRepository instanceof UserRepository) {
+    $currentRankPoints = $userRepository->totalPlayerProgressPointsForUser($currentStudentId);
+}
+$leaderboardRank = $userRepository instanceof UserRepository
+    ? $userRepository->leaderboardRankForUser($currentStudentId)
+    : null;
+$rankProgress = $rankRepository instanceof RankRepository
+    ? $rankRepository->progressForPoints($currentRankPoints)
+    : [
+        'current_name' => 'Beginner',
+        'display_requirement' => 500,
+        'progress_percent' => min(100, (int) round(($currentRankPoints / 500) * 100)),
+        'badge_initial' => 'B',
+        'next_name' => 'Next Rank',
+        'is_max_rank' => false,
+    ];
+$rankRequirementPoints = (int) ($rankProgress['display_requirement'] ?? 500);
+$rankProgressPercent = (int) ($rankProgress['progress_percent'] ?? 0);
+$currentRankName = (string) ($rankProgress['current_name'] ?? 'Beginner');
+$currentRankInitial = (string) ($rankProgress['badge_initial'] ?? 'B');
+$nextRankName = (string) ($rankProgress['next_name'] ?? '');
+$isMaxRank = (bool) ($rankProgress['is_max_rank'] ?? false);
 $analyticsTrackedDays = 30;
 $analyticsEndDate = $today;
 $analyticsStartDate = $analyticsEndDate->modify('-' . ($analyticsTrackedDays - 1) . ' days');
@@ -22,13 +42,13 @@ $completedCountsByDate = $userChallengeRepository instanceof UserChallengeReposi
     ? $userChallengeRepository->completedCountsByDate($currentStudentId, $analyticsStartDate, $analyticsEndDate)
     : [];
 $attemptHistoryRows = $userChallengeRepository instanceof UserChallengeRepository
-    ? $userChallengeRepository->listAttemptHistory($currentStudentId, 50)
+    ? $userChallengeRepository->listAttemptHistory($currentStudentId, 5)
     : [];
 $completedChallengeCount = $userChallengeRepository instanceof UserChallengeRepository
     ? $userChallengeRepository->countCompletedForUser($currentStudentId)
     : 0;
 $activityDays = [];
-$solvedChallengeRows = [];
+$latestSubmissionRows = [];
 $activityChartLabels = [];
 $activityChartValues = [];
 
@@ -46,15 +66,36 @@ for ($dayIndex = 0; $dayIndex < $analyticsTrackedDays; $dayIndex++) {
 }
 
 foreach ($attemptHistoryRows as $attemptRow) {
-    if (!empty($attemptRow['completed_at'])) {
-        $completedAt = new DateTimeImmutable((string) $attemptRow['completed_at']);
-        $solvedChallengeRows[] = [
-            'date' => $completedAt,
-            'title' => (string) $attemptRow['name'],
-            'result' => 'Completed',
-            'points' => (int) ($attemptRow['awarded_points'] ?? 0),
-        ];
+    $startedAt = new DateTimeImmutable((string) $attemptRow['started_at']);
+    $completedAt = !empty($attemptRow['completed_at'])
+        ? new DateTimeImmutable((string) $attemptRow['completed_at'])
+        : null;
+    $isRoomAttempt = (int) ($attemptRow['room_id'] ?? 0) > 0;
+    $isPvpAttempt = (int) ($attemptRow['pvp_id'] ?? 0) > 0;
+    $isStrictRoomAttempt = $isRoomAttempt && (int) ($attemptRow['room_strict_mode'] ?? 0) === 1;
+    $strictModeScore = max(0, min(100, (int) ($attemptRow['strict_mode_score'] ?? 0)));
+    $attemptStatus = (string) ($attemptRow['attempt_status'] ?? '');
+    $modeLabel = $isPvpAttempt ? '1v1' : ($isRoomAttempt ? 'Room' : 'Solo');
+    $resultLabel = match ($attemptStatus) {
+        'pvp_win' => 'Win',
+        'pvp_loss' => 'Loss',
+        'gave_up' => 'Failed',
+        default => ($completedAt instanceof DateTimeImmutable
+            ? 'Completed'
+            : ($isRoomAttempt ? 'Failed' : 'Ongoing')),
+    };
+
+    if ($isStrictRoomAttempt && $resultLabel !== 'Ongoing') {
+        $resultLabel = $strictModeScore . '%';
     }
+
+    $latestSubmissionRows[] = [
+        'date' => $completedAt ?? $startedAt,
+        'title' => (string) $attemptRow['name'],
+        'result' => $resultLabel,
+        'mode' => $modeLabel,
+        'points' => (int) ($attemptRow['awarded_points'] ?? 0),
+    ];
 }
 
 $createdChallengeRows = $challengeRepository instanceof ChallengeRepository
@@ -103,11 +144,33 @@ if ($recommendedChallenges === []) {
 
 $firstRecommendedChallenge = array_values($recommendedChallenges)[0] ?? null;
 $startChallengeHref = $firstRecommendedChallenge['href'] ?? './?c=challenges';
-$latestSolvedChallenges = array_slice($solvedChallengeRows, 0, 5);
+$latestSubmissions = $latestSubmissionRows;
 $joinRoomAvatarInitials = strtoupper(substr(preg_replace('/[^a-z0-9]+/i', '', (string) ($_SESSION['avatar_initials'] ?? $username)) ?: 'PR', 0, 2));
 $joinRoomAvatarColor = (string) ($_SESSION['avatar_color'] ?? 'yellow');
 $joinRoomAvatarUrl = trim((string) ($_SESSION['avatar_url'] ?? ''));
 $roomNotice = trim((string) ($_GET['room_notice'] ?? ''));
+$pvpNotice = trim((string) ($_GET['pvp_notice'] ?? ''));
+$pvpDurationSeconds = max(0, (int) ($_GET['pvp_duration'] ?? 0));
+$formatHomeDuration = static function (int $seconds): string {
+    $seconds = max(0, $seconds);
+    $hours = intdiv($seconds, 3600);
+    $minutes = intdiv($seconds % 3600, 60);
+    $remainingSeconds = $seconds % 60;
+
+    if ($hours > 0) {
+        return sprintf('%dh %02dm %02ds', $hours, $minutes, $remainingSeconds);
+    }
+
+    if ($minutes > 0) {
+        return sprintf('%dm %ds', $minutes, $remainingSeconds);
+    }
+
+    return sprintf('%ds', $remainingSeconds);
+};
+$pvpResultTitle = $pvpNotice === 'win' ? 'Victory' : 'Defeat';
+$pvpResultMessage = $pvpNotice === 'win'
+    ? 'Your opponent gave up. You won the 1v1 match.'
+    : 'You gave up the 1v1 match.';
 ?>
 
 <main class="home-dashboard relative overflow-hidden bg-arcade-cream px-4 py-8 text-arcade-ink md:py-10">
@@ -122,9 +185,6 @@ $roomNotice = trim((string) ($_GET['room_notice'] ?? ''));
                     <h1 class="home-welcome-title text-3xl font-bold leading-tight md:text-5xl">
                         Hello, <span class="home-welcome-name"><?= htmlspecialchars($username, ENT_QUOTES, 'UTF-8') ?></span>
                     </h1>
-                    <p class="mt-2 max-w-2xl text-sm leading-7 text-arcade-ink/70">
-                        Keep your streak alive, climb the ranks, and clear recommended CSS challenges one design at a time.
-                    </p>
                 </div>
                 <div class="home-hero-actions flex flex-nowrap items-center gap-2 py-1">
                     <a href="<?= htmlspecialchars($startChallengeHref, ENT_QUOTES, 'UTF-8') ?>" class="inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-xl border-2 border-arcade-ink bg-arcade-yellow px-3 py-2 text-xs font-bold text-arcade-ink no-underline shadow-[0_4px_0_#26190f] transition hover:-translate-y-0.5 hover:bg-arcade-orange hover:text-white sm:px-4 sm:text-sm">
@@ -151,26 +211,34 @@ $roomNotice = trim((string) ($_GET['room_notice'] ?? ''));
 
         <div class="grid gap-5 xl:grid-cols-[0.82fr_1.18fr]">
             <section class="grid gap-5">
-                <article class="ranking-card rounded-[24px] border-4 border-arcade-ink bg-white/90 p-4 shadow-[7px_7px_0_#26190f] md:p-5">
+                <article class="ranking-card relative rounded-[24px] border-4 border-arcade-ink bg-white/90 p-4 shadow-[7px_7px_0_#26190f] md:p-5">
+                    <a href="./?c=ranks" class="absolute right-4 top-4 z-[2] grid h-10 w-10 place-items-center rounded-xl border-2 border-arcade-ink bg-white text-sm font-black text-arcade-ink no-underline shadow-[4px_4px_0_#26190f] transition hover:-translate-y-1 hover:bg-arcade-cyan md:right-5 md:top-5" aria-label="View rank requirements">?</a>
                     <div class="rank-highlight rounded-[20px] border-2 border-arcade-ink/10 bg-arcade-yellow/20 p-3">
                         <div class="flex items-start justify-between gap-4">
                             <div>
                                 <p class="rank-eyebrow font-arcade text-[10px] uppercase tracking-[0.24em] text-arcade-cyan">Ranking</p>
-                                <h2 class="rank-title mt-3 text-3xl font-bold text-arcade-orange">Beginner</h2>
+                                <h2 class="rank-title mt-3 text-3xl font-bold text-arcade-orange"><?= htmlspecialchars($currentRankName, ENT_QUOTES, 'UTF-8') ?></h2>
                                 <p class="rank-caption mt-1 text-sm leading-6 text-arcade-ink/65">Current rank</p>
                             </div>
-                            <div class="rank-badge grid h-24 w-24 place-items-center rounded-[24px] border-4 border-arcade-ink bg-arcade-yellow shadow-[7px_7px_0_#26190f]" aria-label="Beginner rank badge">
-                                <span class="font-arcade text-2xl text-arcade-orange">B</span>
+                            <div class="flex shrink-0 flex-col items-end gap-2">
+                                <div class="rank-badge grid h-24 w-24 place-items-center rounded-[24px] border-4 border-arcade-ink bg-arcade-yellow shadow-[7px_7px_0_#26190f]" aria-label="<?= htmlspecialchars($currentRankName, ENT_QUOTES, 'UTF-8') ?> rank badge">
+                                    <span class="font-arcade text-2xl text-arcade-orange"><?= htmlspecialchars($currentRankInitial, ENT_QUOTES, 'UTF-8') ?></span>
+                                </div>
                             </div>
                         </div>
                         <div class="mt-4 rounded-2xl border-4 border-arcade-ink bg-arcade-cream p-3 shadow-[4px_4px_0_rgba(38,25,15,0.22)]">
                             <div class="flex flex-wrap items-center justify-between gap-2">
                                 <p class="text-xs font-extrabold uppercase tracking-[0.18em] text-arcade-orange">Rank Progress</p>
-                                <p class="text-sm font-extrabold text-arcade-ink"><?= (int) $currentRankPoints ?> / <?= (int) $rankRequirementPoints ?> points</p>
+                                <p class="text-sm font-extrabold text-arcade-ink">
+                                    <?= (int) $currentRankPoints ?><?= $isMaxRank ? ' points' : ' / ' . (int) $rankRequirementPoints . ' points' ?>
+                                </p>
                             </div>
                             <div class="mt-2 h-4 overflow-hidden rounded-full border-2 border-arcade-ink bg-white">
                                 <span class="block h-full rounded-full bg-gradient-to-r from-arcade-orange via-arcade-yellow to-arcade-cyan" style="width: <?= (int) $rankProgressPercent ?>%;"></span>
                             </div>
+                            <?php if (!$isMaxRank && $nextRankName !== '') : ?>
+                                <p class="mt-2 text-xs font-bold uppercase tracking-[0.12em] text-arcade-ink/55">Next: <?= htmlspecialchars($nextRankName, ENT_QUOTES, 'UTF-8') ?></p>
+                            <?php endif; ?>
                         </div>
                     </div>
 
@@ -185,31 +253,25 @@ $roomNotice = trim((string) ($_GET['room_notice'] ?? ''));
                         </div>
                     </div>
 
-                    <div class="ranking-stat-grid mt-4 grid gap-2 sm:grid-cols-2">
+                    <div class="ranking-stat-grid mt-4 grid gap-2">
                         <div class="ranking-stat-card rounded-xl border-2 border-arcade-ink/10 bg-arcade-cream p-3">
-                            <div class="flex items-center gap-2">
+                            <div class="flex items-center justify-between gap-3">
+                                <div class="flex min-w-0 items-center gap-2">
                                 <span class="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-arcade-yellow text-arcade-ink" aria-hidden="true">
                                     <svg class="h-4 w-4" viewBox="0 0 16 16" focusable="false">
                                         <path fill="currentColor" d="M3 2h10v2h-1v1.5A4 4 0 0 1 8.8 9.4V12H11v2H5v-2h2.2V9.4A4 4 0 0 1 4 5.5V4H3V2Zm3 2v1.5a2 2 0 0 0 4 0V4H6Z" />
                                     </svg>
                                 </span>
-                                <div>
+                                <div class="min-w-0">
                                     <p class="text-[10px] font-bold uppercase tracking-[0.18em] text-arcade-ink/55">Leaderboard</p>
-                                    <p class="mt-0.5 text-xl font-bold">#128</p>
+                                    <p class="mt-0.5 text-xl font-bold"><?= $leaderboardRank !== null ? (int) $leaderboardRank : 'N/A' ?></p>
                                 </div>
-                            </div>
-                        </div>
-                        <div class="ranking-stat-card rounded-xl border-2 border-arcade-ink/10 bg-arcade-cream p-3">
-                            <div class="flex items-center gap-2">
-                                <span class="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-arcade-cyan text-arcade-ink" aria-hidden="true">
-                                    <svg class="h-4 w-4" viewBox="0 0 16 16" focusable="false">
-                                        <path fill="currentColor" d="M6.5 11.2 3.7 8.4l1.1-1.1 1.7 1.7 4.7-4.7 1.1 1.1-5.8 5.8ZM2 2h12v12H2V2Zm2 2v8h8V4H4Z" />
+                                </div>
+                                <a href="./?c=leaderboards" class="grid h-9 w-9 shrink-0 place-items-center rounded-xl border-2 border-arcade-ink bg-white text-arcade-ink no-underline shadow-[3px_3px_0_#26190f] transition hover:-translate-y-0.5 hover:bg-arcade-yellow" aria-label="Open leaderboards">
+                                    <svg class="h-4 w-4" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+                                        <path fill="currentColor" d="M5.5 3h5v2h2v2a3 3 0 0 1-3 3h-.2A3.7 3.7 0 0 1 8.8 11v1.5H11V14H5v-1.5h2.2V11a3.7 3.7 0 0 1-.5-1H6.5a3 3 0 0 1-3-3V5h2V3Zm5 3V4.5h-5V6a2.5 2.5 0 0 0 5 0ZM5.5 8.4A4 4 0 0 1 5.5 7V6.5h-1V7a2 2 0 0 0 1 1.7Zm5 0a2 2 0 0 0 1-1.7v-.5h-1V7a4 4 0 0 1 0 1.4Z" />
                                     </svg>
-                                </span>
-                                <div>
-                                    <p class="text-[10px] font-bold uppercase tracking-[0.18em] text-arcade-ink/55">Solved</p>
-                                    <p class="mt-0.5 text-xl font-bold"><?= (int) $completedChallengeCount ?></p>
-                                </div>
+                                </a>
                             </div>
                         </div>
                     </div>
@@ -237,23 +299,25 @@ $roomNotice = trim((string) ($_GET['room_notice'] ?? ''));
 
                     <div class="solved-challenges-panel mt-5 border-t-2 border-arcade-ink/10 pt-4">
                         <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                            <h3 class="text-lg font-bold">Solved Challenges</h3>
-                            <div class="flex flex-wrap items-center gap-2">
-                                <a href="./?c=player-analytics&status=completed" class="rounded-xl border-2 border-arcade-ink/10 bg-white px-3 py-1.5 text-xs font-bold text-arcade-ink no-underline transition hover:bg-arcade-yellow/50">Review All</a>
-                            </div>
+                            <h3 class="text-lg font-bold">Latest Submissions</h3>
                         </div>
 
                         <div class="mt-3 overflow-hidden rounded-2xl border-2 border-arcade-ink/10 bg-arcade-cream/70">
-                            <?php if ($latestSolvedChallenges === []) : ?>
-                                <p class="px-3 py-4 text-sm font-bold text-arcade-ink/55">No completed challenges yet.</p>
+                            <?php if ($latestSubmissions === []) : ?>
+                                <p class="px-3 py-4 text-sm font-bold text-arcade-ink/55">No submissions yet.</p>
                             <?php else : ?>
-                                <?php foreach ($latestSolvedChallenges as $solvedChallenge) : ?>
+                                <?php foreach ($latestSubmissions as $submissionRow) : ?>
                                     <article class="solved-row flex flex-col gap-1 border-b border-arcade-ink/10 px-3 py-2 last:border-b-0 sm:flex-row sm:items-center sm:justify-between">
                                         <div>
-                                            <p class="text-sm font-bold"><?= htmlspecialchars($solvedChallenge['title'], ENT_QUOTES, 'UTF-8') ?></p>
-                                            <p class="text-xs font-semibold text-arcade-ink/55"><?= htmlspecialchars($solvedChallenge['date']->format('M j, Y'), ENT_QUOTES, 'UTF-8') ?> - <?= htmlspecialchars($solvedChallenge['result'], ENT_QUOTES, 'UTF-8') ?></p>
+                                            <p class="text-sm font-bold"><?= htmlspecialchars($submissionRow['title'], ENT_QUOTES, 'UTF-8') ?></p>
+                                            <div class="mt-1 flex flex-wrap items-center gap-2 text-xs font-semibold text-arcade-ink/55">
+                                                <span><?= htmlspecialchars($submissionRow['date']->format('M j, Y'), ENT_QUOTES, 'UTF-8') ?> - <?= htmlspecialchars($submissionRow['result'], ENT_QUOTES, 'UTF-8') ?></span>
+                                                <span class="rounded-full <?= $submissionRow['mode'] === '1v1' ? 'bg-arcade-cyan/30' : ($submissionRow['mode'] === 'Room' ? 'bg-arcade-orange/20' : 'bg-arcade-mint/35') ?> px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-arcade-ink">
+                                                    <?= htmlspecialchars($submissionRow['mode'], ENT_QUOTES, 'UTF-8') ?>
+                                                </span>
+                                            </div>
                                         </div>
-                                        <span class="text-xs font-bold text-arcade-orange">+<?= (int) $solvedChallenge['points'] ?> pts</span>
+                                        <span class="text-xs font-bold text-arcade-orange">+<?= (int) $submissionRow['points'] ?> pts</span>
                                     </article>
                                 <?php endforeach; ?>
                             <?php endif; ?>
@@ -310,6 +374,78 @@ $roomNotice = trim((string) ($_GET['room_notice'] ?? ''));
         </div>
     </section>
 </main>
+
+<?php if ($pvpNotice === 'win' || $pvpNotice === 'loss') : ?>
+    <div class="modal fade pvp-result-modal" id="pvp-result-modal" tabindex="-1" aria-labelledby="pvp-result-modal-title" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content pvp-result-modal__content rounded-[24px] border-4 border-arcade-ink bg-arcade-panel shadow-[8px_8px_0_#26190f]">
+                <div class="modal-body p-5 md:p-6">
+                    <?php if ($pvpNotice === 'win') : ?>
+                        <div class="pvp-result-modal__confetti" aria-hidden="true">
+                            <?php for ($confettiIndex = 0; $confettiIndex < 18; $confettiIndex++) : ?>
+                                <span class="pvp-result-modal__confetti-piece pvp-result-modal__confetti-piece--<?= (int) (($confettiIndex % 4) + 1) ?>"></span>
+                            <?php endfor; ?>
+                        </div>
+                    <?php endif; ?>
+
+                    <div class="pvp-result-modal__header">
+                        <div class="pvp-result-modal__badge pvp-result-modal__badge--<?= htmlspecialchars($pvpNotice, ENT_QUOTES, 'UTF-8') ?>" aria-hidden="true">
+                            <?php if ($pvpNotice === 'win') : ?>
+                                <svg class="h-7 w-7" viewBox="0 0 16 16" focusable="false">
+                                    <path fill="currentColor" d="M3 2h10v2h-1v1.5A4 4 0 0 1 8.8 9.4V12H11v2H5v-2h2.2V9.4A4 4 0 0 1 4 5.5V4H3V2Zm3 2v1.5a2 2 0 0 0 4 0V4H6Z" />
+                                </svg>
+                            <?php else : ?>
+                                <svg class="h-7 w-7" viewBox="0 0 16 16" focusable="false">
+                                    <path fill="currentColor" d="M8 1.5a6.5 6.5 0 1 1 0 13 6.5 6.5 0 0 1 0-13Zm0 3.1L4.7 8l.9.9L7.4 7v4h1.2V7l1.8 1.9.9-.9L8 4.6Z" />
+                                </svg>
+                            <?php endif; ?>
+                        </div>
+                        <div class="pvp-result-modal__copy">
+                            <p class="pvp-result-modal__eyebrow <?= $pvpNotice === 'win' ? 'text-arcade-cyan' : 'text-arcade-coral' ?>">1v1 Result</p>
+                            <h2 id="pvp-result-modal-title" class="pvp-result-modal__title"><?= htmlspecialchars($pvpResultTitle, ENT_QUOTES, 'UTF-8') ?></h2>
+                            <p class="pvp-result-modal__message"><?= htmlspecialchars($pvpResultMessage, ENT_QUOTES, 'UTF-8') ?></p>
+                        </div>
+                    </div>
+
+                    <div class="pvp-result-modal__summary mt-5">
+                        <article class="pvp-result-modal__stat">
+                            <p class="pvp-result-modal__stat-label">Result</p>
+                            <p class="pvp-result-modal__stat-value"><?= htmlspecialchars($pvpResultTitle, ENT_QUOTES, 'UTF-8') ?></p>
+                        </article>
+                        <article class="pvp-result-modal__stat">
+                            <p class="pvp-result-modal__stat-label">Duration</p>
+                            <p class="pvp-result-modal__stat-value"><?= htmlspecialchars($formatHomeDuration($pvpDurationSeconds), ENT_QUOTES, 'UTF-8') ?></p>
+                        </article>
+                    </div>
+
+                    <div class="pvp-result-modal__footer mt-5">
+                        <button type="button" class="pvp-result-modal__close rounded-xl border-2 border-arcade-ink bg-arcade-yellow px-5 py-2 text-sm font-bold text-arcade-ink shadow-[0_4px_0_#26190f] transition hover:-translate-y-0.5 hover:bg-arcade-orange hover:text-white" data-bs-dismiss="modal">
+                            Close
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        (() => {
+            const modalElement = document.getElementById('pvp-result-modal');
+            if (modalElement && window.bootstrap?.Modal) {
+                const modal = new window.bootstrap.Modal(modalElement);
+                window.addEventListener('load', () => modal.show(), { once: true });
+            }
+
+            const params = new URLSearchParams(window.location.search);
+            if (params.has('pvp_notice') || params.has('pvp_duration')) {
+                params.delete('pvp_notice');
+                params.delete('pvp_duration');
+                const nextQuery = params.toString();
+                const nextUrl = `${window.location.pathname}${nextQuery !== '' ? `?${nextQuery}` : ''}${window.location.hash}`;
+                window.history.replaceState({}, '', nextUrl);
+            }
+        })();
+    </script>
+<?php endif; ?>
 
 <div class="modal fade join-room-modal" id="join-room-modal" tabindex="-1" aria-labelledby="join-room-modal-title" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">

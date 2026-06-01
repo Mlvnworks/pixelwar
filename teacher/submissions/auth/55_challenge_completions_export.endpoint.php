@@ -49,7 +49,7 @@ if (
             $exportEndDate = $todayDate;
         }
 
-        $rows = $completions->listCompletedByChallengeAndDateRange($challengeId, $exportStartDate, $exportEndDate, 2000);
+        $rows = $completions->listOutcomesByChallengeAndDateRange($challengeId, $exportStartDate, $exportEndDate, 2000);
         $fileName = sprintf(
             'challenge-completions-%d-%s-to-%s.csv',
             $challengeId,
@@ -88,6 +88,18 @@ if (
             return implode(' ', $parts);
         };
 
+        $formatCompletionType = static function (array $row): string {
+            if ((int) ($row['pvp_id'] ?? 0) > 0) {
+                return '1v1';
+            }
+
+            if ((int) ($row['room_id'] ?? 0) > 0) {
+                return 'room';
+            }
+
+            return 'solo';
+        };
+
         if (ob_get_level() > 0) {
             ob_clean();
         }
@@ -100,17 +112,28 @@ if (
             throw new RuntimeException('Could not create the export file.');
         }
 
-        fputcsv($output, ['Player', 'Username', 'Email', 'Started At', 'Completed At', 'Duration']);
+        fputcsv($output, ['Player', 'Username', 'Email', 'Type', 'Outcome', 'Started At', 'Completed At', 'Duration']);
 
         foreach ($rows as $row) {
             $firstname = trim((string) ($row['firstname'] ?? ''));
             $lastname = trim((string) ($row['lastname'] ?? ''));
             $displayName = trim($firstname . ' ' . $lastname) ?: (string) ($row['username'] ?? 'Player');
+            $completionType = $formatCompletionType($row);
+            $outcomeType = (string) ($row['outcome_type'] ?? 'done');
+            $resultLabel = match ($outcomeType) {
+                'win' => 'Win',
+                'loss' => 'Loss',
+                'pass' => 'Pass',
+                'failed' => 'Failed',
+                default => 'Done',
+            };
 
             fputcsv($output, [
                 $displayName,
                 (string) ($row['username'] ?? ''),
                 (string) ($row['email'] ?? ''),
+                $completionType,
+                $resultLabel,
                 (string) ($row['started_at'] ?? ''),
                 (string) ($row['completed_at'] ?? ''),
                 $formatDuration((string) ($row['started_at'] ?? ''), (string) ($row['completed_at'] ?? '')),

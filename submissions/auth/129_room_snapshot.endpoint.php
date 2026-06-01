@@ -38,6 +38,10 @@ if ($requestMethod === 'POST' && $requestedPage === 'room' && (string) ($_POST['
             $statusValue = (int) ($player['status'] ?? 0);
             $startedAt = trim((string) ($player['started_at'] ?? ''));
             $completedAt = trim((string) ($player['completed_at'] ?? ''));
+            $playerPoints = (int) ($player['points'] ?? 0);
+            $playerRankProgress = $rankRepository instanceof RankRepository
+                ? $rankRepository->progressForPoints($playerPoints)
+                : ['current_name' => 'Student'];
 
             if ($statusValue === 3) {
                 $status = 'Gave Up';
@@ -55,7 +59,7 @@ if ($requestMethod === 'POST' && $requestedPage === 'room' && (string) ($_POST['
                 'user_id' => $playerUserId,
                 'name' => $displayName,
                 'role' => $playerUserId === $currentUserId ? 'You' : 'Player',
-                'rank' => 'Student',
+                'rank' => (string) ($playerRankProgress['current_name'] ?? 'Student'),
                 'status' => $status,
                 'initials' => $initials,
                 'avatar_url' => (string) ($player['avatar_url'] ?? ''),

@@ -75,6 +75,7 @@ final class DatabaseInitializer
                 `password` VARCHAR(255) NOT NULL,
                 `is_verified` INT NOT NULL DEFAULT 0,
                 `is_active` INT NOT NULL DEFAULT 0,
+                `last_seen_at` TIMESTAMP NULL DEFAULT NULL,
                 `registration_date` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 `date_deleted` TIMESTAMP NULL DEFAULT NULL,
                 PRIMARY KEY (`user_id`),
@@ -118,6 +119,14 @@ final class DatabaseInitializer
                 `points` INT NOT NULL,
                 PRIMARY KEY (`difficulty_id`),
                 UNIQUE KEY `difficulties_name_unique` (`name`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci',
+            'CREATE TABLE IF NOT EXISTS `ranks` (
+                `rank_id` INT NOT NULL AUTO_INCREMENT,
+                `name` VARCHAR(100) NOT NULL,
+                `points_requirements` INT NOT NULL DEFAULT 0,
+                PRIMARY KEY (`rank_id`),
+                UNIQUE KEY `ranks_name_unique` (`name`),
+                UNIQUE KEY `ranks_points_requirements_unique` (`points_requirements`)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci',
             'CREATE TABLE IF NOT EXISTS `challenges` (
                 `challenge_id` INT NOT NULL AUTO_INCREMENT,
@@ -175,20 +184,46 @@ final class DatabaseInitializer
                 CONSTRAINT `room_players_user_id_foreign` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`),
                 CONSTRAINT `room_players_room_id_foreign` FOREIGN KEY (`room_id`) REFERENCES `rooms` (`room_id`)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci',
+            'CREATE TABLE IF NOT EXISTS `pvp_matches` (
+                `pvp_id` INT NOT NULL AUTO_INCREMENT,
+                `user_id` INT NOT NULL,
+                `challenge_id` INT NOT NULL,
+                PRIMARY KEY (`pvp_id`),
+                KEY `pvp_matches_user_id_index` (`user_id`),
+                KEY `pvp_matches_challenge_id_index` (`challenge_id`),
+                CONSTRAINT `pvp_matches_user_id_foreign` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`),
+                CONSTRAINT `pvp_matches_challenge_id_foreign` FOREIGN KEY (`challenge_id`) REFERENCES `challenges` (`challenge_id`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci',
+            'CREATE TABLE IF NOT EXISTS `pvp_players` (
+                `p_pvp_id` INT NOT NULL AUTO_INCREMENT,
+                `pvp_id` INT NOT NULL,
+                `user_id` INT NOT NULL,
+                `status` INT NOT NULL DEFAULT 0,
+                `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (`p_pvp_id`),
+                KEY `pvp_players_pvp_id_index` (`pvp_id`),
+                KEY `pvp_players_user_id_index` (`user_id`),
+                KEY `pvp_players_status_index` (`status`),
+                CONSTRAINT `pvp_players_pvp_id_foreign` FOREIGN KEY (`pvp_id`) REFERENCES `pvp_matches` (`pvp_id`),
+                CONSTRAINT `pvp_players_user_id_foreign` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci',
             'CREATE TABLE IF NOT EXISTS `user_challenge` (
                 `uc_id` INT NOT NULL AUTO_INCREMENT,
                 `challenge_id` INT NOT NULL,
                 `user_id` INT NOT NULL,
                 `room_id` INT NULL DEFAULT NULL,
+                `pvp_id` INT NULL DEFAULT NULL,
                 `started_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 `completed_at` TIMESTAMP NULL DEFAULT NULL,
                 PRIMARY KEY (`uc_id`),
                 KEY `user_challenge_challenge_id_index` (`challenge_id`),
                 KEY `user_challenge_user_id_index` (`user_id`),
                 KEY `user_challenge_room_id_index` (`room_id`),
+                KEY `user_challenge_pvp_id_index` (`pvp_id`),
                 CONSTRAINT `user_challenge_challenge_id_foreign` FOREIGN KEY (`challenge_id`) REFERENCES `challenges` (`challenge_id`),
                 CONSTRAINT `user_challenge_user_id_foreign` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`),
-                CONSTRAINT `user_challenge_room_id_foreign` FOREIGN KEY (`room_id`) REFERENCES `rooms` (`room_id`)
+                CONSTRAINT `user_challenge_room_id_foreign` FOREIGN KEY (`room_id`) REFERENCES `rooms` (`room_id`),
+                CONSTRAINT `user_challenge_pvp_id_foreign` FOREIGN KEY (`pvp_id`) REFERENCES `pvp_matches` (`pvp_id`)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci',
             'CREATE TABLE IF NOT EXISTS `activity_logs` (
                 `al_id` INT NOT NULL AUTO_INCREMENT,
@@ -200,6 +235,15 @@ final class DatabaseInitializer
                 KEY `activity_logs_user_id_index` (`user_id`),
                 KEY `activity_logs_category_index` (`category`),
                 CONSTRAINT `activity_logs_user_id_foreign` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci',
+            'CREATE TABLE IF NOT EXISTS `player_progress` (
+                `pp_id` INT NOT NULL AUTO_INCREMENT,
+                `user_id` INT NOT NULL,
+                `points` INT NOT NULL DEFAULT 0,
+                PRIMARY KEY (`pp_id`),
+                UNIQUE KEY `player_progress_user_id_unique` (`user_id`),
+                KEY `player_progress_user_id_index` (`user_id`),
+                CONSTRAINT `player_progress_user_id_foreign` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci',
         ];
     }
@@ -398,8 +442,174 @@ final class DatabaseInitializer
             $connection->query('ALTER TABLE `room_players` ADD CONSTRAINT `room_players_room_id_foreign` FOREIGN KEY (`room_id`) REFERENCES `rooms` (`room_id`)');
         }
 
+        if ($this->tableExists($connection, 'pvp_matches') && !$this->columnExists($connection, 'pvp_matches', 'user_id')) {
+            $connection->query('ALTER TABLE `pvp_matches` ADD `user_id` INT NOT NULL AFTER `pvp_id`');
+        }
+
+        if ($this->tableExists($connection, 'pvp_matches') && !$this->columnExists($connection, 'pvp_matches', 'challenge_id')) {
+            $connection->query('ALTER TABLE `pvp_matches` ADD `challenge_id` INT NOT NULL AFTER `user_id`');
+        }
+
+        if (
+            $this->tableExists($connection, 'pvp_matches')
+            && $this->columnExists($connection, 'pvp_matches', 'user_id')
+            && !$this->indexExists($connection, 'pvp_matches', 'pvp_matches_user_id_index')
+        ) {
+            $connection->query('ALTER TABLE `pvp_matches` ADD KEY `pvp_matches_user_id_index` (`user_id`)');
+        }
+
+        if (
+            $this->tableExists($connection, 'pvp_matches')
+            && $this->columnExists($connection, 'pvp_matches', 'challenge_id')
+            && !$this->indexExists($connection, 'pvp_matches', 'pvp_matches_challenge_id_index')
+        ) {
+            $connection->query('ALTER TABLE `pvp_matches` ADD KEY `pvp_matches_challenge_id_index` (`challenge_id`)');
+        }
+
+        if (
+            $this->tableExists($connection, 'pvp_matches')
+            && $this->columnExists($connection, 'pvp_matches', 'user_id')
+            && !$this->constraintExists($connection, 'pvp_matches', 'pvp_matches_user_id_foreign')
+        ) {
+            $connection->query('ALTER TABLE `pvp_matches` ADD CONSTRAINT `pvp_matches_user_id_foreign` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`)');
+        }
+
+        if (
+            $this->tableExists($connection, 'pvp_matches')
+            && $this->columnExists($connection, 'pvp_matches', 'challenge_id')
+            && !$this->constraintExists($connection, 'pvp_matches', 'pvp_matches_challenge_id_foreign')
+        ) {
+            $connection->query('ALTER TABLE `pvp_matches` ADD CONSTRAINT `pvp_matches_challenge_id_foreign` FOREIGN KEY (`challenge_id`) REFERENCES `challenges` (`challenge_id`)');
+        }
+
+        if ($this->tableExists($connection, 'pvp_players') && !$this->columnExists($connection, 'pvp_players', 'pvp_id')) {
+            $connection->query('ALTER TABLE `pvp_players` ADD `pvp_id` INT NOT NULL AFTER `p_pvp_id`');
+        }
+
+        if ($this->tableExists($connection, 'pvp_players') && !$this->columnExists($connection, 'pvp_players', 'user_id')) {
+            $connection->query('ALTER TABLE `pvp_players` ADD `user_id` INT NOT NULL AFTER `pvp_id`');
+        }
+
+        if ($this->tableExists($connection, 'pvp_players') && !$this->columnExists($connection, 'pvp_players', 'status')) {
+            $connection->query('ALTER TABLE `pvp_players` ADD `status` INT NOT NULL DEFAULT 0 AFTER `user_id`');
+        }
+
+        if ($this->tableExists($connection, 'pvp_players') && !$this->columnExists($connection, 'pvp_players', 'created_at')) {
+            $connection->query('ALTER TABLE `pvp_players` ADD `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP AFTER `status`');
+        }
+
+        if (
+            $this->tableExists($connection, 'pvp_players')
+            && $this->columnExists($connection, 'pvp_players', 'pvp_id')
+            && !$this->indexExists($connection, 'pvp_players', 'pvp_players_pvp_id_index')
+        ) {
+            $connection->query('ALTER TABLE `pvp_players` ADD KEY `pvp_players_pvp_id_index` (`pvp_id`)');
+        }
+
+        if (
+            $this->tableExists($connection, 'pvp_players')
+            && $this->columnExists($connection, 'pvp_players', 'user_id')
+            && !$this->indexExists($connection, 'pvp_players', 'pvp_players_user_id_index')
+        ) {
+            $connection->query('ALTER TABLE `pvp_players` ADD KEY `pvp_players_user_id_index` (`user_id`)');
+        }
+
+        if (
+            $this->tableExists($connection, 'pvp_players')
+            && $this->columnExists($connection, 'pvp_players', 'status')
+            && !$this->indexExists($connection, 'pvp_players', 'pvp_players_status_index')
+        ) {
+            $connection->query('ALTER TABLE `pvp_players` ADD KEY `pvp_players_status_index` (`status`)');
+        }
+
+        if (
+            $this->tableExists($connection, 'pvp_players')
+            && $this->columnExists($connection, 'pvp_players', 'pvp_id')
+            && !$this->constraintExists($connection, 'pvp_players', 'pvp_players_pvp_id_foreign')
+        ) {
+            $connection->query('ALTER TABLE `pvp_players` ADD CONSTRAINT `pvp_players_pvp_id_foreign` FOREIGN KEY (`pvp_id`) REFERENCES `pvp_matches` (`pvp_id`)');
+        }
+
+        if (
+            $this->tableExists($connection, 'pvp_players')
+            && $this->columnExists($connection, 'pvp_players', 'user_id')
+            && !$this->constraintExists($connection, 'pvp_players', 'pvp_players_user_id_foreign')
+        ) {
+            $connection->query('ALTER TABLE `pvp_players` ADD CONSTRAINT `pvp_players_user_id_foreign` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`)');
+        }
+
         if ($this->tableExists($connection, 'user_challenge') && !$this->columnExists($connection, 'user_challenge', 'room_id')) {
             $connection->query('ALTER TABLE `user_challenge` ADD `room_id` INT NULL DEFAULT NULL AFTER `user_id`');
+        }
+
+        if ($this->tableExists($connection, 'user_challenge') && !$this->columnExists($connection, 'user_challenge', 'pvp_id')) {
+            $connection->query('ALTER TABLE `user_challenge` ADD `pvp_id` INT NULL DEFAULT NULL AFTER `room_id`');
+        }
+
+        if ($this->tableExists($connection, 'player_progress') && !$this->columnExists($connection, 'player_progress', 'user_id')) {
+            $connection->query('ALTER TABLE `player_progress` ADD `user_id` INT NOT NULL AFTER `pp_id`');
+        }
+
+        if ($this->tableExists($connection, 'player_progress') && !$this->columnExists($connection, 'player_progress', 'points')) {
+            $connection->query('ALTER TABLE `player_progress` ADD `points` INT NOT NULL DEFAULT 0 AFTER `user_id`');
+        }
+
+        if ($this->tableExists($connection, 'ranks') && !$this->columnExists($connection, 'ranks', 'name')) {
+            $connection->query('ALTER TABLE `ranks` ADD `name` VARCHAR(100) NOT NULL AFTER `rank_id`');
+        }
+
+        if ($this->tableExists($connection, 'ranks') && !$this->columnExists($connection, 'ranks', 'points_requirements')) {
+            $connection->query('ALTER TABLE `ranks` ADD `points_requirements` INT NOT NULL DEFAULT 0 AFTER `name`');
+        }
+
+        if (
+            $this->tableExists($connection, 'ranks')
+            && $this->columnExists($connection, 'ranks', 'name')
+            && !$this->indexExists($connection, 'ranks', 'ranks_name_unique')
+        ) {
+            $connection->query('ALTER TABLE `ranks` ADD UNIQUE KEY `ranks_name_unique` (`name`)');
+        }
+
+        if (
+            $this->tableExists($connection, 'ranks')
+            && $this->columnExists($connection, 'ranks', 'points_requirements')
+            && !$this->indexExists($connection, 'ranks', 'ranks_points_requirements_index')
+            && !$this->indexExists($connection, 'ranks', 'ranks_points_requirements_unique')
+        ) {
+            $connection->query('ALTER TABLE `ranks` ADD KEY `ranks_points_requirements_index` (`points_requirements`)');
+        }
+
+        if (
+            $this->tableExists($connection, 'ranks')
+            && $this->columnExists($connection, 'ranks', 'points_requirements')
+            && !$this->indexExists($connection, 'ranks', 'ranks_points_requirements_unique')
+            && !$this->rankPointsHaveDuplicates($connection)
+        ) {
+            $connection->query('ALTER TABLE `ranks` ADD UNIQUE KEY `ranks_points_requirements_unique` (`points_requirements`)');
+        }
+
+        if (
+            $this->tableExists($connection, 'player_progress')
+            && $this->columnExists($connection, 'player_progress', 'user_id')
+            && !$this->indexExists($connection, 'player_progress', 'player_progress_user_id_unique')
+        ) {
+            $connection->query('ALTER TABLE `player_progress` ADD UNIQUE KEY `player_progress_user_id_unique` (`user_id`)');
+        }
+
+        if (
+            $this->tableExists($connection, 'player_progress')
+            && $this->columnExists($connection, 'player_progress', 'user_id')
+            && !$this->indexExists($connection, 'player_progress', 'player_progress_user_id_index')
+        ) {
+            $connection->query('ALTER TABLE `player_progress` ADD KEY `player_progress_user_id_index` (`user_id`)');
+        }
+
+        if (
+            $this->tableExists($connection, 'player_progress')
+            && $this->columnExists($connection, 'player_progress', 'user_id')
+            && !$this->constraintExists($connection, 'player_progress', 'player_progress_user_id_foreign')
+        ) {
+            $connection->query('ALTER TABLE `player_progress` ADD CONSTRAINT `player_progress_user_id_foreign` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`)');
         }
 
         if (
@@ -412,14 +622,38 @@ final class DatabaseInitializer
 
         if (
             $this->tableExists($connection, 'user_challenge')
+            && $this->columnExists($connection, 'user_challenge', 'pvp_id')
+            && !$this->indexExists($connection, 'user_challenge', 'user_challenge_pvp_id_index')
+        ) {
+            $connection->query('ALTER TABLE `user_challenge` ADD KEY `user_challenge_pvp_id_index` (`pvp_id`)');
+        }
+
+        if (
+            $this->tableExists($connection, 'user_challenge')
             && $this->columnExists($connection, 'user_challenge', 'room_id')
             && !$this->constraintExists($connection, 'user_challenge', 'user_challenge_room_id_foreign')
         ) {
             $connection->query('ALTER TABLE `user_challenge` ADD CONSTRAINT `user_challenge_room_id_foreign` FOREIGN KEY (`room_id`) REFERENCES `rooms` (`room_id`)');
         }
 
+        if (
+            $this->tableExists($connection, 'user_challenge')
+            && $this->columnExists($connection, 'user_challenge', 'pvp_id')
+            && !$this->constraintExists($connection, 'user_challenge', 'user_challenge_pvp_id_foreign')
+        ) {
+            $connection->query('ALTER TABLE `user_challenge` ADD CONSTRAINT `user_challenge_pvp_id_foreign` FOREIGN KEY (`pvp_id`) REFERENCES `pvp_matches` (`pvp_id`)');
+        }
+
         if ($this->tableExists($connection, 'users') && !$this->columnExists($connection, 'users', 'is_active')) {
             $connection->query('ALTER TABLE `users` ADD `is_active` INT NOT NULL DEFAULT 0 AFTER `is_verified`');
+        }
+
+        if ($this->tableExists($connection, 'users') && !$this->columnExists($connection, 'users', 'last_seen_at')) {
+            $connection->query('ALTER TABLE `users` ADD `last_seen_at` TIMESTAMP NULL DEFAULT NULL AFTER `is_active`');
+        }
+
+        if ($this->tableExists($connection, 'users') && $this->columnExists($connection, 'users', 'is_online')) {
+            $connection->query('ALTER TABLE `users` DROP COLUMN `is_online`');
         }
 
         if ($this->tableExists($connection, 'user_details') && !$this->columnExists($connection, 'user_details', 'id_picture')) {
@@ -541,6 +775,19 @@ final class DatabaseInitializer
         $statement->close();
 
         return (int) ($row['constraint_count'] ?? 0) > 0;
+    }
+
+    private function rankPointsHaveDuplicates(mysqli $connection): bool
+    {
+        $result = $connection->query(
+            'SELECT `points_requirements`
+             FROM `ranks`
+             GROUP BY `points_requirements`
+             HAVING COUNT(*) > 1
+             LIMIT 1'
+        );
+
+        return $result instanceof mysqli_result && $result->num_rows > 0;
     }
 
     private function seedRoles(mysqli $connection): void

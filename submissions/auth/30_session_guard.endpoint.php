@@ -19,6 +19,10 @@ if (isset($_SESSION['user_id'])) {
         }
 
         pixelwarRefreshSessionUser($sessionUser);
+
+        if ($userRepository instanceof UserRepository) {
+            $userRepository->touchLastSeen((int) ($sessionUser['user_id'] ?? 0));
+        }
     } catch (Throwable $err) {
         error_log('Pixelwar session lookup error: ' . $err->getMessage());
         pixelwarLogout();
@@ -101,6 +105,27 @@ if (
 
         if (!$onLockedGameplayPage && $lockedChallengeId > 0 && $lockedRoomId > 0) {
             header('Location: ./?c=pixelwar&challenge_id=' . $lockedChallengeId . '&room_id=' . $lockedRoomId);
+            exit;
+        }
+    }
+}
+
+if (
+    $requestMethod === 'GET'
+    && $sessionUser !== null
+    && (int) ($sessionUser['role_id'] ?? 0) === pixelwarStudentRoleId()
+    && $userChallengeRepository instanceof UserChallengeRepository
+) {
+    $activePvpRun = $userChallengeRepository->findActivePvpRunLock((int) ($sessionUser['user_id'] ?? 0));
+    if ($activePvpRun !== null) {
+        $lockedChallengeId = (int) ($activePvpRun['challenge_id'] ?? 0);
+        $lockedPvpId = (int) ($activePvpRun['pvp_id'] ?? 0);
+        $onLockedGameplayPage = $currentPage === 'pixelwar'
+            && (int) ($_GET['challenge_id'] ?? 0) === $lockedChallengeId
+            && (int) ($_GET['pvp_id'] ?? 0) === $lockedPvpId;
+
+        if (!$onLockedGameplayPage && $lockedChallengeId > 0 && $lockedPvpId > 0) {
+            header('Location: ./?c=pixelwar&challenge_id=' . $lockedChallengeId . '&pvp_id=' . $lockedPvpId);
             exit;
         }
     }

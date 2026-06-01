@@ -19,13 +19,13 @@ $completionCounts = $userChallengeRepository instanceof UserChallengeRepository 
 $completionRowsPage = max(1, (int) ($_GET['page'] ?? 1));
 $completionRowsPerPage = 12;
 $completionRowsTotal = $userChallengeRepository instanceof UserChallengeRepository && $challengeId > 0
-    ? $userChallengeRepository->countCompletedByChallenge($challengeId)
+    ? $userChallengeRepository->countOutcomesByChallenge($challengeId)
     : 0;
 $completionRowsTotalPages = max(1, (int) ceil($completionRowsTotal / $completionRowsPerPage));
 $completionRowsPage = min($completionRowsPage, $completionRowsTotalPages);
 $completionRowsOffset = ($completionRowsPage - 1) * $completionRowsPerPage;
 $completionRows = $userChallengeRepository instanceof UserChallengeRepository && $challengeId > 0
-    ? $userChallengeRepository->listCompletedByChallengePaged($challengeId, $completionRowsPerPage, $completionRowsOffset)
+    ? $userChallengeRepository->listOutcomesByChallengePaged($challengeId, $completionRowsPerPage, $completionRowsOffset)
     : [];
 $chartLabels = [];
 $chartValues = [];
@@ -63,6 +63,18 @@ $formatDuration = static function (?string $startedAt, ?string $completedAt): st
     return implode(' ', $parts);
 };
 
+$formatCompletionType = static function (array $row): string {
+    if ((int) ($row['pvp_id'] ?? 0) > 0) {
+        return '1v1';
+    }
+
+    if ((int) ($row['room_id'] ?? 0) > 0) {
+        return 'room';
+    }
+
+    return 'solo';
+};
+
 for ($dayIndex = 0; $dayIndex < $selectedRangeDays; $dayIndex++) {
     $date = $analyticsStartDate->modify('+' . $dayIndex . ' days');
     $dateKey = $date->format('Y-m-d');
@@ -85,7 +97,7 @@ for ($dayIndex = 0; $dayIndex < $selectedRangeDays; $dayIndex++) {
             <article class="teacher-hero rounded-[26px] border-4 border-arcade-ink bg-arcade-panel p-4 shadow-[7px_7px_0_#26190f] md:p-6">
                 <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
                     <div>
-                        <p class="font-arcade text-[10px] uppercase tracking-[0.26em] text-arcade-orange">Completion Records</p>
+                        <p class="font-arcade text-[10px] uppercase tracking-[0.26em] text-arcade-orange">Outcome Records</p>
                         <h1 class="mt-3 text-3xl font-black leading-tight md:text-5xl"><?= htmlspecialchars((string) $challenge['name'], ENT_QUOTES, 'UTF-8') ?></h1>
                     </div>
                     <div class="flex flex-nowrap items-center gap-2">
@@ -106,7 +118,7 @@ for ($dayIndex = 0; $dayIndex < $selectedRangeDays; $dayIndex++) {
                     <div class="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
                         <div>
                             <p class="font-arcade text-[10px] uppercase tracking-[0.22em] text-arcade-orange">Analytics</p>
-                            <h2 class="mt-2 text-2xl font-black">Challenge Completions</h2>
+                            <h2 class="mt-2 text-2xl font-black">Challenge Outcomes</h2>
                         </div>
                         <p class="text-sm font-black text-arcade-ink/58">Last <?= (int) $selectedRangeDays ?> Days</p>
                     </div>
@@ -133,7 +145,7 @@ for ($dayIndex = 0; $dayIndex < $selectedRangeDays; $dayIndex++) {
             <section class="teacher-panel rounded-[26px] border-4 border-arcade-ink bg-arcade-panel p-0 shadow-[7px_7px_0_#26190f] overflow-hidden">
                 <?php if ($completionRows === []) : ?>
                     <div class="px-5 py-6 text-sm font-bold text-arcade-ink/55">
-                        No completed records yet for this challenge.
+                        No outcome records yet for this challenge.
                     </div>
                 <?php else : ?>
                     <div class="max-h-[42rem] overflow-auto">
@@ -141,8 +153,9 @@ for ($dayIndex = 0; $dayIndex < $selectedRangeDays; $dayIndex++) {
                             <thead class="sticky top-0 z-[1] bg-white/95">
                                 <tr class="border-b border-arcade-ink/10 text-xs uppercase tracking-[0.08em] text-arcade-ink/55">
                                     <th class="px-4 py-3 font-semibold">Player</th>
+                                    <th class="px-4 py-3 font-semibold">Type</th>
                                     <th class="px-4 py-3 font-semibold">Started</th>
-                                    <th class="px-4 py-3 font-semibold">Completed</th>
+                                    <th class="px-4 py-3 font-semibold">Outcome</th>
                                     <th class="px-4 py-3 font-semibold">Duration</th>
                                 </tr>
                             </thead>
@@ -153,6 +166,22 @@ for ($dayIndex = 0; $dayIndex < $selectedRangeDays; $dayIndex++) {
                                     $lastname = trim((string) ($row['lastname'] ?? ''));
                                     $displayName = trim($firstname . ' ' . $lastname) ?: (string) ($row['username'] ?? 'Player');
                                     $initials = strtoupper(substr(preg_replace('/[^a-z0-9]+/i', '', $displayName) ?: 'PL', 0, 2));
+                                    $completionType = $formatCompletionType($row);
+                                    $outcomeType = (string) ($row['outcome_type'] ?? 'done');
+                                    $resultLabel = match ($outcomeType) {
+                                        'win' => 'Win',
+                                        'loss' => 'Loss',
+                                        'pass' => 'Pass',
+                                        'failed' => 'Failed',
+                                        default => 'Done',
+                                    };
+                                    $resultClass = match ($outcomeType) {
+                                        'win' => 'bg-arcade-cyan/70',
+                                        'loss' => 'bg-arcade-coral/30',
+                                        'pass' => 'bg-arcade-mint/70',
+                                        'failed' => 'bg-arcade-coral/30',
+                                        default => 'bg-arcade-yellow/70',
+                                    };
                                     ?>
                                     <tr class="border-b border-arcade-ink/10 align-top last:border-b-0">
                                         <td class="px-4 py-3">
@@ -171,8 +200,13 @@ for ($dayIndex = 0; $dayIndex < $selectedRangeDays; $dayIndex++) {
                                                 </div>
                                             </div>
                                         </td>
+                                        <td class="px-4 py-3 whitespace-nowrap font-black text-arcade-ink"><?= htmlspecialchars($completionType, ENT_QUOTES, 'UTF-8') ?></td>
                                         <td class="px-4 py-3 whitespace-nowrap font-bold text-arcade-ink/65"><?= htmlspecialchars(date('M j, Y g:i A', strtotime((string) ($row['started_at'] ?? 'now'))), ENT_QUOTES, 'UTF-8') ?></td>
-                                        <td class="px-4 py-3 whitespace-nowrap font-bold text-arcade-ink/65"><?= htmlspecialchars(date('M j, Y g:i A', strtotime((string) ($row['completed_at'] ?? 'now'))), ENT_QUOTES, 'UTF-8') ?></td>
+                                        <td class="px-4 py-3 whitespace-nowrap font-bold text-arcade-ink/65">
+                                            <span class="rounded-full <?= htmlspecialchars($resultClass, ENT_QUOTES, 'UTF-8') ?> px-3 py-1 text-xs font-bold">
+                                                <?= htmlspecialchars($resultLabel, ENT_QUOTES, 'UTF-8') ?>
+                                            </span>
+                                        </td>
                                         <td class="px-4 py-3 font-black text-arcade-ink"><?= htmlspecialchars($formatDuration((string) ($row['started_at'] ?? ''), (string) ($row['completed_at'] ?? '')), ENT_QUOTES, 'UTF-8') ?></td>
                                     </tr>
                                 <?php endforeach; ?>

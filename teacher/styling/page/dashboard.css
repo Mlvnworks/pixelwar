@@ -1,0 +1,14 @@
+.teacher-dashboard-created-grid {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
+    align-items: stretch;
+}
+
+.teacher-dashboard-created-grid .teacher-created-challenge {
+    width: 100%;
+}
+
+@media (min-width: 1280px) {
+    .teacher-dashboard-created-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}

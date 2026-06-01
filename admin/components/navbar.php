@@ -12,6 +12,7 @@ $adminNavItems = [
     'teachers' => ['label' => 'Teachers', 'icon' => 'graduation-cap'],
     'students' => ['label' => 'Students', 'icon' => 'users'],
     'student-verification' => ['label' => 'Reviews', 'icon' => 'badge-check', 'badge' => $adminPendingReviewCount],
+    'rank-management' => ['label' => 'Ranks', 'icon' => 'medal'],
     'logs' => ['label' => 'Logs', 'icon' => 'history'],
     'settings' => ['label' => 'Settings', 'icon' => 'settings'],
 ];

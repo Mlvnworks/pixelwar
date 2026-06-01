@@ -94,10 +94,13 @@ if (
             $strictModeScore = max(0, min(100, (int) ($exportRow['strict_mode_score'] ?? 0)));
             $duration = $completedAt instanceof DateTimeImmutable
                 ? $formatDurationLabel(max(0, $completedAt->getTimestamp() - $startedAt->getTimestamp()))
-                : ($attemptStatus === 'gave_up' ? 'Gave Up' : 'Ongoing');
-            $statusLabel = $completedAt instanceof DateTimeImmutable
-                ? 'Completed'
-                : ($attemptStatus === 'gave_up' ? 'Gave Up' : 'Ongoing');
+                : ($attemptStatus === 'pvp_win' ? 'Win' : ($attemptStatus === 'pvp_loss' || $attemptStatus === 'gave_up' ? 'Failed' : 'Ongoing'));
+            $statusLabel = match ($attemptStatus) {
+                'pvp_win' => 'Win',
+                'pvp_loss' => 'Loss',
+                'gave_up' => 'Failed',
+                default => ($completedAt instanceof DateTimeImmutable ? 'Completed' : 'Ongoing'),
+            };
 
             if ($isStrictRoomAttempt && $attemptStatus !== 'ongoing') {
                 $statusLabel = $strictModeScore . '%';

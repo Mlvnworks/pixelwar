@@ -32,6 +32,10 @@ if ($requestMethod === 'POST' && $requestedPage === 'pixelwar' && (string) ($_PO
             throw new RuntimeException('Room not found.');
         }
 
+        if ((int) ($room['challenge_id'] ?? 0) !== $challengeId) {
+            throw new RuntimeException('This room is not linked to the selected challenge.');
+        }
+
         if ((int) ($room['strict_mode'] ?? 0) !== 1) {
             throw new RuntimeException('This room is not in strict mode.');
         }
@@ -43,6 +47,17 @@ if ($requestMethod === 'POST' && $requestedPage === 'pixelwar' && (string) ($_PO
         $roomPlayer = $roomPlayerRepository->findByUserAndRoom($userId, $roomId);
         if ($roomPlayer === null) {
             throw new RuntimeException('You have not joined this room.');
+        }
+
+        $currentRun = $userChallengeRepository->findById($userChallengeId);
+        if (
+            $currentRun === null
+            || (int) ($currentRun['user_id'] ?? 0) !== $userId
+            || (int) ($currentRun['challenge_id'] ?? 0) !== $challengeId
+            || (int) ($currentRun['room_id'] ?? 0) !== $roomId
+            || trim((string) ($currentRun['completed_at'] ?? '')) !== ''
+        ) {
+            throw new RuntimeException('No active strict mode room run was found.');
         }
 
         $roomPlayerRepository->updateStrictModeScore($userId, $roomId, $strictModeScore);

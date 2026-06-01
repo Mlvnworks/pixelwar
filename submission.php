@@ -15,6 +15,9 @@ require_once __DIR__ . '/classes/activity-log-repository.php';
 require_once __DIR__ . '/classes/gameplay-completion-service.php';
 require_once __DIR__ . '/classes/room-repository.php';
 require_once __DIR__ . '/classes/room-player-repository.php';
+require_once __DIR__ . '/classes/pvp-match-repository.php';
+require_once __DIR__ . '/classes/pvp-player-repository.php';
+require_once __DIR__ . '/classes/rank-repository.php';
 
 // ==================== INITIALIZATION ====================
 $pageMeta = new PageMeta();
@@ -32,12 +35,16 @@ $userChallengeRepository = $connection instanceof mysqli ? new UserChallengeRepo
 $activityLogRepository = $connection instanceof mysqli ? new ActivityLogRepository($connection) : null;
 $roomRepository = $connection instanceof mysqli ? new RoomRepository($connection) : null;
 $roomPlayerRepository = $connection instanceof mysqli ? new RoomPlayerRepository($connection) : null;
+$pvpMatchRepository = $connection instanceof mysqli ? new PvpMatchRepository($connection) : null;
+$pvpPlayerRepository = $connection instanceof mysqli ? new PvpPlayerRepository($connection) : null;
+$rankRepository = $connection instanceof mysqli ? new RankRepository($connection) : null;
 $pusherService = new PusherService(PUSHER_APP_ID, PUSHER_KEY, PUSHER_SECRET, PUSHER_CLUSTER);
 $gameplayCompletionService = $connection instanceof mysqli
+    && $userRepository instanceof UserRepository
     && $userChallengeRepository instanceof UserChallengeRepository
     && $challengeRepository instanceof ChallengeRepository
     && $activityLogRepository instanceof ActivityLogRepository
-        ? new GameplayCompletionService($connection, $userChallengeRepository, $challengeRepository, $activityLogRepository)
+        ? new GameplayCompletionService($connection, $userRepository, $userChallengeRepository, $challengeRepository, $activityLogRepository)
         : null;
 
 // ==================== SUBMISSION HANDLERS ====================

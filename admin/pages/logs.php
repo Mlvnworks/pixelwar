@@ -1,36 +1,34 @@
 <?php
-$allLogs = $activityLogRepository instanceof ActivityLogRepository
-    ? $activityLogRepository->listLatestOverall(500)
-    : [];
 $selectedCategory = strtolower(trim((string) ($_GET['category'] ?? 'all')));
+$logsPerPage = 100;
+$requestedLogPage = max(1, (int) ($_GET['page'] ?? 1));
 $roleLabels = [
     1 => 'Admin',
     2 => 'Teacher',
     3 => 'Student',
 ];
-$categoryCounts = [];
-$allLogsTotal = count($allLogs);
+$categoryCounts = $activityLogRepository instanceof ActivityLogRepository
+    ? $activityLogRepository->countGroupedByCategory()
+    : [];
+$allLogsTotal = $activityLogRepository instanceof ActivityLogRepository
+    ? $activityLogRepository->countOverall()
+    : 0;
+$filteredLogsTotal = $activityLogRepository instanceof ActivityLogRepository
+    ? $activityLogRepository->countOverall($selectedCategory)
+    : 0;
+$logTotalPages = max(1, (int) ceil($filteredLogsTotal / $logsPerPage));
+$logPage = min($requestedLogPage, $logTotalPages);
+$logOffset = ($logPage - 1) * $logsPerPage;
+$allLogs = $activityLogRepository instanceof ActivityLogRepository
+    ? $activityLogRepository->listOverallPaginated($logsPerPage, $logOffset, $selectedCategory)
+    : [];
 
-foreach ($allLogs as $log) {
-    $categoryKey = strtolower(trim((string) ($log['category'] ?? 'general')));
-    if ($categoryKey === '') {
-        $categoryKey = 'general';
-    }
+$logBuildQuery = static function (string $category, int $page = 1): string {
+    $query = [
+        'c' => 'logs',
+        'page' => max(1, $page),
+    ];
 
-    $categoryCounts[$categoryKey] = (int) ($categoryCounts[$categoryKey] ?? 0) + 1;
-}
-
-ksort($categoryCounts);
-
-if ($selectedCategory !== 'all' && isset($categoryCounts[$selectedCategory])) {
-    $allLogs = array_values(array_filter(
-        $allLogs,
-        static fn(array $log): bool => strtolower(trim((string) ($log['category'] ?? 'general'))) === $selectedCategory
-    ));
-}
-
-$logBuildQuery = static function (string $category): string {
-    $query = ['c' => 'logs'];
     if ($category !== 'all') {
         $query['category'] = $category;
     }
@@ -84,6 +82,15 @@ $logBuildQuery = static function (string $category): string {
         </section>
 
         <section class="teacher-panel p-0 overflow-hidden">
+            <div class="flex flex-col gap-2 border-b border-arcade-ink/10 px-5 py-4 md:flex-row md:items-center md:justify-between">
+                <p class="text-sm font-bold text-arcade-ink/65">
+                    Showing <?= (int) ($filteredLogsTotal === 0 ? 0 : $logOffset + 1) ?>-<?= (int) min($filteredLogsTotal, $logOffset + count($allLogs)) ?> of <?= (int) $filteredLogsTotal ?> records
+                </p>
+                <p class="text-xs font-semibold uppercase tracking-[0.08em] text-arcade-ink/50">
+                    Page <?= (int) $logPage ?> of <?= (int) $logTotalPages ?> · 100 per page
+                </p>
+            </div>
+
             <?php if ($allLogs === []) : ?>
                 <div class="px-5 py-5 text-sm font-medium text-arcade-ink/55">
                     No activity logs recorded yet.
@@ -126,6 +133,21 @@ $logBuildQuery = static function (string $category): string {
                             <?php endforeach; ?>
                         </tbody>
                     </table>
+                </div>
+                <div class="flex flex-col gap-3 border-t border-arcade-ink/10 px-5 py-4 md:flex-row md:items-center md:justify-between">
+                    <p class="text-sm font-medium text-arcade-ink/55">
+                        Page <?= (int) $logPage ?> of <?= (int) $logTotalPages ?>
+                    </p>
+                    <div class="flex flex-wrap gap-2">
+                        <a href="<?= htmlspecialchars($logBuildQuery($selectedCategory, max(1, $logPage - 1)), ENT_QUOTES, 'UTF-8') ?>" class="teacher-button teacher-button--light gap-2 <?= $logPage <= 1 ? 'pointer-events-none opacity-50' : '' ?>">
+                            <i data-lucide="chevron-left" class="h-4 w-4" aria-hidden="true"></i>
+                            <span>Previous</span>
+                        </a>
+                        <a href="<?= htmlspecialchars($logBuildQuery($selectedCategory, min($logTotalPages, $logPage + 1)), ENT_QUOTES, 'UTF-8') ?>" class="teacher-button teacher-button--light gap-2 <?= $logPage >= $logTotalPages ? 'pointer-events-none opacity-50' : '' ?>">
+                            <span>Next</span>
+                            <i data-lucide="chevron-right" class="h-4 w-4" aria-hidden="true"></i>
+                        </a>
+                    </div>
                 </div>
             <?php endif; ?>
         </section>

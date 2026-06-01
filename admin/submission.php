@@ -17,6 +17,7 @@ require_once $rootPath . '/classes/user-repository.php';
 require_once $rootPath . '/classes/user-challenge-repository.php';
 require_once $rootPath . '/classes/verification-repository.php';
 require_once $rootPath . '/classes/user-account-service.php';
+require_once $rootPath . '/classes/rank-repository.php';
 
 $pageMeta = new PageMeta();
 $tools = new Tools($connection);
@@ -26,6 +27,7 @@ $roomRepository = $connection instanceof mysqli ? new RoomRepository($connection
 $roomPlayerRepository = $connection instanceof mysqli ? new RoomPlayerRepository($connection) : null;
 $userRepository = $connection instanceof mysqli ? new UserRepository($connection) : null;
 $userChallengeRepository = $connection instanceof mysqli ? new UserChallengeRepository($connection) : null;
+$rankRepository = $connection instanceof mysqli ? new RankRepository($connection) : null;
 $teacherAccountService = $connection instanceof mysqli && $userRepository instanceof UserRepository
     ? new TeacherAccountService($connection, $userRepository, $tools)
     : null;

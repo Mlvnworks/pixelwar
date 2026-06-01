@@ -4,6 +4,7 @@ final class GameplayCompletionService
 {
     public function __construct(
         private mysqli $connection,
+        private UserRepository $users,
         private UserChallengeRepository $userChallenges,
         private ChallengeRepository $challenges,
         private ActivityLogRepository $activityLogs
@@ -44,15 +45,18 @@ final class GameplayCompletionService
         }
 
         $isRoomLinkedRun = (int) ($ongoingRun['room_id'] ?? 0) > 0;
+        $isPvpLinkedRun = (int) ($ongoingRun['pvp_id'] ?? 0) > 0;
 
-        if ((int) ($challenge['status'] ?? 0) !== 1 && !$isRoomLinkedRun) {
+        if ((int) ($challenge['status'] ?? 0) !== 1 && !$isRoomLinkedRun && !$isPvpLinkedRun) {
             $this->userChallenges->deleteOngoingForUser($userChallengeId, $userId);
             throw new RuntimeException('This challenge is not available publicly right now. Your run was ended.');
         }
 
         $alreadyRewarded = $this->userChallenges->hasCompletedRecordForChallenge($userId, $challengeId, $userChallengeId);
         $challengePoints = (int) ($challenge['points'] ?? 0);
-        $awardedPoints = $alreadyRewarded ? 0 : $challengePoints;
+        $awardedPoints = $isPvpLinkedRun
+            ? $challengePoints
+            : ($isRoomLinkedRun ? $challengePoints : ($alreadyRewarded ? 0 : $challengePoints));
 
         try {
             $this->connection->begin_transaction();
@@ -68,6 +72,10 @@ final class GameplayCompletionService
                 'challenge',
                 'Completed challenge "' . (string) $challenge['name'] . '".'
             );
+
+            if ($awardedPoints > 0) {
+                $this->users->addPlayerProgressPoints($userId, $awardedPoints);
+            }
 
             $this->connection->commit();
         } catch (Throwable $err) {
@@ -89,7 +97,7 @@ final class GameplayCompletionService
             'difficulty' => ucfirst(strtolower((string) ($challenge['difficulty_name'] ?? 'Easy'))),
             'points' => $awardedPoints,
             'challenge_points' => $challengePoints,
-            'awarded_once' => !$alreadyRewarded,
+            'awarded_once' => $isPvpLinkedRun || $isRoomLinkedRun ? true : !$alreadyRewarded,
             'started_at' => $startedAt->format(DATE_ATOM),
             'completed_at' => $completedAt->format(DATE_ATOM),
             'duration_seconds' => max(0, $completedAt->getTimestamp() - $startedAt->getTimestamp()),
