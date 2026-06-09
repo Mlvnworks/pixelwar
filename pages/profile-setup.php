@@ -85,7 +85,7 @@ unset($_SESSION['profile_setup_errors'], $_SESSION['profile_setup_old']);
                     </div>
                     <span class="inline-flex shrink-0 rounded-xl border-2 border-arcade-ink bg-arcade-yellow px-3 py-2 text-xs font-extrabold shadow-[0_3px_0_#26190f]">Browse</span>
                 </div>
-                <input id="profile-image" name="profile_image" type="file" accept="image/png,image/jpeg,image/webp,image/gif" required class="sr-only">
+                <input id="profile-image" name="profile_image" type="file" accept="image/png,image/jpeg,image/webp,image/gif" <?= $existingAvatarUrl === '' ? 'required' : '' ?> class="sr-only">
             </div>
             <p id="profile-upload-message" class="mt-1 min-h-4 text-xs font-bold leading-5 text-arcade-coral" aria-live="polite"></p>
 
@@ -160,7 +160,7 @@ unset($_SESSION['profile_setup_errors'], $_SESSION['profile_setup_old']);
                                         <p id="id-upload-file-name" class="mt-1 truncate text-xs font-bold text-arcade-ink/55"><?= $existingIdPictureUrl !== '' ? 'Current ID image is loaded. Choose a new file to replace it.' : 'Front side image. Max 2MB.' ?></p>
                                     </div>
                                 </div>
-                                <input id="id-picture" name="id_picture" type="file" accept="image/png,image/jpeg,image/webp,image/gif" required class="sr-only">
+                                <input id="id-picture" name="id_picture" type="file" accept="image/png,image/jpeg,image/webp,image/gif" <?= $existingIdPictureUrl === '' ? 'required' : '' ?> class="sr-only">
                             </div>
                             <p id="id-upload-message" class="mt-1 min-h-4 text-xs font-bold leading-5 text-arcade-coral" aria-live="polite"></p>
                         </div>
