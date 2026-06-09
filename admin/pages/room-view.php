@@ -650,6 +650,47 @@ window.addEventListener('load', () => {
         return;
     }
 
+    const disablePreviewLinks = (frame) => {
+        if (!(frame instanceof HTMLIFrameElement)) {
+            return;
+        }
+
+        const doc = frame.contentDocument;
+        if (!doc) {
+            return;
+        }
+
+        if (!doc.getElementById('pixelwar-preview-link-guard')) {
+            const style = doc.createElement('style');
+            style.id = 'pixelwar-preview-link-guard';
+            style.textContent = 'a, area { cursor: default !important; }';
+            doc.head?.appendChild(style);
+        }
+
+        doc.querySelectorAll('a, area').forEach((link) => {
+            link.setAttribute('tabindex', '-1');
+            link.setAttribute('aria-disabled', 'true');
+        });
+
+        if (doc.defaultView?.pixelwarPreviewLinksBlocked) {
+            return;
+        }
+
+        doc.defaultView.pixelwarPreviewLinksBlocked = true;
+        doc.addEventListener('click', (event) => {
+            if (event.target?.closest?.('a, area')) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+        }, true);
+        doc.addEventListener('keydown', (event) => {
+            if ((event.key === 'Enter' || event.key === ' ') && event.target?.closest?.('a, area')) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+        }, true);
+    };
+
     const fitPreviewFrame = (frame) => {
         if (!(frame instanceof HTMLIFrameElement)) {
             return;
@@ -694,6 +735,7 @@ window.addEventListener('load', () => {
     };
 
     preview.addEventListener('load', () => {
+        disablePreviewLinks(preview);
         fitPreviewFrame(preview);
         status.textContent = 'Ready';
         status.classList.remove('bg-arcade-coral');
@@ -712,6 +754,7 @@ window.addEventListener('load', () => {
 * { box-sizing: border-box; }
 html, body { margin: 0; padding: 0; background: #fff7e8; width: max-content; height: max-content; }
 body { display: inline-block; font-family: Arial, sans-serif; }
+a, area { cursor: default !important; }
 .preview-canvas { display: inline-block; padding: 24px; }
 ${css}
 </style>

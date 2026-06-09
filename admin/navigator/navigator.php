@@ -21,6 +21,10 @@ $adminTitles = [
     'student-submissions' => 'Student Submissions | ' . APP_NAME,
     'student-verification' => 'Pending Student Verification | ' . APP_NAME,
     'rank-management' => 'Rank Management | ' . APP_NAME,
+    'season-management' => 'Season Management | ' . APP_NAME,
+    'season-leaderboards' => 'Season Leaderboards | ' . APP_NAME,
+    'point-rates' => 'Point Rates | ' . APP_NAME,
+    'announcement' => 'Announcements | ' . APP_NAME,
     'logs' => 'Activity Logs | ' . APP_NAME,
     'settings' => 'Admin Settings | ' . APP_NAME,
 ];
@@ -79,6 +83,8 @@ $appDescription = 'Admin workspace for managing Pixelwar teachers and platform c
     <?php if ($isAllowedPage && is_file($pageStyleFile)) : ?>
         <link rel="stylesheet" href="./styling/page/<?= htmlspecialchars($normalizedContent, ENT_QUOTES, 'UTF-8') ?>.css">
     <?php endif; ?>
+    <link rel="stylesheet" href="./styling/theme.css">
+    <link rel="stylesheet" href="./styling/responsive.css">
 
     <link rel="shortcut icon" href="../assets/img/icon.png" type="image/x-icon">
     <title><?= htmlspecialchars($appName, ENT_QUOTES, 'UTF-8') ?></title>
@@ -141,6 +147,42 @@ $appDescription = 'Admin workspace for managing Pixelwar teachers and platform c
             })();
         </script>
     <?php endif; ?>
+    <script>
+        (() => {
+            const applyThemeAwareWidgets = () => {
+                const isDarkMode = document.body.classList.contains('pixelwar-dark-mode');
+                const textColor = isDarkMode ? '#fff7e8' : '#26190f';
+                const mutedColor = isDarkMode ? 'rgba(255, 247, 232, 0.62)' : 'rgba(38, 25, 15, 0.62)';
+                const gridColor = isDarkMode ? 'rgba(255, 247, 232, 0.14)' : 'rgba(38, 25, 15, 0.12)';
+
+                if (window.Chart) {
+                    window.Chart.defaults.color = textColor;
+                    window.Chart.defaults.borderColor = gridColor;
+                    const instances = window.Chart.instances || {};
+                    Object.keys(instances).forEach((key) => {
+                        const chart = instances[key];
+                        if (!chart?.options) {
+                            return;
+                        }
+
+                        chart.options.color = textColor;
+                        Object.values(chart.options.scales || {}).forEach((scale) => {
+                            scale.ticks = { ...(scale.ticks || {}), color: mutedColor };
+                            scale.grid = { ...(scale.grid || {}), color: gridColor };
+                        });
+                        chart.update('none');
+                    });
+                }
+
+                if (window.lucide?.createIcons) {
+                    window.lucide.createIcons();
+                }
+            };
+
+            window.addEventListener('pixelwar:theme-change', applyThemeAwareWidgets);
+            document.addEventListener('DOMContentLoaded', applyThemeAwareWidgets);
+        })();
+    </script>
 </body>
 
 </html>

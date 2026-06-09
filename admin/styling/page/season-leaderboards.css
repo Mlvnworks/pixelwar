@@ -1,0 +1,264 @@
+.leaderboards-page {
+    min-height: 100vh;
+}
+
+.leaderboards-page__grid {
+    background-image:
+        linear-gradient(rgba(38, 25, 15, 0.045) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(38, 25, 15, 0.045) 1px, transparent 1px);
+    background-size: 30px 30px;
+    pointer-events: none;
+    mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.82), transparent 86%);
+}
+
+.leaderboards-glow {
+    position: absolute;
+    width: 24rem;
+    height: 24rem;
+    border-radius: 999px;
+    filter: blur(10px);
+    opacity: 0.42;
+    pointer-events: none;
+}
+
+.leaderboards-glow--one {
+    left: -9rem;
+    top: 6rem;
+    background: radial-gradient(circle, rgba(255, 209, 102, 0.78), transparent 64%);
+}
+
+.leaderboards-glow--two {
+    right: -8rem;
+    top: 18rem;
+    background: radial-gradient(circle, rgba(76, 201, 240, 0.62), transparent 64%);
+}
+
+.leaderboards-hero {
+    animation: leaderboards-pop 520ms cubic-bezier(0.2, 0.9, 0.2, 1) both;
+}
+
+.leaderboards-hero__inner {
+    background:
+        radial-gradient(circle at 88% 18%, rgba(255, 255, 255, 0.42), transparent 22%),
+        linear-gradient(135deg, rgba(255, 209, 102, 0.96), rgba(255, 217, 168, 0.92) 46%, rgba(76, 201, 240, 0.62));
+}
+
+.leaderboards-hero__spark {
+    position: absolute;
+    border: 4px solid rgba(38, 25, 15, 0.12);
+    background: rgba(255, 255, 255, 0.24);
+    pointer-events: none;
+}
+
+.leaderboards-hero__spark--one {
+    right: 8%;
+    top: 1.5rem;
+    width: 4.2rem;
+    height: 4.2rem;
+    border-radius: 1.1rem;
+    rotate: 14deg;
+    animation: leaderboards-float 4.8s ease-in-out infinite;
+}
+
+.leaderboards-hero__spark--two {
+    right: 24%;
+    bottom: 1.4rem;
+    width: 2.8rem;
+    height: 2.8rem;
+    border-radius: 999px;
+    animation: leaderboards-float 5.6s ease-in-out infinite reverse;
+}
+
+.leaderboards-podium {
+    display: grid;
+    align-items: end;
+    gap: 1rem;
+}
+
+@media (min-width: 768px) {
+    .leaderboards-podium {
+        grid-template-columns: 0.92fr 1.15fr 0.92fr;
+    }
+}
+
+.leaderboards-podium-card {
+    position: relative;
+    display: grid;
+    justify-items: center;
+    overflow: hidden;
+    border: 4px solid #26190f;
+    border-radius: 1.8rem;
+    background: rgba(255, 253, 246, 0.94);
+    padding: 1.15rem 1rem 0;
+    text-align: center;
+    box-shadow: 8px 8px 0 #26190f;
+    animation: leaderboards-rise 580ms cubic-bezier(0.2, 0.9, 0.2, 1) both;
+    animation-delay: var(--podium-delay);
+}
+
+.leaderboards-podium-card--1 {
+    min-height: 19rem;
+    background: linear-gradient(180deg, rgba(255, 209, 102, 0.55), rgba(255, 253, 246, 0.95));
+}
+
+.leaderboards-podium-card--2 {
+    min-height: 16rem;
+}
+
+.leaderboards-podium-card--3 {
+    min-height: 14.5rem;
+}
+
+.leaderboards-podium-card__rank {
+    border: 2px solid #26190f;
+    border-radius: 999px;
+    background: #4cc9f0;
+    padding: 0.35rem 0.75rem;
+    font-size: 0.7rem;
+    font-weight: 900;
+    letter-spacing: 0.12em;
+}
+
+.leaderboards-podium-card h2 {
+    margin-top: 0.75rem;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+    font-size: 1.45rem;
+    font-weight: 900;
+}
+
+.leaderboards-podium-card p {
+    margin-top: 0.25rem;
+    color: rgba(38, 25, 15, 0.62);
+    font-size: 0.88rem;
+    font-weight: 900;
+}
+
+.leaderboards-podium-card__base {
+    width: calc(100% + 2rem);
+    height: 3.25rem;
+    margin-top: auto;
+    border-top: 4px solid #26190f;
+    background: repeating-linear-gradient(45deg, #ffd166 0 12px, #ff8c42 12px 24px);
+}
+
+.leaderboards-avatar {
+    display: grid;
+    width: 3.5rem;
+    height: 3.5rem;
+    place-items: center;
+    overflow: hidden;
+    border: 3px solid #26190f;
+    border-radius: 1.15rem;
+    background: #ffd166;
+    color: #26190f;
+    font-family: "Press Start 2P", cursive;
+    font-size: 0.72rem;
+    box-shadow: 4px 4px 0 rgba(38, 25, 15, 0.22);
+}
+
+.leaderboards-avatar--large {
+    width: 5.5rem;
+    height: 5.5rem;
+    margin-top: 0.9rem;
+    border-width: 4px;
+    border-radius: 1.5rem;
+    font-size: 0.95rem;
+}
+
+.leaderboards-list-row {
+    display: grid;
+    grid-template-columns: auto auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.85rem;
+    border: 3px solid #26190f;
+    border-radius: 1.35rem;
+    background: #fffdf6;
+    padding: 0.85rem;
+    box-shadow: 4px 4px 0 rgba(38, 25, 15, 0.22);
+    animation: leaderboards-slide 420ms cubic-bezier(0.2, 0.9, 0.2, 1) both;
+    animation-delay: var(--row-delay);
+    transition: transform 160ms ease, box-shadow 160ms ease;
+}
+
+.leaderboards-list-row:hover {
+    transform: translateY(-2px);
+    box-shadow: 6px 6px 0 #26190f;
+}
+
+.leaderboards-list-row--current {
+    background: linear-gradient(90deg, rgba(255, 209, 102, 0.38), rgba(255, 253, 246, 0.98));
+}
+
+.leaderboards-list-row__rank,
+.leaderboards-list-row__points {
+    border: 2px solid #26190f;
+    border-radius: 999px;
+    background: #fff7e8;
+    padding: 0.35rem 0.65rem;
+    font-size: 0.74rem;
+    font-weight: 900;
+    white-space: nowrap;
+}
+
+.leaderboards-list-row h3 {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 1rem;
+    font-weight: 900;
+}
+
+@keyframes leaderboards-pop {
+    from {
+        opacity: 0;
+        transform: translateY(18px) scale(0.98);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+@keyframes leaderboards-rise {
+    from {
+        opacity: 0;
+        transform: translateY(30px) scale(0.96);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+@keyframes leaderboards-slide {
+    from {
+        opacity: 0;
+        transform: translateX(-18px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes leaderboards-float {
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-10px);
+    }
+}
+
+@media (max-width: 560px) {
+    .leaderboards-list-row {
+        grid-template-columns: auto auto minmax(0, 1fr);
+    }
+
+    .leaderboards-list-row__points {
+        grid-column: 3;
+        justify-self: start;
+    }
+}

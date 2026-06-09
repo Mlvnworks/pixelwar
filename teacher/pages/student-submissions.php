@@ -142,19 +142,19 @@ $studentSubmissionInitialStatusFilter = isset($_GET['status']) && in_array((stri
     : 'all';
 ?>
 
-<main class="teacher-shell analytics-page relative overflow-hidden px-4 py-6 text-arcade-ink md:py-8">
+<main class="teacher-shell analytics-page teacher-student-submissions-page relative overflow-hidden px-4 py-6 text-arcade-ink md:py-8">
     <div class="teacher-bg absolute inset-0"></div>
 
     <section class="container relative grid min-w-0 max-w-full gap-5">
         <?php if ($studentSubmissionProfile === null) : ?>
-            <div class="mb-5 rounded-[24px] border-4 border-arcade-ink bg-arcade-panel p-4 shadow-[7px_7px_0_#26190f] md:p-5">
+            <div class="student-submissions-hero-card mb-5 rounded-[24px] border-4 border-arcade-ink bg-arcade-panel p-4 shadow-[7px_7px_0_#26190f] md:p-5">
                 <p class="font-arcade text-[10px] uppercase tracking-[0.28em] text-arcade-coral">Missing Student</p>
                 <h1 class="mt-3 text-3xl font-bold leading-tight md:text-5xl">Student not found.</h1>
                 <p class="mt-2 max-w-2xl text-sm leading-7 text-arcade-ink/70">The requested student profile is unavailable or has been removed.</p>
                 <a href="./?c=students" class="mt-4 inline-flex items-center justify-center rounded-xl border-2 border-arcade-ink bg-white px-4 py-2 text-sm font-bold text-arcade-ink no-underline shadow-[0_3px_0_#26190f] transition hover:-translate-y-0.5 hover:bg-arcade-yellow">Back to Students</a>
             </div>
         <?php else : ?>
-            <div class="mb-5 rounded-[24px] border-4 border-arcade-ink bg-arcade-panel p-4 shadow-[7px_7px_0_#26190f] md:p-5">
+            <div class="student-submissions-hero-card mb-5 rounded-[24px] border-4 border-arcade-ink bg-arcade-panel p-4 shadow-[7px_7px_0_#26190f] md:p-5">
                 <div class="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
                     <div>
                         <p class="font-arcade text-[10px] uppercase tracking-[0.28em] text-arcade-orange">Student Submissions</p>
@@ -174,8 +174,8 @@ $studentSubmissionInitialStatusFilter = isset($_GET['status']) && in_array((stri
                 </div>
             </div>
 
-            <section class="min-w-0 rounded-[24px] border-4 border-arcade-ink bg-arcade-panel p-4 shadow-[7px_7px_0_#26190f] md:p-5">
-                <article class="mb-5 rounded-[20px] border-2 border-arcade-ink/10 bg-white p-4">
+            <section class="student-submissions-content-card min-w-0 rounded-[24px] border-4 border-arcade-ink bg-arcade-panel p-4 shadow-[7px_7px_0_#26190f] md:p-5">
+                <article class="student-submissions-chart-card mb-5 rounded-[20px] border-2 border-arcade-ink/10 bg-white p-4">
                     <div class="flex flex-col gap-4">
                         <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                             <div>

@@ -343,3 +343,40 @@ body.pixelwar-dark-mode .challenge-preview-modal .modal-content {
         padding: 0.9rem !important;
     }
 }
+
+.challenge-more-grid {
+    align-items: stretch;
+    grid-auto-rows: 1fr;
+}
+
+.challenge-more-card {
+    display: flex;
+    width: 100%;
+    min-width: 0;
+    height: 100%;
+    flex-direction: column;
+}
+
+.challenge-more-card h3,
+.challenge-more-card p {
+    min-width: 0;
+}
+
+.challenge-more-card > p {
+    flex: 1 1 auto;
+}
+
+.challenge-more-card__footer {
+    margin-top: auto;
+}
+
+@media (max-width: 768px) {
+    .challenge-more-grid {
+        display: grid !important;
+        grid-template-columns: minmax(0, 1fr) !important;
+    }
+
+    .challenge-more-card {
+        max-width: 100% !important;
+    }
+}

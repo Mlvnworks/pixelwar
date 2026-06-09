@@ -89,6 +89,7 @@ if ($requestMethod === 'POST' && $requestedPage === 'pixelwar' && (string) ($_PO
                 }
             }
         } else {
+            $userChallengeRepository->assignActiveSeason($userChallengeId, $userId);
             $roomPlayerRepository->markStrictSubmittedFailed($userId, $roomId);
             $updatedRoomPlayer = $roomPlayerRepository->findByUserAndRoom($userId, $roomId);
 

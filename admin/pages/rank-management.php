@@ -78,7 +78,7 @@ foreach ($rankRows as $rankRow) {
                         </div>
                     </div>
                 <?php else : ?>
-                    <div class="grid gap-4 lg:grid-cols-2">
+                    <div class="admin-rank-card-grid">
                         <?php foreach ($rankRows as $rankIndex => $rankRow) : ?>
                             <?php
                             $rankId = (int) ($rankRow['rank_id'] ?? 0);
@@ -86,7 +86,7 @@ foreach ($rankRows as $rankRow) {
                             $rankPoints = (int) ($rankRow['points_requirements'] ?? 0);
                             $rankProgress = $highestRequirement > 0 ? min(100, (int) round(($rankPoints / $highestRequirement) * 100)) : 0;
                             ?>
-                            <article class="group relative overflow-hidden rounded-[28px] border-4 border-arcade-ink bg-white p-4 shadow-[7px_7px_0_#26190f] transition hover:-translate-y-1 hover:shadow-[10px_10px_0_#26190f]">
+                            <article class="admin-rank-card group relative overflow-hidden rounded-[28px] border-4 border-arcade-ink bg-white p-4 shadow-[7px_7px_0_#26190f] transition hover:-translate-y-1 hover:shadow-[10px_10px_0_#26190f]">
                                 <div class="absolute inset-x-0 top-0 h-2 bg-gradient-to-r from-arcade-yellow via-arcade-orange to-arcade-cyan"></div>
                                 <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                                     <div class="flex min-w-0 items-center gap-4">

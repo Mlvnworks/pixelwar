@@ -51,7 +51,7 @@ $studentBuildQuery = static function (array $overrides = []) use ($studentSearch
 };
 ?>
 
-<main class="teacher-shell relative overflow-hidden px-4 py-6 text-arcade-ink md:py-8">
+<main class="teacher-shell teacher-students-page relative overflow-hidden px-4 py-6 text-arcade-ink md:py-8">
     <div class="teacher-bg absolute inset-0"></div>
     <section class="container relative grid gap-5">
         <section class="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
@@ -62,27 +62,27 @@ $studentBuildQuery = static function (array $overrides = []) use ($studentSearch
                     Review student accounts, see who is online right now, and open individual progress details.
                 </p>
             </div>
-            <div class="grid gap-2 sm:grid-cols-2 xl:grid-cols-4 xl:min-w-[34rem]">
-                <article class="teacher-panel px-4 py-3">
+            <div class="teacher-students-summary-grid grid gap-2 sm:grid-cols-2 xl:grid-cols-4 xl:min-w-[34rem]">
+                <article class="teacher-panel teacher-students-summary-card px-4 py-3">
                     <p class="text-xs font-semibold uppercase tracking-[0.08em] text-arcade-ink/55">Total</p>
                     <strong id="teacher-students-total-count" class="mt-1 block text-2xl font-bold"><?= (int) $studentTotalCount ?></strong>
                 </article>
-                <article class="teacher-panel px-4 py-3">
+                <article class="teacher-panel teacher-students-summary-card px-4 py-3">
                     <p class="text-xs font-semibold uppercase tracking-[0.08em] text-arcade-ink/55">Verified</p>
                     <strong id="teacher-students-verified-count" class="mt-1 block text-2xl font-bold"><?= (int) $studentVerifiedCount ?></strong>
                 </article>
-                <article class="teacher-panel px-4 py-3">
+                <article class="teacher-panel teacher-students-summary-card px-4 py-3">
                     <p class="text-xs font-semibold uppercase tracking-[0.08em] text-arcade-ink/55">Pending</p>
                     <strong id="teacher-students-pending-count" class="mt-1 block text-2xl font-bold"><?= (int) $studentPendingCount ?></strong>
                 </article>
-                <article class="teacher-panel px-4 py-3">
+                <article class="teacher-panel teacher-students-summary-card px-4 py-3">
                     <p class="text-xs font-semibold uppercase tracking-[0.08em] text-arcade-ink/55">Rejected</p>
                     <strong id="teacher-students-rejected-count" class="mt-1 block text-2xl font-bold"><?= (int) $studentRejectedCount ?></strong>
                 </article>
             </div>
         </section>
 
-        <section class="teacher-panel p-5 md:p-6">
+        <section class="teacher-panel teacher-students-list-panel p-5 md:p-6">
             <form class="flex flex-col gap-3 xl:flex-row xl:items-end" method="get" action="./">
                 <input type="hidden" name="c" value="students">
 
@@ -119,12 +119,12 @@ $studentBuildQuery = static function (array $overrides = []) use ($studentSearch
                 </div>
             </form>
 
-            <div class="mt-5 overflow-hidden rounded-2xl border border-arcade-ink/10 bg-white/85">
+            <div class="teacher-students-table-shell mt-5 overflow-hidden rounded-2xl border border-arcade-ink/10 bg-white/85">
                 <div id="teacher-students-empty-state" class="px-5 py-6 text-sm font-medium text-arcade-ink/55<?= $students === [] ? '' : ' hidden' ?>">
                     No students matched the current filters.
                 </div>
-                <div id="teacher-students-table-wrap" class="max-h-[42rem] overflow-auto<?= $students === [] ? ' hidden' : '' ?>">
-                    <table class="min-w-full text-left text-sm">
+                <div id="teacher-students-table-wrap" class="teacher-students-table-wrap max-h-[42rem] overflow-auto<?= $students === [] ? ' hidden' : '' ?>">
+                    <table class="teacher-students-table min-w-full text-left text-sm">
                         <thead class="sticky top-0 z-[1] bg-white/95">
                             <tr class="border-b border-arcade-ink/10 text-xs uppercase tracking-[0.08em] text-arcade-ink/55">
                                 <th class="px-4 py-3 font-semibold">Student</th>
@@ -149,9 +149,9 @@ $studentBuildQuery = static function (array $overrides = []) use ($studentSearch
                                     $presenceLabel = $isOnline ? 'Online' : 'Offline';
                                     $presenceClass = $isOnline ? 'bg-arcade-mint/35' : 'bg-white';
                                     ?>
-                                    <tr class="border-b border-arcade-ink/10 align-top last:border-b-0">
+                                    <tr class="teacher-student-row border-b border-arcade-ink/10 align-top last:border-b-0">
                                         <td class="px-4 py-3">
-                                            <div class="flex items-center gap-3">
+                                            <div class="teacher-student-identity flex items-center gap-3">
                                                 <span class="relative grid h-11 w-11 shrink-0 place-items-center overflow-hidden rounded-2xl border-2 border-arcade-ink bg-arcade-yellow font-bold text-arcade-ink">
                                                     <?php if (trim((string) ($student['avatar_url'] ?? '')) !== '') : ?>
                                                         <img src="<?= htmlspecialchars((string) $student['avatar_url'], ENT_QUOTES, 'UTF-8') ?>" alt="" class="h-full w-full object-cover">
@@ -160,7 +160,7 @@ $studentBuildQuery = static function (array $overrides = []) use ($studentSearch
                                                     <?php endif; ?>
                                                     <span class="absolute bottom-0.5 right-0.5 h-3 w-3 rounded-full border-2 border-white <?= $isOnline ? 'bg-emerald-500' : 'bg-slate-300' ?>" aria-hidden="true"></span>
                                                 </span>
-                                                <div class="min-w-0">
+                                                <div class="teacher-student-copy min-w-0">
                                                     <div class="truncate font-semibold text-arcade-ink"><?= htmlspecialchars($displayName, ENT_QUOTES, 'UTF-8') ?></div>
                                                     <div class="truncate text-xs text-arcade-ink/55">@<?= htmlspecialchars((string) $student['username'], ENT_QUOTES, 'UTF-8') ?></div>
                                                     <div class="truncate text-xs text-arcade-ink/55"><?= htmlspecialchars((string) $student['email'], ENT_QUOTES, 'UTF-8') ?></div>
@@ -287,14 +287,14 @@ $studentBuildQuery = static function (array $overrides = []) use ($studentSearch
             : 'Not set';
 
         return `
-            <tr class="border-b border-arcade-ink/10 align-top last:border-b-0">
+            <tr class="teacher-student-row border-b border-arcade-ink/10 align-top last:border-b-0">
                 <td class="px-4 py-3">
-                    <div class="flex items-center gap-3">
+                    <div class="teacher-student-identity flex items-center gap-3">
                         <span class="relative grid h-11 w-11 shrink-0 place-items-center overflow-hidden rounded-2xl border-2 border-arcade-ink bg-arcade-yellow font-bold text-arcade-ink">
                             ${student.avatar_url ? `<img src="${escapeHtml(student.avatar_url)}" alt="" class="h-full w-full object-cover">` : escapeHtml(initialsFor(displayName))}
                             <span class="absolute bottom-0.5 right-0.5 h-3 w-3 rounded-full border-2 border-white ${onlineNow ? 'bg-emerald-500' : 'bg-slate-300'}" aria-hidden="true"></span>
                         </span>
-                        <div class="min-w-0">
+                        <div class="teacher-student-copy min-w-0">
                             <div class="truncate font-semibold text-arcade-ink">${escapeHtml(displayName)}</div>
                             <div class="truncate text-xs text-arcade-ink/55">@${escapeHtml(student.username || '')}</div>
                             <div class="truncate text-xs text-arcade-ink/55">${escapeHtml(student.email || '')}</div>

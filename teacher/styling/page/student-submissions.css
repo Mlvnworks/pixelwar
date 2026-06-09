@@ -190,3 +190,47 @@ body.pixelwar-dark-mode .analytics-chart-summary__copy {
         height: 12rem;
     }
 }
+
+@media (max-width: 640px) {
+    .teacher-student-submissions-page {
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+    }
+
+    .teacher-student-submissions-page > .container {
+        width: min(100vw, 100%) !important;
+        max-width: 100vw !important;
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+    }
+
+    .teacher-student-submissions-page .student-submissions-hero-card,
+    .teacher-student-submissions-page .student-submissions-content-card {
+        width: min(95vw, 34rem) !important;
+        max-width: min(95vw, 34rem) !important;
+        margin-left: auto !important;
+        margin-right: auto !important;
+    }
+
+    .teacher-student-submissions-page .student-submissions-content-card {
+        padding: 1rem !important;
+    }
+
+    .teacher-student-submissions-page .student-submissions-chart-card,
+    .teacher-student-submissions-page .analytics-chart-shell {
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+
+    .teacher-student-submissions-page .analytics-range-row,
+    .teacher-student-submissions-page .student-submissions-content-card .flex.flex-wrap {
+        justify-content: center;
+    }
+
+    .teacher-student-submissions-page .analytics-range-chip,
+    .teacher-student-submissions-page .analytics-filter {
+        flex: 1 1 calc(50% - 0.5rem);
+        max-width: 100%;
+        text-align: center;
+    }
+}

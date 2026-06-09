@@ -1,0 +1,176 @@
+.admin-rank-card-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1rem;
+    align-items: stretch;
+}
+
+.admin-rank-card {
+    min-width: 0;
+}
+
+.admin-rank-card > div:nth-child(2) {
+    align-items: flex-start;
+}
+
+.admin-rank-card .flex.min-w-0 {
+    flex: 1 1 auto;
+    min-width: min(100%, 15rem);
+}
+
+.admin-rank-card p.truncate {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+    line-height: 1.15;
+}
+
+.admin-rank-card > div:nth-child(2) > div:last-child {
+    flex: 0 0 auto;
+}
+
+.admin-rank-card .teacher-pill,
+.admin-rank-card strong {
+    white-space: nowrap;
+}
+
+.admin-rank-card .rounded-2xl {
+    min-width: 0;
+}
+
+@media (min-width: 1600px) {
+    .admin-rank-card-grid {
+        grid-template-columns: repeat(2, minmax(36rem, 1fr));
+    }
+}
+
+@media (max-width: 640px) {
+    .admin-rank-card-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .admin-rank-card {
+        padding: 0.9rem !important;
+    }
+
+    .admin-rank-card > div:nth-child(2) {
+        gap: 0.9rem;
+    }
+
+    .admin-rank-card > div:nth-child(2) > div:last-child {
+        width: 100%;
+        justify-content: flex-end;
+    }
+
+    .admin-rank-card .h-16.w-16 {
+        width: 3.4rem !important;
+        height: 3.4rem !important;
+        border-radius: 1rem !important;
+    }
+}
+
+.admin-rank-card {
+    display: grid;
+    gap: 1.25rem;
+    min-height: 11.5rem;
+    padding: 1.35rem !important;
+}
+
+.admin-rank-card > div:nth-child(2) {
+    min-height: 4.75rem;
+}
+
+.admin-rank-card > .mt-5 {
+    margin-top: 0 !important;
+    padding: 1.15rem !important;
+}
+
+.admin-rank-card .h-16.w-16 {
+    width: 4.5rem !important;
+    height: 4.5rem !important;
+}
+
+.admin-rank-card p.truncate {
+    font-size: clamp(1.25rem, 2vw, 1.65rem) !important;
+}
+
+.admin-rank-card .text-2xl.font-black,
+.admin-rank-card strong.text-2xl {
+    font-size: clamp(1.6rem, 2.4vw, 2.15rem) !important;
+}
+
+@media (max-width: 640px) {
+    .admin-rank-card {
+        min-height: 10.25rem;
+        padding: 1rem !important;
+    }
+
+    .admin-rank-card > .mt-5 {
+        padding: 0.95rem !important;
+    }
+}
+
+@media (max-width: 640px) {
+    .admin-rank-card-grid {
+        justify-items: center;
+        width: 100%;
+        max-width: 100%;
+    }
+
+    .admin-rank-card {
+        width: min(90vw, 100%);
+        max-width: min(90vw, 100%);
+        margin-inline: auto;
+    }
+}
+
+@media (max-width: 640px) {
+    .admin-rank-card {
+        padding-inline: 0.75rem !important;
+    }
+
+    .admin-rank-card > div:nth-child(2) {
+        gap: 0.65rem !important;
+    }
+
+    .admin-rank-card .flex.min-w-0 {
+        gap: 0.65rem !important;
+    }
+
+    .admin-rank-card > .mt-5 {
+        padding-inline: 0.75rem !important;
+    }
+}
+
+@media (max-width: 640px) {
+    .admin-rank-card {
+        padding-inline: 0.5rem !important;
+    }
+
+    .admin-rank-card > div:nth-child(2),
+    .admin-rank-card .flex.min-w-0 {
+        gap: 0.45rem !important;
+    }
+
+    .admin-rank-card > .mt-5 {
+        padding-inline: 0.55rem !important;
+    }
+}
+
+@media (max-width: 640px) {
+    .admin-rank-card-grid {
+        display: block !important;
+        width: 100% !important;
+    }
+
+    .admin-rank-card {
+        width: 90vw !important;
+        max-width: 90vw !important;
+        margin-left: 50% !important;
+        transform: translateX(-50%);
+    }
+
+    .admin-rank-card + .admin-rank-card {
+        margin-top: 1rem;
+    }
+}

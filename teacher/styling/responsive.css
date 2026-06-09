@@ -1,0 +1,359 @@
+@import url("../../styling/responsive.css");
+
+@media (max-width: 768px) {
+    .create-challenge-shell > .container,
+    .teacher-shell > .container {
+        width: calc(100vw - 1rem) !important;
+        max-width: calc(100vw - 1rem) !important;
+    }
+
+    .create-editor-wrap,
+    .create-preview-frame,
+    .student-view-chart-shell,
+    .analytics-chart-shell {
+        max-width: 100%;
+        overflow-x: auto;
+    }
+}
+
+.teacher-mobile-topbar,
+.teacher-sidebar-backdrop,
+.teacher-sidebar-close {
+    display: none;
+}
+
+@media (max-width: 1024px) {
+    body.teacher-sidebar-open {
+        overflow: hidden;
+    }
+
+    .teacher-mobile-topbar {
+        position: sticky;
+        top: 0;
+        z-index: 1040;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem;
+        width: 100%;
+        min-height: 4.25rem;
+        border-bottom: 2px solid rgba(38, 25, 15, 0.14);
+        background: rgba(255, 253, 246, 0.94);
+        padding: 0.75rem max(0.85rem, env(safe-area-inset-left)) 0.75rem max(0.85rem, env(safe-area-inset-right));
+        backdrop-filter: blur(12px) saturate(1.1);
+    }
+
+    .teacher-mobile-menu-button,
+    .teacher-mobile-brand,
+    .teacher-sidebar-close {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.55rem;
+        min-height: 2.6rem;
+        border: 2px solid #26190f;
+        border-radius: 0.9rem;
+        background: #fff7e8;
+        color: #26190f;
+        padding: 0.65rem 0.85rem;
+        font-size: 0.9rem;
+        font-weight: 900;
+        text-decoration: none;
+        box-shadow: 0 3px 0 rgba(38, 25, 15, 0.22);
+    }
+
+    .teacher-mobile-menu-button:hover,
+    .teacher-mobile-brand:hover,
+    .teacher-sidebar-close:hover {
+        background: #ffd166;
+        color: #26190f;
+    }
+
+    .teacher-mobile-brand {
+        min-width: 0;
+        justify-content: flex-end;
+        border-color: transparent;
+        background: transparent;
+        padding-inline: 0;
+        box-shadow: none;
+    }
+
+    .teacher-mobile-brand img {
+        width: 2rem;
+        height: 2rem;
+        flex: 0 0 auto;
+    }
+
+    .teacher-mobile-brand span {
+        max-width: 48vw;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .teacher-sidebar-backdrop {
+        position: fixed;
+        inset: 0;
+        z-index: 1045;
+        display: block;
+        background: rgba(15, 23, 42, 0.42);
+        backdrop-filter: blur(3px);
+    }
+
+    .teacher-sidebar-backdrop[hidden] {
+        display: none !important;
+    }
+
+    .teacher-sidebar-close {
+        position: absolute;
+        right: 0.85rem;
+        top: 0.85rem;
+        width: 2.65rem;
+        padding: 0;
+    }
+
+    .teacher-sidebar[data-teacher-sidebar] {
+        position: fixed !important;
+        inset: 0 auto 0 0 !important;
+        z-index: 1050;
+        display: flex !important;
+        width: min(21rem, calc(100vw - 2.25rem)) !important;
+        max-width: calc(100vw - 2.25rem) !important;
+        max-height: 100dvh !important;
+        min-height: 100dvh !important;
+        overflow-y: auto !important;
+        overscroll-behavior: contain;
+        border-right: 4px solid #26190f !important;
+        border-bottom: 0 !important;
+        background: #fffdf6 !important;
+        padding: 1rem !important;
+        padding-top: max(1rem, env(safe-area-inset-top)) !important;
+        transform: translateX(calc(-100% - 1rem));
+        transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
+        box-shadow: 18px 0 45px rgba(15, 23, 42, 0.2) !important;
+    }
+
+    .teacher-sidebar[data-teacher-sidebar].is-open {
+        transform: translateX(0);
+    }
+
+    .teacher-sidebar[data-teacher-sidebar] .teacher-sidebar__brand {
+        position: relative;
+        padding-right: 3.25rem;
+    }
+
+    .teacher-sidebar[data-teacher-sidebar] .teacher-nav {
+        display: grid !important;
+        grid-template-columns: 1fr !important;
+        gap: 0.35rem !important;
+    }
+
+    .teacher-sidebar[data-teacher-sidebar] .teacher-nav__link {
+        min-height: 2.85rem;
+        border: 2px solid rgba(38, 25, 15, 0.14) !important;
+        border-radius: 0.9rem !important;
+        padding: 0.72rem 0.85rem !important;
+    }
+
+    .teacher-sidebar[data-teacher-sidebar] .teacher-sidebar__controls {
+        margin-top: auto !important;
+    }
+
+    .teacher-topbar {
+        margin-top: 0 !important;
+    }
+
+    body.pixelwar-dark-mode .teacher-mobile-topbar,
+    body.pixelwar-dark-mode .teacher-sidebar[data-teacher-sidebar] {
+        border-color: rgba(255, 247, 232, 0.28) !important;
+        background: #1f160f !important;
+        color: #fff7e8 !important;
+    }
+
+    body.pixelwar-dark-mode .teacher-mobile-menu-button,
+    body.pixelwar-dark-mode .teacher-sidebar-close {
+        border-color: rgba(255, 247, 232, 0.28);
+        background: #2a1d13;
+        color: #fff7e8;
+    }
+
+    body.pixelwar-dark-mode .teacher-mobile-brand {
+        color: #fff7e8;
+    }
+}
+
+@media (max-width: 640px) {
+    .teacher-mobile-topbar {
+        min-height: 3.85rem;
+        padding-block: 0.55rem;
+    }
+
+    .teacher-mobile-menu-button span {
+        display: none;
+    }
+
+    .teacher-mobile-menu-button {
+        width: 2.75rem;
+        padding-inline: 0;
+    }
+
+    .teacher-sidebar[data-teacher-sidebar] {
+        width: min(20rem, calc(100vw - 1.25rem)) !important;
+        max-width: calc(100vw - 1.25rem) !important;
+    }
+}
+
+/* Center teacher content and prevent right-side overflow after mobile drawer conversion. */
+.teacher-shell,
+.teacher-footer {
+    min-width: 0;
+    max-width: 100%;
+}
+
+.teacher-shell > .container,
+.teacher-footer > .container {
+    width: min(100% - 2rem, 1180px) !important;
+    max-width: min(100% - 2rem, 1180px) !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+}
+
+.teacher-shell :where(.teacher-topbar, .teacher-hero, .teacher-panel, .teacher-page-card, .teacher-stat-card, .teacher-list-card, .teacher-activity-card, .teacher-log-card, .teacher-student-card, .teacher-challenge-card, .teacher-settings-card) {
+    max-width: 100% !important;
+    min-width: 0;
+}
+
+.teacher-shell :where(.grid, .flex) {
+    min-width: 0;
+}
+
+.teacher-shell :where(.overflow-auto, .overflow-x-auto, [class*="overflow-x-auto"], [class*="overflow-x-scroll"]) {
+    max-width: 100%;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+}
+
+@media (max-width: 1024px) {
+    .teacher-shell,
+    .teacher-footer {
+        width: 100% !important;
+        max-width: 100vw !important;
+        margin-left: 0 !important;
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+        overflow-x: hidden !important;
+    }
+
+    .teacher-shell > .container,
+    .teacher-footer > .container {
+        width: calc(100vw - 1rem) !important;
+        max-width: calc(100vw - 1rem) !important;
+        margin-left: auto !important;
+        margin-right: auto !important;
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+    }
+}
+
+@media (max-width: 640px) {
+    .teacher-shell,
+    .teacher-footer {
+        padding-inline: 0 !important;
+    }
+
+    .teacher-shell > .container,
+    .teacher-footer > .container {
+        width: calc(100vw - 0.75rem) !important;
+        max-width: calc(100vw - 0.75rem) !important;
+    }
+
+    .teacher-shell :where(.teacher-topbar, .teacher-hero, .teacher-panel, .teacher-page-card, .teacher-stat-card, .teacher-list-card, .teacher-activity-card, .teacher-log-card, .teacher-student-card, .teacher-challenge-card, .teacher-settings-card) {
+        margin-left: auto !important;
+        margin-right: auto !important;
+    }
+}
+
+/* Teacher students page: keep cards and rows readable across tablet/mobile. */
+.teacher-students-page .teacher-students-summary-grid {
+    width: min(100%, 42rem);
+    margin-left: auto;
+}
+
+.teacher-students-page .teacher-students-summary-card {
+    width: 100%;
+    min-width: 0;
+}
+
+.teacher-students-page .teacher-students-table-shell,
+.teacher-students-page .teacher-students-table-wrap {
+    width: 100%;
+    max-width: 100%;
+}
+
+.teacher-students-page .teacher-students-table {
+    table-layout: fixed;
+    min-width: 54rem;
+}
+
+.teacher-students-page .teacher-students-table th:nth-child(1),
+.teacher-students-page .teacher-students-table td:nth-child(1) {
+    width: 38%;
+}
+
+.teacher-students-page .teacher-students-table th:nth-child(2),
+.teacher-students-page .teacher-students-table td:nth-child(2) {
+    width: 34%;
+}
+
+.teacher-students-page .teacher-students-table th:nth-child(3),
+.teacher-students-page .teacher-students-table td:nth-child(3) {
+    width: 14%;
+}
+
+.teacher-students-page .teacher-students-table th:nth-child(4),
+.teacher-students-page .teacher-students-table td:nth-child(4) {
+    width: 14%;
+}
+
+.teacher-students-page .teacher-student-copy {
+    max-width: 100%;
+}
+
+@media (max-width: 1024px) {
+    .teacher-students-page .teacher-students-summary-grid {
+        width: min(100%, 36rem);
+        margin-left: 0;
+        margin-right: auto;
+    }
+}
+
+@media (max-width: 640px) {
+    .teacher-students-page .teacher-students-summary-grid {
+        display: block !important;
+        width: min(90vw, 26rem) !important;
+        margin-left: auto !important;
+        margin-right: auto !important;
+    }
+
+    .teacher-students-page .teacher-students-summary-card {
+        margin-bottom: 0.75rem;
+        text-align: center;
+    }
+
+    .teacher-students-page .teacher-students-list-panel {
+        width: min(95vw, 34rem) !important;
+        padding: 1rem !important;
+    }
+
+    .teacher-students-page .teacher-students-table {
+        min-width: 48rem;
+    }
+
+    .teacher-students-page .teacher-students-table th,
+    .teacher-students-page .teacher-students-table td {
+        padding-left: 0.75rem !important;
+        padding-right: 0.75rem !important;
+    }
+}

@@ -100,14 +100,60 @@ class UserRepository
             return;
         }
 
+        $seasonId = $this->currentActiveSeasonId();
+        if ($seasonId === null) {
+            $statement = $this->connection->prepare(
+                'UPDATE player_progress
+                 SET points = points + ?
+                 WHERE user_id = ?
+                    AND season_id IS NULL
+                 LIMIT 1'
+            );
+            $statement->bind_param('ii', $points, $userId);
+            $statement->execute();
+            $updated = $statement->affected_rows > 0;
+            $statement->close();
+
+            if ($updated) {
+                return;
+            }
+
+            $statement = $this->connection->prepare(
+                'INSERT INTO player_progress (user_id, season_id, points)
+                 VALUES (?, NULL, ?)'
+            );
+            $statement->bind_param('ii', $userId, $points);
+            $statement->execute();
+            $statement->close();
+            return;
+        }
+
         $statement = $this->connection->prepare(
-            'INSERT INTO player_progress (user_id, points)
-             VALUES (?, ?)
+            'INSERT INTO player_progress (user_id, season_id, points)
+             VALUES (?, ?, ?)
              ON DUPLICATE KEY UPDATE points = points + VALUES(points)'
         );
-        $statement->bind_param('ii', $userId, $points);
+        $statement->bind_param('iii', $userId, $seasonId, $points);
         $statement->execute();
         $statement->close();
+    }
+
+    private function currentActiveSeasonId(): ?int
+    {
+        $statement = $this->connection->prepare(
+            'SELECT season_id
+             FROM seasons
+             WHERE start_date <= CURRENT_TIMESTAMP
+                AND end_date >= CURRENT_TIMESTAMP
+             ORDER BY start_date DESC, season_id DESC
+             LIMIT 1'
+        );
+        $statement->execute();
+        $row = $statement->get_result()->fetch_assoc();
+        $statement->close();
+
+        $seasonId = (int) ($row['season_id'] ?? 0);
+        return $seasonId > 0 ? $seasonId : null;
     }
 
     /**
@@ -138,6 +184,47 @@ class UserRepository
              LIMIT ?'
         );
         $statement->bind_param('i', $limit);
+        $statement->execute();
+        $players = $statement->get_result()->fetch_all(MYSQLI_ASSOC);
+        $statement->close();
+
+        return $players;
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    public function listLeaderboardPlayersForSeason(int $seasonId, int $limit = 100): array
+    {
+        if ($seasonId <= 0) {
+            return [];
+        }
+
+        $limit = max(1, min(500, $limit));
+        $statement = $this->connection->prepare(
+            'SELECT
+                users.user_id,
+                users.username,
+                images.source AS avatar_url,
+                COALESCE(player_points.points, 0) AS points
+             FROM users
+             INNER JOIN (
+                SELECT user_id, SUM(points) AS points
+                FROM player_progress
+                WHERE season_id = ?
+                    OR (season_id IS NULL AND ? = (SELECT season_id FROM seasons ORDER BY start_date ASC, season_id ASC LIMIT 1))
+                GROUP BY user_id
+             ) AS player_points ON player_points.user_id = users.user_id
+             LEFT JOIN user_details ON user_details.user_id = users.user_id
+             LEFT JOIN images ON images.img_id = user_details.image_id
+             WHERE users.role_id = 3
+                AND users.is_verified = 1
+                AND users.is_active = 1
+                AND users.date_deleted IS NULL
+             ORDER BY COALESCE(player_points.points, 0) DESC, users.username ASC
+             LIMIT ?'
+        );
+        $statement->bind_param('iii', $seasonId, $seasonId, $limit);
         $statement->execute();
         $players = $statement->get_result()->fetch_all(MYSQLI_ASSOC);
         $statement->close();
@@ -184,9 +271,25 @@ class UserRepository
     public function findLoginUser(string $identity): ?array
     {
         $statement = $this->connection->prepare(
-            'SELECT user_id, role_id, username, email, password, is_verified, is_active FROM users WHERE date_deleted IS NULL AND (username = ? OR email = ?) LIMIT 1'
+            'SELECT user_id, role_id, username, email, password, acc_type, is_verified, is_active FROM users WHERE date_deleted IS NULL AND (username = ? OR email = ?) LIMIT 1'
         );
         $statement->bind_param('ss', $identity, $identity);
+        $statement->execute();
+        $user = $statement->get_result()->fetch_assoc();
+        $statement->close();
+
+        return $user ?: null;
+    }
+
+    public function findUserByEmail(string $email): ?array
+    {
+        $statement = $this->connection->prepare(
+            'SELECT user_id, role_id, username, email, password, acc_type, is_verified, is_active
+             FROM users
+             WHERE date_deleted IS NULL AND LOWER(TRIM(email)) = LOWER(TRIM(?))
+             LIMIT 1'
+        );
+        $statement->bind_param('s', $email);
         $statement->execute();
         $user = $statement->get_result()->fetch_assoc();
         $statement->close();
@@ -217,7 +320,7 @@ class UserRepository
     public function findUserByIdentity(string $identity): ?array
     {
         $statement = $this->connection->prepare(
-            'SELECT user_id, role_id, username, email, password, is_verified, is_active
+            'SELECT user_id, role_id, username, email, password, acc_type, is_verified, is_active
              FROM users
              WHERE date_deleted IS NULL
                 AND (
@@ -237,7 +340,7 @@ class UserRepository
     public function findAuthUserById(int $userId): ?array
     {
         $statement = $this->connection->prepare(
-            'SELECT user_id, role_id, username, email, password, is_verified, is_active
+            'SELECT user_id, role_id, username, email, password, acc_type, is_verified, is_active
              FROM users
              WHERE user_id = ? AND date_deleted IS NULL
              LIMIT 1'
@@ -623,6 +726,7 @@ class UserRepository
                     users.email,
                     users.is_verified,
                     users.is_active,
+                    users.last_seen_at,
                     users.registration_date,
                     user_details.ud_id AS user_details_id,
                     user_details.firstname,
@@ -1050,6 +1154,24 @@ class UserRepository
         return $userId;
     }
 
+    public function createGoogleStudent(string $username, string $email): int
+    {
+        $roleId = 3;
+        $isVerified = 1;
+        $isActive = 0;
+        $password = '';
+        $accountType = 'google';
+        $statement = $this->connection->prepare(
+            'INSERT INTO users (role_id, username, email, password, acc_type, is_verified, is_active) VALUES (?, ?, ?, ?, ?, ?, ?)'
+        );
+        $statement->bind_param('issssii', $roleId, $username, $email, $password, $accountType, $isVerified, $isActive);
+        $statement->execute();
+        $userId = (int) $statement->insert_id;
+        $statement->close();
+
+        return $userId;
+    }
+
     public function createTeacher(string $username, string $email, string $passwordHash): int
     {
         $roleId = 2;
@@ -1155,6 +1277,18 @@ class UserRepository
         $statement->execute();
         $statement->close();
 
+        $statement = $this->connection->prepare(
+            'UPDATE user_details
+             SET firstname = ?, lastname = ?
+             WHERE user_id = ?'
+        );
+        $statement->bind_param('ssi', $firstname, $lastname, $userId);
+        $statement->execute();
+        $statement->close();
+    }
+
+    public function updateUserNameDetails(int $userId, string $firstname, string $lastname): void
+    {
         $statement = $this->connection->prepare(
             'UPDATE user_details
              SET firstname = ?, lastname = ?

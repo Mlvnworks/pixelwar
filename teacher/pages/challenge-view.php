@@ -7,12 +7,40 @@ $challenge = $challengeRepository instanceof ChallengeRepository
 $solvedPlayerCount = $userChallengeRepository instanceof UserChallengeRepository
     ? $userChallengeRepository->countCompletedByChallenge($challengeId)
     : 0;
+$challengeComments = [];
 
-$dummyComments = [
-    ['name' => 'Mika Reyes', 'body' => 'Clear target design. Students should focus on spacing and border weight first.', 'time' => 'Today, 10:24 AM'],
-    ['name' => 'Jon Cruz', 'body' => 'Good practice challenge for selector accuracy and visual matching.', 'time' => 'Yesterday, 4:18 PM'],
-    ['name' => 'Ari Santos', 'body' => 'The button shadow makes this one easier to explain during review.', 'time' => 'Apr 18, 2026'],
-];
+if ($challenge !== null && isset($connection) && $connection instanceof mysqli) {
+    $commentStatement = $connection->prepare(
+        'SELECT
+            comments.comment_id,
+            comments.comment,
+            comments.date_created,
+            users.username,
+            user_details.firstname,
+            user_details.lastname
+         FROM comments
+         INNER JOIN users ON users.user_id = comments.user_id
+         LEFT JOIN user_details ON user_details.user_id = users.user_id
+         WHERE comments.challenge_id = ?
+         ORDER BY comments.date_created DESC, comments.comment_id DESC'
+    );
+    $commentStatement->bind_param('i', $challengeId);
+    $commentStatement->execute();
+    $commentRows = $commentStatement->get_result()->fetch_all(MYSQLI_ASSOC);
+    $commentStatement->close();
+
+    foreach ($commentRows as $commentRow) {
+        $commentFirstname = trim((string) ($commentRow['firstname'] ?? ''));
+        $commentLastname = trim((string) ($commentRow['lastname'] ?? ''));
+        $commentFullName = trim($commentFirstname . ' ' . $commentLastname);
+        $commentTimestamp = strtotime((string) ($commentRow['date_created'] ?? ''));
+        $challengeComments[] = [
+            'name' => $commentFullName !== '' ? $commentFullName : (string) ($commentRow['username'] ?? 'Player'),
+            'body' => (string) ($commentRow['comment'] ?? ''),
+            'time' => $commentTimestamp > 0 ? date('M j, Y g:i A', $commentTimestamp) : 'Recently',
+        ];
+    }
+}
 ?>
 
 <main class="teacher-shell relative overflow-hidden px-4 py-6 text-arcade-ink md:py-8">
@@ -141,13 +169,18 @@ $dummyComments = [
                     <article class="teacher-panel rounded-[26px] border-4 border-arcade-ink bg-arcade-panel p-4 shadow-[7px_7px_0_#26190f] md:p-5">
                         <div class="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
                             <div>
-                                <p class="font-arcade text-[10px] uppercase tracking-[0.22em] text-arcade-cyan">Dummy Only</p>
+                                <p class="font-arcade text-[10px] uppercase tracking-[0.22em] text-arcade-cyan">Player Notes</p>
                                 <h2 class="mt-2 text-2xl font-black">Comments</h2>
                             </div>
-                            <span class="teacher-pill bg-arcade-yellow"><?= count($dummyComments) ?> comments</span>
+                            <span class="teacher-pill bg-arcade-yellow"><?= count($challengeComments) ?> comments</span>
                         </div>
                         <div class="mt-4 grid gap-3">
-                            <?php foreach ($dummyComments as $comment) : ?>
+                            <?php if ($challengeComments === []) : ?>
+                                <article class="rounded-2xl border-2 border-dashed border-arcade-ink/12 bg-white/80 p-4">
+                                    <p class="text-sm font-bold leading-6 text-arcade-ink/58">No player comments have been posted for this challenge yet.</p>
+                                </article>
+                            <?php else : ?>
+                                <?php foreach ($challengeComments as $comment) : ?>
                                 <article class="rounded-2xl border-2 border-arcade-ink/12 bg-white p-4">
                                     <div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                                         <div>
@@ -157,7 +190,8 @@ $dummyComments = [
                                         <p class="text-xs font-black uppercase tracking-[0.12em] text-arcade-orange"><?= htmlspecialchars($comment['time'], ENT_QUOTES, 'UTF-8') ?></p>
                                     </div>
                                 </article>
-                            <?php endforeach; ?>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
                         </div>
                     </article>
             </section>
@@ -214,6 +248,47 @@ window.addEventListener('load', () => {
         return;
     }
 
+    const disablePreviewLinks = (frame) => {
+        if (!(frame instanceof HTMLIFrameElement)) {
+            return;
+        }
+
+        const doc = frame.contentDocument;
+        if (!doc) {
+            return;
+        }
+
+        if (!doc.getElementById('pixelwar-preview-link-guard')) {
+            const style = doc.createElement('style');
+            style.id = 'pixelwar-preview-link-guard';
+            style.textContent = 'a, area { cursor: default !important; }';
+            doc.head?.appendChild(style);
+        }
+
+        doc.querySelectorAll('a, area').forEach((link) => {
+            link.setAttribute('tabindex', '-1');
+            link.setAttribute('aria-disabled', 'true');
+        });
+
+        if (doc.defaultView?.pixelwarPreviewLinksBlocked) {
+            return;
+        }
+
+        doc.defaultView.pixelwarPreviewLinksBlocked = true;
+        doc.addEventListener('click', (event) => {
+            if (event.target?.closest?.('a, area')) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+        }, true);
+        doc.addEventListener('keydown', (event) => {
+            if ((event.key === 'Enter' || event.key === ' ') && event.target?.closest?.('a, area')) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+        }, true);
+    };
+
     const fitPreviewFrame = (frame) => {
         if (!(frame instanceof HTMLIFrameElement)) {
             return;
@@ -261,7 +336,10 @@ window.addEventListener('load', () => {
         frame.style.transformOrigin = 'top left';
     };
 
-    preview.addEventListener('load', () => fitPreviewFrame(preview), { once: false });
+    preview.addEventListener('load', () => {
+        disablePreviewLinks(preview);
+        fitPreviewFrame(preview);
+    }, { once: false });
 
     const buildPreviewDocument = (html, css) => `<!doctype html>
 <html lang="en">
@@ -272,6 +350,7 @@ window.addEventListener('load', () => {
 * { box-sizing: border-box; }
 html, body { margin: 0; min-height: 100%; }
 body { display: grid; min-height: 100vh; place-items: center; background: #fff7e8; font-family: Arial, sans-serif; padding: 24px; }
+a, area { cursor: default !important; }
 ${css}
 </style>
 </head>

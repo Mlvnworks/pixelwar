@@ -1,6 +1,6 @@
 <?php
 $currentPage = $requestedPage !== '' ? $requestedPage : 'landing';
-$publicPages = ['landing', 'login', 'signup', 'forgot-password', 'update-pass'];
+$publicPages = ['landing', 'login', 'signup', 'forgot-password', 'update-pass', 'google-auth'];
 $guestOnlyPages = ['login', 'signup', 'forgot-password'];
 $onboardingPages = ['email-verification', 'profile-setup'];
 $reviewPage = 'review-pending';

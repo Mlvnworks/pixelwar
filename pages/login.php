@@ -70,8 +70,8 @@ unset($_SESSION['login_errors'], $_SESSION['login_notices'], $_SESSION['login_ol
                 <span class="h-px flex-1 bg-arcade-ink/15"></span>
             </div>
 
-            <button type="button"
-                class="login-google-button flex w-full items-center justify-center gap-3 rounded-xl border-2 border-arcade-ink/15 bg-white px-6 py-2 text-sm font-bold text-arcade-ink transition hover:-translate-y-0.5 hover:border-arcade-ink/30 hover:bg-arcade-peach/40">
+            <a href="./?c=google-auth"
+                class="login-google-button flex w-full items-center justify-center gap-3 rounded-xl border-2 border-arcade-ink/15 bg-white px-6 py-2 text-sm font-bold text-arcade-ink no-underline transition hover:-translate-y-0.5 hover:border-arcade-ink/30 hover:bg-arcade-peach/40">
                 <span class="grid h-6 w-6 place-items-center rounded-full border border-arcade-ink/10 bg-white"
                     aria-hidden="true">
                     <svg class="h-4 w-4" viewBox="0 0 24 24" role="img" focusable="false">
@@ -86,7 +86,7 @@ unset($_SESSION['login_errors'], $_SESSION['login_notices'], $_SESSION['login_ol
                     </svg>
                 </span>
                 Continue with Google
-            </button>
+            </a>
 
             <p class="mt-3 text-center text-sm text-arcade-ink/68">
                 New player?

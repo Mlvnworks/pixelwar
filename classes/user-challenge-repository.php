@@ -9,7 +9,7 @@ final class UserChallengeRepository
     public function findOngoing(int $userId, int $challengeId, int $roomId = 0, int $pvpId = 0): ?array
     {
         $statement = $this->connection->prepare(
-            'SELECT user_challenge.uc_id, user_challenge.challenge_id, user_challenge.user_id, user_challenge.room_id, user_challenge.pvp_id, user_challenge.started_at, user_challenge.completed_at
+            'SELECT user_challenge.uc_id, user_challenge.challenge_id, user_challenge.user_id, user_challenge.room_id, user_challenge.pvp_id, user_challenge.season_id, user_challenge.started_at, user_challenge.completed_at
              FROM user_challenge
              LEFT JOIN rooms ON rooms.room_id = user_challenge.room_id
              WHERE user_challenge.user_id = ?
@@ -103,8 +103,10 @@ final class UserChallengeRepository
     public function startOrFindOngoing(int $userId, int $challengeId, int $roomId = 0, int $pvpId = 0): array
     {
         $ongoing = $this->findOngoing($userId, $challengeId, $roomId, $pvpId);
+        $seasonId = $this->currentActiveSeasonId();
 
         if ($ongoing !== null) {
+            $ongoingId = (int) ($ongoing['uc_id'] ?? 0);
             if ($roomId > 0 && (int) ($ongoing['room_id'] ?? 0) <= 0) {
                 $statement = $this->connection->prepare(
                     'UPDATE user_challenge
@@ -113,7 +115,6 @@ final class UserChallengeRepository
                         AND room_id IS NULL
                      LIMIT 1'
                 );
-                $ongoingId = (int) ($ongoing['uc_id'] ?? 0);
                 $statement->bind_param('ii', $roomId, $ongoingId);
                 $statement->execute();
                 $statement->close();
@@ -128,11 +129,15 @@ final class UserChallengeRepository
                         AND pvp_id IS NULL
                      LIMIT 1'
                 );
-                $ongoingId = (int) ($ongoing['uc_id'] ?? 0);
                 $statement->bind_param('ii', $pvpId, $ongoingId);
                 $statement->execute();
                 $statement->close();
                 $ongoing['pvp_id'] = $pvpId;
+            }
+
+            if ($ongoingId > 0 && (int) ($ongoing['season_id'] ?? 0) <= 0 && $seasonId !== null) {
+                $this->assignSeason($ongoingId, $seasonId);
+                $ongoing['season_id'] = $seasonId;
             }
 
             $ongoing['was_created'] = false;
@@ -141,19 +146,19 @@ final class UserChallengeRepository
 
         if ($roomId > 0) {
             $statement = $this->connection->prepare(
-                'INSERT INTO user_challenge (challenge_id, user_id, room_id, pvp_id) VALUES (?, ?, ?, NULL)'
+                'INSERT INTO user_challenge (challenge_id, user_id, room_id, pvp_id, season_id) VALUES (?, ?, ?, NULL, ?)'
             );
-            $statement->bind_param('iii', $challengeId, $userId, $roomId);
+            $statement->bind_param('iiii', $challengeId, $userId, $roomId, $seasonId);
         } elseif ($pvpId > 0) {
             $statement = $this->connection->prepare(
-                'INSERT INTO user_challenge (challenge_id, user_id, room_id, pvp_id) VALUES (?, ?, NULL, ?)'
+                'INSERT INTO user_challenge (challenge_id, user_id, room_id, pvp_id, season_id) VALUES (?, ?, NULL, ?, ?)'
             );
-            $statement->bind_param('iii', $challengeId, $userId, $pvpId);
+            $statement->bind_param('iiii', $challengeId, $userId, $pvpId, $seasonId);
         } else {
             $statement = $this->connection->prepare(
-                'INSERT INTO user_challenge (challenge_id, user_id, room_id, pvp_id) VALUES (?, ?, NULL, NULL)'
+                'INSERT INTO user_challenge (challenge_id, user_id, room_id, pvp_id, season_id) VALUES (?, ?, NULL, NULL, ?)'
             );
-            $statement->bind_param('ii', $challengeId, $userId);
+            $statement->bind_param('iii', $challengeId, $userId, $seasonId);
         }
         $statement->execute();
         $userChallengeId = (int) $statement->insert_id;
@@ -539,7 +544,7 @@ final class UserChallengeRepository
     public function findById(int $userChallengeId): ?array
     {
         $statement = $this->connection->prepare(
-            'SELECT uc_id, challenge_id, user_id, room_id, pvp_id, started_at, completed_at
+            'SELECT uc_id, challenge_id, user_id, room_id, pvp_id, season_id, started_at, completed_at
              FROM user_challenge
              WHERE uc_id = ?
              LIMIT 1'
@@ -559,7 +564,7 @@ final class UserChallengeRepository
         }
 
         $statement = $this->connection->prepare(
-            'SELECT uc_id, challenge_id, user_id, room_id, pvp_id, started_at, completed_at
+            'SELECT uc_id, challenge_id, user_id, room_id, pvp_id, season_id, started_at, completed_at
              FROM user_challenge
              WHERE uc_id = ?
                 AND user_id = ?
@@ -577,15 +582,17 @@ final class UserChallengeRepository
 
     public function markCompleted(int $userChallengeId, int $userId, int $challengeId): ?array
     {
+        $seasonId = $this->currentActiveSeasonId();
         $statement = $this->connection->prepare(
             'UPDATE user_challenge
-             SET completed_at = CURRENT_TIMESTAMP
+             SET completed_at = CURRENT_TIMESTAMP,
+                season_id = COALESCE(season_id, ?)
              WHERE uc_id = ?
                 AND user_id = ?
                 AND challenge_id = ?
                 AND completed_at IS NULL'
         );
-        $statement->bind_param('iii', $userChallengeId, $userId, $challengeId);
+        $statement->bind_param('iiii', $seasonId, $userChallengeId, $userId, $challengeId);
         $statement->execute();
         $updated = $statement->affected_rows > 0;
         $statement->close();
@@ -595,6 +602,60 @@ final class UserChallengeRepository
         }
 
         return $this->findById($userChallengeId);
+    }
+
+    public function assignActiveSeason(int $userChallengeId, int $userId): void
+    {
+        if ($userChallengeId <= 0 || $userId <= 0) {
+            return;
+        }
+
+        $seasonId = $this->currentActiveSeasonId();
+        if ($seasonId === null) {
+            return;
+        }
+
+        $statement = $this->connection->prepare(
+            'UPDATE user_challenge
+             SET season_id = COALESCE(season_id, ?)
+             WHERE uc_id = ?
+                AND user_id = ?
+             LIMIT 1'
+        );
+        $statement->bind_param('iii', $seasonId, $userChallengeId, $userId);
+        $statement->execute();
+        $statement->close();
+    }
+
+    private function assignSeason(int $userChallengeId, int $seasonId): void
+    {
+        $statement = $this->connection->prepare(
+            'UPDATE user_challenge
+             SET season_id = COALESCE(season_id, ?)
+             WHERE uc_id = ?
+             LIMIT 1'
+        );
+        $statement->bind_param('ii', $seasonId, $userChallengeId);
+        $statement->execute();
+        $statement->close();
+    }
+
+    private function currentActiveSeasonId(): ?int
+    {
+        $statement = $this->connection->prepare(
+            'SELECT season_id
+             FROM seasons
+             WHERE start_date <= CURRENT_TIMESTAMP
+                AND end_date >= CURRENT_TIMESTAMP
+             ORDER BY start_date DESC, season_id DESC
+             LIMIT 1'
+        );
+        $statement->execute();
+        $row = $statement->get_result()->fetch_assoc();
+        $statement->close();
+
+        $seasonId = (int) ($row['season_id'] ?? 0);
+        return $seasonId > 0 ? $seasonId : null;
     }
 
     public function countCompletedByChallenge(int $challengeId): int

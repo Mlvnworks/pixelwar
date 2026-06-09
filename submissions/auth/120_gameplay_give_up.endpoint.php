@@ -47,6 +47,7 @@ if ($requestMethod === 'POST' && $requestedPage === 'pixelwar' && (string) ($_PO
                 throw new RuntimeException('This room does not match the active challenge run.');
             }
 
+            $userChallengeRepository->assignActiveSeason($userChallengeId, $userId);
             $preservedRoomRun = $userChallengeRepository->hasOwnedOngoing($userChallengeId, $userId);
         } elseif ($isPvpRun) {
             if (!$pvpPlayerRepository instanceof PvpPlayerRepository) {
@@ -57,6 +58,7 @@ if ($requestMethod === 'POST' && $requestedPage === 'pixelwar' && (string) ($_PO
                 throw new RuntimeException('This 1v1 match does not match the active challenge run.');
             }
 
+            $userChallengeRepository->assignActiveSeason($userChallengeId, $userId);
             $pvpUsers = array_values(array_filter(
                 $pvpPlayerRepository->listUserIdsForMatch($pvpId),
                 static fn (int $matchUserId): bool => $matchUserId > 0

@@ -4,6 +4,7 @@ require_once __DIR__ . '/../classes/challenge-catalog.php';
 $challengeId = (int) ($_GET['id'] ?? 0);
 $challengeSlug = isset($_GET['slug']) ? trim((string) $_GET['slug']) : '';
 $currentStudentId = (int) ($_SESSION['user_id'] ?? 0);
+$challengeCommentsShouldOpen = isset($_GET['comments']);
 $dbChallenge = $challengeId > 0 && $challengeRepository instanceof ChallengeRepository
     ? $challengeRepository->findCreatedChallenge($challengeId)
     : null;
@@ -65,11 +66,42 @@ if ($isDatabaseChallenge) {
         'isCompleted' => isset($completedChallengeLookup[(int) $dbChallenge['challenge_id']]),
     ];
     $challengeStartUrl = './?c=pixelwar&intro=1&challenge_id=' . (int) $challenge['id'];
-    $comments = [
-        ['player' => 'PixelRookie', 'posted' => 'Today', 'body' => 'This challenge is ready for classroom play.'],
-        ['player' => 'CSSRunner', 'posted' => 'Yesterday', 'body' => 'Review the target preview before starting the match.'],
-        ['player' => 'SelectorMage', 'posted' => '2 days ago', 'body' => 'Good practice for reading the design before placing properties.'],
-    ];
+    $comments = [];
+
+    if (isset($connection) && $connection instanceof mysqli) {
+        $commentStatement = $connection->prepare(
+            'SELECT
+                comments.comment_id,
+                comments.comment,
+                comments.date_created,
+                users.username,
+                user_details.firstname,
+                user_details.lastname
+             FROM comments
+             INNER JOIN users ON users.user_id = comments.user_id
+             LEFT JOIN user_details ON user_details.user_id = users.user_id
+             WHERE comments.challenge_id = ?
+             ORDER BY comments.date_created DESC, comments.comment_id DESC'
+        );
+        $commentChallengeId = (int) $challenge['id'];
+        $commentStatement->bind_param('i', $commentChallengeId);
+        $commentStatement->execute();
+        $commentRows = $commentStatement->get_result()->fetch_all(MYSQLI_ASSOC);
+        $commentStatement->close();
+
+        foreach ($commentRows as $commentRow) {
+            $commentFirstname = trim((string) ($commentRow['firstname'] ?? ''));
+            $commentLastname = trim((string) ($commentRow['lastname'] ?? ''));
+            $commentFullName = trim($commentFirstname . ' ' . $commentLastname);
+            $commentTimestamp = strtotime((string) ($commentRow['date_created'] ?? ''));
+            $comments[] = [
+                'player' => $commentFullName !== '' ? $commentFullName : (string) ($commentRow['username'] ?? 'Player'),
+                'posted' => $commentTimestamp > 0 ? date('M j, Y g:i A', $commentTimestamp) : 'Recently',
+                'body' => (string) ($commentRow['comment'] ?? ''),
+            ];
+        }
+    }
+
     $moreChallengeRows = $challengeRepository instanceof ChallengeRepository
         ? array_filter($challengeRepository->listLatestPublicCreated(6), static fn (array $row): bool => (int) $row['challenge_id'] !== (int) $challenge['id'])
         : [];
@@ -270,24 +302,40 @@ HTML;
                     <span class="rounded-full bg-arcade-yellow px-3 py-1 text-xs font-bold text-arcade-ink"><?= count($comments) ?> posts</span>
                 </div>
 
-                <form class="mt-4 rounded-2xl border-2 border-arcade-ink/15 bg-arcade-cream/80 p-4">
-                    <label class="text-sm font-bold" for="challenge-comment">Post a comment</label>
-                    <textarea id="challenge-comment" class="mt-2 min-h-24 w-full rounded-xl bg-white px-3 py-2 text-sm outline-none transition focus:ring-4 focus:ring-arcade-orange/20" placeholder="Share a tip, question, or note about this challenge."></textarea>
-                    <button type="button" class="mt-3 rounded-xl border-2 border-arcade-ink bg-arcade-yellow px-4 py-2 text-sm font-bold text-arcade-ink shadow-[0_3px_0_#26190f] transition hover:-translate-y-0.5 hover:bg-arcade-orange hover:text-white">
-                        Post Comment
-                    </button>
-                </form>
+                <?php if ($isDatabaseChallenge && $currentStudentId > 0) : ?>
+                    <form class="mt-4 rounded-2xl border-2 border-arcade-ink/15 bg-arcade-cream/80 p-4" method="post" action="./?c=challenge&id=<?= (int) $challenge['id'] ?>&comments=1" data-comment-form>
+                        <?= pixelwarCsrfField() ?>
+                        <input type="hidden" name="comment_action" value="create">
+                        <input type="hidden" name="challenge_id" value="<?= (int) $challenge['id'] ?>">
+                        <label class="text-sm font-bold" for="challenge-comment">Post a comment</label>
+                        <textarea id="challenge-comment" name="comment" maxlength="1000" required class="mt-2 min-h-24 w-full rounded-xl bg-white px-3 py-2 text-sm outline-none transition focus:ring-4 focus:ring-arcade-orange/20" placeholder="Share a tip, question, or note about this challenge."></textarea>
+                        <button type="submit" class="mt-3 inline-flex items-center gap-2 rounded-xl border-2 border-arcade-ink bg-arcade-yellow px-4 py-2 text-sm font-bold text-arcade-ink shadow-[0_3px_0_#26190f] transition hover:-translate-y-0.5 hover:bg-arcade-orange hover:text-white disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:translate-y-0" data-comment-submit>
+                            <span class="comment-submit__spinner hidden h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" aria-hidden="true"></span>
+                            <span data-comment-submit-label>Post Comment</span>
+                        </button>
+                    </form>
+                <?php elseif ($isDatabaseChallenge) : ?>
+                    <div class="mt-4 rounded-2xl border-2 border-arcade-ink/15 bg-arcade-cream/80 p-4 text-sm font-bold leading-6 text-arcade-ink/65">
+                        Log in as a player to post a comment.
+                    </div>
+                <?php endif; ?>
 
                 <div class="mt-4 grid gap-3 md:grid-cols-2" data-comment-list>
-                    <?php foreach ($comments as $commentIndex => $comment) : ?>
-                        <article class="challenge-comment rounded-2xl border-2 border-arcade-ink/15 bg-arcade-panel p-4" data-comment-row data-comment-index="<?= (int) $commentIndex ?>">
-                            <div class="flex flex-wrap items-center justify-between gap-2">
-                                <p class="font-bold"><?= htmlspecialchars($comment['player'], ENT_QUOTES, 'UTF-8') ?></p>
-                                <p class="text-xs font-bold uppercase tracking-[0.16em] text-arcade-ink/50"><?= htmlspecialchars($comment['posted'], ENT_QUOTES, 'UTF-8') ?></p>
-                            </div>
-                            <p class="mt-2 text-sm leading-6 text-arcade-ink/70"><?= htmlspecialchars($comment['body'], ENT_QUOTES, 'UTF-8') ?></p>
+                    <?php if ($comments === []) : ?>
+                        <article class="rounded-2xl border-2 border-dashed border-arcade-ink/20 bg-arcade-panel/70 p-4 text-sm font-bold leading-6 text-arcade-ink/60" data-comment-row>
+                            No comments yet. Start the discussion for this challenge.
                         </article>
-                    <?php endforeach; ?>
+                    <?php else : ?>
+                        <?php foreach ($comments as $commentIndex => $comment) : ?>
+                            <article class="challenge-comment rounded-2xl border-2 border-arcade-ink/15 bg-arcade-panel p-4" data-comment-row data-comment-index="<?= (int) $commentIndex ?>">
+                                <div class="flex flex-wrap items-center justify-between gap-2">
+                                    <p class="font-bold"><?= htmlspecialchars($comment['player'], ENT_QUOTES, 'UTF-8') ?></p>
+                                    <p class="text-xs font-bold uppercase tracking-[0.16em] text-arcade-ink/50"><?= htmlspecialchars($comment['posted'], ENT_QUOTES, 'UTF-8') ?></p>
+                                </div>
+                                <p class="mt-2 text-sm leading-6 text-arcade-ink/70"><?= htmlspecialchars($comment['body'], ENT_QUOTES, 'UTF-8') ?></p>
+                            </article>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
                 </div>
 
                 <div class="mt-4 flex items-center justify-between gap-3">
@@ -307,7 +355,7 @@ HTML;
                 <a href="./?c=challenges" class="rounded-xl bg-white px-3 py-2 text-sm font-bold text-arcade-ink no-underline transition hover:bg-arcade-yellow/60">View All</a>
             </div>
 
-            <div class="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+            <div class="challenge-more-grid mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                 <?php foreach ($moreChallenges as $moreChallenge) : ?>
                     <article class="challenge-more-card rounded-[22px] border-2 border-arcade-ink/15 bg-arcade-panel p-4 shadow-[5px_5px_0_rgba(38,25,15,0.18)]">
                         <div class="flex flex-wrap items-center gap-2">
@@ -376,10 +424,15 @@ HTML;
     const commentsToggle = document.getElementById('comments-toggle');
     const commentsToggleLabel = commentsToggle?.querySelector('[data-comments-toggle-label]');
     const commentsSection = document.getElementById('challenge-comments-section');
+    const commentForm = document.querySelector('[data-comment-form]');
+    const commentSubmit = document.querySelector('[data-comment-submit]');
+    const commentSubmitSpinner = commentSubmit?.querySelector('.comment-submit__spinner');
+    const commentSubmitLabel = commentSubmit?.querySelector('[data-comment-submit-label]');
     const previewFrames = Array.from(document.querySelectorAll('.challenge-preview-frame'));
     const sourcePreviewFrames = Array.from(document.querySelectorAll('.challenge-preview-frame[data-html-source][data-css-source]'));
     const previewModal = document.getElementById('challenge-preview-modal');
     const mobileQuery = window.matchMedia('(max-width: 768px)');
+    const shouldOpenComments = <?= $challengeCommentsShouldOpen ? 'true' : 'false' ?>;
     const pageSize = 2;
     let currentPage = 1;
     const totalPages = Math.max(1, Math.ceil(rows.length / pageSize));
@@ -389,6 +442,47 @@ HTML;
         if (loader) {
             loader.hidden = true;
         }
+    };
+
+    const disablePreviewLinks = (frame) => {
+        if (!(frame instanceof HTMLIFrameElement)) {
+            return;
+        }
+
+        const doc = frame.contentDocument;
+        if (!doc) {
+            return;
+        }
+
+        if (!doc.getElementById('pixelwar-preview-link-guard')) {
+            const style = doc.createElement('style');
+            style.id = 'pixelwar-preview-link-guard';
+            style.textContent = 'a, area { cursor: default !important; }';
+            doc.head?.appendChild(style);
+        }
+
+        doc.querySelectorAll('a, area').forEach((link) => {
+            link.setAttribute('tabindex', '-1');
+            link.setAttribute('aria-disabled', 'true');
+        });
+
+        if (doc.defaultView?.pixelwarPreviewLinksBlocked) {
+            return;
+        }
+
+        doc.defaultView.pixelwarPreviewLinksBlocked = true;
+        doc.addEventListener('click', (event) => {
+            if (event.target?.closest?.('a, area')) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+        }, true);
+        doc.addEventListener('keydown', (event) => {
+            if ((event.key === 'Enter' || event.key === ' ') && event.target?.closest?.('a, area')) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+        }, true);
     };
 
     const fitPreviewFrame = (frame) => {
@@ -440,6 +534,7 @@ HTML;
 
     previewFrames.forEach((frame) => {
         frame.addEventListener('load', () => {
+            disablePreviewLinks(frame);
             fitPreviewFrame(frame);
             hidePreviewLoader(frame);
         }, { once: false });
@@ -454,6 +549,7 @@ HTML;
 * { box-sizing: border-box; }
 html, body { width: 100%; min-height: 100%; margin: 0; }
 body { display: grid; min-height: 100vh; place-items: center; background: #f7efe1; font-family: Arial, sans-serif; padding: 24px; }
+a, area { cursor: default !important; }
 ${css}
 </style>
 </head>
@@ -538,6 +634,21 @@ ${css}
             });
         }
     });
+
+    commentForm?.addEventListener('submit', () => {
+        if (!commentSubmit || !commentSubmitSpinner || !commentSubmitLabel) {
+            return;
+        }
+
+        commentSubmit.disabled = true;
+        commentSubmitSpinner.classList.remove('hidden');
+        commentSubmitLabel.textContent = 'Posting...';
+        commentSubmit.setAttribute('aria-busy', 'true');
+    });
+
+    if (shouldOpenComments && commentsToggle && commentsSection?.hidden) {
+        commentsToggle.click();
+    }
 
     const resizePreview = () => previewFrames.forEach((frame) => fitPreviewFrame(frame));
 

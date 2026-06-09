@@ -18,6 +18,7 @@ require_once __DIR__ . '/classes/room-player-repository.php';
 require_once __DIR__ . '/classes/pvp-match-repository.php';
 require_once __DIR__ . '/classes/pvp-player-repository.php';
 require_once __DIR__ . '/classes/rank-repository.php';
+require_once __DIR__ . '/classes/season-repository.php';
 
 // ==================== INITIALIZATION ====================
 $pageMeta = new PageMeta();
@@ -38,6 +39,7 @@ $roomPlayerRepository = $connection instanceof mysqli ? new RoomPlayerRepository
 $pvpMatchRepository = $connection instanceof mysqli ? new PvpMatchRepository($connection) : null;
 $pvpPlayerRepository = $connection instanceof mysqli ? new PvpPlayerRepository($connection) : null;
 $rankRepository = $connection instanceof mysqli ? new RankRepository($connection) : null;
+$seasonRepository = $connection instanceof mysqli ? new SeasonRepository($connection) : null;
 $pusherService = new PusherService(PUSHER_APP_ID, PUSHER_KEY, PUSHER_SECRET, PUSHER_CLUSTER);
 $gameplayCompletionService = $connection instanceof mysqli
     && $userRepository instanceof UserRepository

@@ -1105,3 +1105,12 @@ body.pixelwar-dark-mode .gameplay-complete-card strong {
         height: 13.25rem;
     }
 }
+
+/* Keep target preview inspection taps from dismissing the mobile modal. */
+.mobile-preview-modal .modal-dialog,
+.mobile-preview-modal .modal-content,
+.mobile-preview-modal .modal-body,
+.mobile-preview-frame,
+.mobile-preview-frame iframe {
+    touch-action: manipulation;
+}

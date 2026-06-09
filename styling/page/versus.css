@@ -248,3 +248,220 @@ body.pixelwar-dark-mode .versus-page span {
         grid-template-columns: 1fr !important;
     }
 }
+
+/* Rebuild player profile cards with stable profile/action layout. */
+.versus-player-grid {
+    align-items: stretch;
+}
+
+.versus-player-card {
+    display: flex;
+    width: 100%;
+    min-width: 0;
+    height: 100%;
+    flex-direction: column;
+    padding: 1rem !important;
+}
+
+.versus-player-card__profile {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    gap: 0.9rem;
+}
+
+.versus-player-avatar {
+    box-shadow: 4px 4px 0 rgba(38, 25, 15, 0.22);
+}
+
+.versus-player-card__identity {
+    min-width: 0;
+}
+
+.versus-player-card__title-row {
+    display: flex;
+    min-width: 0;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.65rem;
+}
+
+.versus-player-card__title-row h2 {
+    min-width: 0;
+    margin: 0;
+    overflow: hidden;
+    color: #26190f;
+    font-size: 1.1rem;
+    font-weight: 950;
+    line-height: 1.15;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.versus-player-card__meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.45rem;
+    margin-top: 0.55rem;
+}
+
+.versus-rank-chip,
+.versus-points-chip,
+.versus-status {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid #26190f;
+    border-radius: 999px;
+    font-weight: 950;
+    line-height: 1;
+    white-space: nowrap;
+}
+
+.versus-rank-chip {
+    max-width: 100%;
+    overflow: hidden;
+    background: #ffd166;
+    padding: 0.38rem 0.62rem;
+    color: #26190f;
+    font-size: 0.62rem;
+    letter-spacing: 0.09em;
+    text-overflow: ellipsis;
+    text-transform: uppercase;
+    box-shadow: 2px 2px 0 rgba(38, 25, 15, 0.2);
+}
+
+.versus-points-chip {
+    border-color: rgba(38, 25, 15, 0.18);
+    background: rgba(255, 140, 66, 0.12);
+    padding: 0.35rem 0.6rem;
+    color: rgba(38, 25, 15, 0.68);
+    font-size: 0.72rem;
+}
+
+.versus-status {
+    flex: 0 0 auto;
+    border-color: rgba(38, 25, 15, 0.2);
+    background: rgba(139, 211, 199, 0.52);
+    padding: 0.35rem 0.55rem;
+    color: #163b34;
+    font-size: 0.58rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+
+.versus-invite-button {
+    display: inline-flex;
+    width: 100%;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-top: auto;
+    border: 2px solid #26190f;
+    border-radius: 0.95rem;
+    background: #ff8c42;
+    padding: 0.78rem 1rem;
+    color: #fff;
+    font-size: 0.92rem;
+    font-weight: 900;
+    box-shadow: 0 4px 0 #26190f;
+    transition: transform 160ms ease, background-color 160ms ease, color 160ms ease;
+}
+
+.versus-invite-button:hover:not(:disabled) {
+    transform: translateY(-2px);
+    background: #ffd166;
+    color: #26190f;
+}
+
+.versus-invite-button:disabled {
+    cursor: not-allowed;
+    opacity: 0.72;
+}
+
+body.pixelwar-dark-mode .versus-player-card__title-row h2 {
+    color: #fff7e8;
+}
+
+body.pixelwar-dark-mode .versus-points-chip {
+    border-color: rgba(255, 247, 232, 0.2);
+    background: rgba(255, 209, 102, 0.12);
+    color: rgba(255, 247, 232, 0.72);
+}
+
+body.pixelwar-dark-mode .versus-status {
+    border-color: rgba(255, 247, 232, 0.22);
+    background: rgba(139, 211, 199, 0.25);
+    color: #a7f3d0;
+}
+
+@media (max-width: 768px) {
+    .versus-player-grid {
+        display: block !important;
+    }
+
+    .versus-player-card {
+        width: min(92%, 28rem) !important;
+        max-width: min(92%, 28rem) !important;
+        height: auto;
+        margin-left: auto;
+        margin-right: auto;
+        padding: 0.95rem !important;
+    }
+
+    .versus-player-card + .versus-player-card {
+        margin-top: 0.9rem;
+    }
+
+    .versus-player-card__profile {
+        grid-template-columns: auto minmax(0, 1fr);
+        gap: 0.75rem;
+    }
+
+    .versus-player-avatar {
+        width: 3.5rem !important;
+        height: 3.5rem !important;
+        border-radius: 1.1rem !important;
+    }
+
+    .versus-player-card__title-row {
+        align-items: center;
+    }
+
+    .versus-player-card__title-row h2 {
+        font-size: 1rem !important;
+        white-space: nowrap !important;
+    }
+
+    .versus-rank-chip {
+        font-size: 0.56rem;
+    }
+
+    .versus-invite-button {
+        margin-top: 0.9rem;
+        padding: 0.78rem 0.9rem !important;
+        font-size: 0.86rem !important;
+    }
+}
+
+@media (max-width: 380px) {
+    .versus-player-card {
+        width: 94% !important;
+        max-width: 94% !important;
+    }
+
+    .versus-player-card__profile {
+        align-items: flex-start;
+    }
+
+    .versus-player-card__title-row {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 0.4rem;
+    }
+
+    .versus-player-card__title-row h2 {
+        white-space: normal !important;
+    }
+}

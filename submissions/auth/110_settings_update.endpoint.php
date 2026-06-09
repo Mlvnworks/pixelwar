@@ -1,5 +1,9 @@
 <?php
 if ($requestMethod === 'POST' && $requestedPage === 'settings') {
+    if ((string) ($_POST['settings_action'] ?? '') === 'password_reset') {
+        return;
+    }
+
     if (!pixelwarValidateCsrf()) {
         pixelwarFailCsrf('settings');
     }

@@ -228,3 +228,66 @@ body.pixelwar-dark-mode .settings-card .bg-white\/80 {
         box-shadow: 6px 6px 0 #26190f;
     }
 }
+
+/* Keep settings controls inside the arcade card on narrow layouts. */
+.settings-form,
+.settings-form * {
+    min-width: 0;
+}
+
+.settings-form {
+    width: 100%;
+    max-width: 100%;
+    overflow: hidden;
+}
+
+.settings-field,
+.settings-upload,
+.settings-field input,
+.settings-field select {
+    width: 100%;
+    max-width: 100%;
+}
+
+.settings-upload__body {
+    min-width: 0;
+    max-width: 100%;
+}
+
+.settings-upload__body > .min-w-0,
+.settings-upload__body > .flex-1 {
+    min-width: 0;
+    max-width: 100%;
+}
+
+.settings-upload__button {
+    max-width: 100%;
+    text-align: center;
+    white-space: normal;
+}
+
+@media (max-width: 640px) {
+    .settings-form {
+        padding-inline: 0.85rem !important;
+    }
+
+    .settings-upload__body {
+        align-items: stretch;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+    }
+
+    .settings-upload__preview {
+        width: 3.8rem;
+        height: 3.8rem;
+    }
+
+    .settings-upload__button {
+        width: 100%;
+    }
+
+    .settings-form button,
+    .settings-form [type="submit"] {
+        width: 100%;
+    }
+}

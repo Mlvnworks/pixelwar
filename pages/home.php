@@ -4,12 +4,29 @@ require_once __DIR__ . '/../classes/challenge-catalog.php';
 $username = $_SESSION['username'] ?? 'Pixel Rookie';
 $playerDisplayName = trim((string) ($_SESSION['firstname'] ?? '') . ' ' . (string) ($_SESSION['lastname'] ?? ''));
 $playerDisplayName = $playerDisplayName !== '' ? $playerDisplayName : (string) $username;
-$currentYear = (int) date('Y');
 $today = new DateTimeImmutable('today');
 $currentStudentId = (int) ($_SESSION['user_id'] ?? 0);
-$currentSeason = 'Season 01: Arcade Dawn';
-$seasonEndsAt = new DateTimeImmutable($currentYear . '-06-30');
-$seasonDaysLeft = max(0, (int) $today->diff($seasonEndsAt)->format('%r%a'));
+$activeSeason = $seasonRepository instanceof SeasonRepository ? $seasonRepository->findActive() : null;
+$currentSeason = $activeSeason !== null ? (string) ($activeSeason['name'] ?? 'Current Season') : 'No active season';
+$seasonEndsLabel = 'Not scheduled';
+
+if ($activeSeason !== null && trim((string) ($activeSeason['end_date'] ?? '')) !== '') {
+    try {
+        $seasonEndsAt = new DateTimeImmutable((string) $activeSeason['end_date']);
+        $now = new DateTimeImmutable('now');
+        $secondsLeft = max(0, $seasonEndsAt->getTimestamp() - $now->getTimestamp());
+        $daysLeft = intdiv($secondsLeft, 86400);
+        $hoursLeft = intdiv($secondsLeft % 86400, 3600);
+
+        $seasonEndsLabel = $daysLeft > 0
+            ? $daysLeft . ' day' . ($daysLeft === 1 ? '' : 's') . ' left'
+            : ($hoursLeft > 0
+                ? $hoursLeft . ' hour' . ($hoursLeft === 1 ? '' : 's') . ' left'
+                : 'Ends today');
+    } catch (Throwable) {
+        $seasonEndsLabel = 'Not scheduled';
+    }
+}
 $currentRankPoints = $userChallengeRepository instanceof UserChallengeRepository
     ? $userChallengeRepository->totalCompletedPointsForUser($currentStudentId)
     : 0;
@@ -249,7 +266,7 @@ $pvpResultMessage = $pvpNotice === 'win'
                         </div>
                         <div class="season-badge rounded-2xl border-4 border-arcade-ink bg-arcade-cyan p-3 shadow-[5px_5px_0_#26190f]">
                             <p class="text-xs font-bold uppercase tracking-[0.18em] text-arcade-ink/60">Season Ends</p>
-                            <p class="mt-1 text-base font-extrabold"><?= (int) $seasonDaysLeft ?> days left</p>
+                            <p class="mt-1 text-base font-extrabold"><?= htmlspecialchars($seasonEndsLabel, ENT_QUOTES, 'UTF-8') ?></p>
                         </div>
                     </div>
 

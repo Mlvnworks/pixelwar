@@ -14,27 +14,40 @@ $headerAvatarClasses = [
     'mint' => 'bg-arcade-mint',
 ];
 $headerAvatarClass = $headerAvatarClasses[$headerAvatarColor] ?? $headerAvatarClasses['yellow'];
-$headerNotifications = $isLoggedIn ? [
-    [
-        'title' => 'Duel invite',
-        'body' => 'CSSRunner wants a 1v1 match.',
-        'time' => 'Now',
-        'unread' => true,
-    ],
-    [
-        'title' => 'Challenge cleared',
-        'body' => 'Button Border Basics added 20 points.',
-        'time' => '12m',
-        'unread' => true,
-    ],
-    [
-        'title' => 'Season update',
-        'body' => 'Arcade Dawn leaderboard refreshed.',
-        'time' => '1h',
-        'unread' => false,
-    ],
-] : [];
-$headerUnreadNotifications = count(array_filter($headerNotifications, static fn (array $notification): bool => (bool) $notification['unread']));
+$headerNotifications = [];
+$headerUserId = $isLoggedIn ? (int) ($_SESSION['user_id'] ?? 0) : 0;
+$headerNotificationCookieName = $headerUserId > 0 ? 'pixelwar_seen_notification_student_' . $headerUserId : 'pixelwar_seen_notification_student';
+$headerSeenNotificationId = max(0, (int) ($_COOKIE[$headerNotificationCookieName] ?? 0));
+
+if ($isLoggedIn && isset($connection) && $connection instanceof mysqli) {
+    $notificationStatement = $connection->prepare(
+        'SELECT notif_id, `text`, `type`, created_at
+         FROM notifications
+         WHERE type IN (?, ?)
+         ORDER BY created_at DESC, notif_id DESC
+         LIMIT 10'
+    );
+    $typeAll = 'announcement_all';
+    $typeStudent = 'announcement_student';
+    $notificationStatement->bind_param('ss', $typeAll, $typeStudent);
+    $notificationStatement->execute();
+    $notificationRows = $notificationStatement->get_result()->fetch_all(MYSQLI_ASSOC);
+    $notificationStatement->close();
+
+    foreach ($notificationRows as $notificationRow) {
+        $createdAt = strtotime((string) ($notificationRow['created_at'] ?? ''));
+        $headerNotifications[] = [
+            'id' => (int) ($notificationRow['notif_id'] ?? 0),
+            'title' => (string) ($notificationRow['type'] ?? '') === 'announcement_student' ? 'Student Announcement' : 'Announcement',
+            'body' => (string) ($notificationRow['text'] ?? ''),
+            'time' => $createdAt > 0 ? date('M j, g:i A', $createdAt) : 'Recently',
+        ];
+    }
+
+}
+
+$headerLatestNotificationId = $headerNotifications !== [] ? max(array_column($headerNotifications, 'id')) : 0;
+$headerHasUnreadNotifications = $headerLatestNotificationId > $headerSeenNotificationId;
 ?>
 
 <header class="pixelwar-header <?= $isLoggedIn ? 'pixelwar-header--user' : 'pixelwar-header--guest' ?> relative z-50 w-full px-4 py-3">
@@ -46,33 +59,49 @@ $headerUnreadNotifications = count(array_filter($headerNotifications, static fn 
         <?php if (!$isNavbarLocked) : ?>
         <div class="flex items-center gap-2">
         <?php if ($isLoggedIn) : ?>
-            <details class="pixelwar-notifications relative">
+            <details class="pixelwar-notifications relative" data-notification-menu data-notification-scope="student" data-latest-notification-id="<?= (int) $headerLatestNotificationId ?>" data-seen-notification-id="<?= (int) $headerSeenNotificationId ?>" data-notification-cookie="<?= htmlspecialchars($headerNotificationCookieName, ENT_QUOTES, 'UTF-8') ?>">
                 <summary class="pixelwar-notifications__summary relative grid h-11 w-11 list-none place-items-center rounded-2xl border-2 border-arcade-ink bg-white text-arcade-ink shadow-[0_4px_0_rgba(38,25,15,0.25)] transition hover:-translate-y-0.5 hover:bg-arcade-yellow" aria-label="Open notifications">
                     <svg class="h-5 w-5" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
                         <path fill="currentColor" d="M8 1.5A4.5 4.5 0 0 0 3.5 6v2.4L2.3 11v1h11.4v-1l-1.2-2.6V6A4.5 4.5 0 0 0 8 1.5Zm0 13a2 2 0 0 0 1.9-1.4H6.1A2 2 0 0 0 8 14.5Z" />
                     </svg>
-                    <?php if ($headerUnreadNotifications > 0) : ?>
-                        <span class="pixelwar-notifications__badge" aria-label="<?= (int) $headerUnreadNotifications ?> new notifications"><?= (int) $headerUnreadNotifications ?></span>
+                    <?php if ($headerLatestNotificationId > 0) : ?>
+                        <span class="pixelwar-notifications__badge <?= $headerHasUnreadNotifications ? '' : 'hidden' ?>" data-notification-badge aria-label="New announcements">!</span>
                     <?php endif; ?>
                 </summary>
 
                 <div class="pixelwar-notifications__menu absolute right-0 mt-3 w-[19rem] rounded-[22px] border-4 border-arcade-ink bg-arcade-panel p-3 text-arcade-ink shadow-[8px_8px_0_rgba(38,25,15,0.28)]">
                     <div class="mb-2 flex items-center justify-between gap-3 px-1">
                         <p class="font-arcade text-[9px] uppercase tracking-[0.18em] text-arcade-orange">Notifications</p>
-                        <?php if ($headerUnreadNotifications > 0) : ?>
-                            <span class="rounded-full bg-arcade-coral px-2 py-1 text-[10px] font-black text-white"><?= (int) $headerUnreadNotifications ?> new</span>
+                        <?php if ($headerLatestNotificationId > 0) : ?>
+                            <span class="<?= $headerHasUnreadNotifications ? '' : 'hidden' ?> rounded-full bg-arcade-coral px-2 py-1 text-[10px] font-black text-white" data-notification-new-label>New</span>
                         <?php endif; ?>
                     </div>
                     <div class="grid gap-2">
+                        <?php if ($headerNotifications === []) : ?>
+                            <article class="pixelwar-notification">
+                                <p class="text-xs font-bold leading-5 text-arcade-ink/60">No announcements yet.</p>
+                            </article>
+                        <?php else : ?>
                         <?php foreach ($headerNotifications as $notification) : ?>
-                            <article class="pixelwar-notification <?= $notification['unread'] ? 'pixelwar-notification--unread' : '' ?>">
+                            <button
+                                type="button"
+                                class="pixelwar-notification <?= (int) $notification['id'] > $headerSeenNotificationId ? 'pixelwar-notification--unread' : '' ?> text-left"
+                                data-notification-item
+                                data-notification-id="<?= (int) $notification['id'] ?>"
+                                data-announcement-title="<?= htmlspecialchars($notification['title'], ENT_QUOTES, 'UTF-8') ?>"
+                                data-announcement-body="<?= htmlspecialchars($notification['body'], ENT_QUOTES, 'UTF-8') ?>"
+                                data-announcement-time="<?= htmlspecialchars($notification['time'], ENT_QUOTES, 'UTF-8') ?>"
+                                data-bs-toggle="modal"
+                                data-bs-target="#announcement-notification-modal"
+                            >
                                 <div>
                                     <p class="text-sm font-black"><?= htmlspecialchars($notification['title'], ENT_QUOTES, 'UTF-8') ?></p>
                                     <p class="mt-1 text-xs font-bold leading-5 text-arcade-ink/60"><?= htmlspecialchars($notification['body'], ENT_QUOTES, 'UTF-8') ?></p>
                                 </div>
                                 <span class="text-[10px] font-black uppercase tracking-[0.12em] text-arcade-orange"><?= htmlspecialchars($notification['time'], ENT_QUOTES, 'UTF-8') ?></span>
-                            </article>
+                            </button>
                         <?php endforeach; ?>
+                        <?php endif; ?>
                     </div>
                 </div>
             </details>
@@ -154,6 +183,26 @@ $headerUnreadNotifications = count(array_filter($headerNotifications, static fn 
     </div>
 </header>
 
+<?php if ($isLoggedIn) : ?>
+<div class="modal fade" id="announcement-notification-modal" tabindex="-1" aria-labelledby="announcement-notification-modal-title" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content relative rounded-[26px] border-4 border-arcade-ink bg-arcade-panel text-arcade-ink shadow-[8px_8px_0_#26190f]">
+            <div class="modal-header border-b-2 border-arcade-ink/10 px-4 py-3 pe-12">
+                <div>
+                    <p class="font-arcade text-[9px] uppercase tracking-[0.18em] text-arcade-orange">Announcement</p>
+                    <h2 id="announcement-notification-modal-title" class="mb-0 mt-1 text-xl font-black">Announcement</h2>
+                    <p id="announcement-notification-modal-time" class="mt-1 text-xs font-black uppercase tracking-[0.12em] text-arcade-ink/45"></p>
+                </div>
+                <button type="button" class="btn-close position-absolute end-0 top-0 m-3" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body px-4 py-4">
+                <div id="announcement-notification-modal-body" class="announcement-notification-modal__body rounded-2xl border-2 border-arcade-ink/10 bg-white/80 p-4 text-sm font-bold leading-7 text-arcade-ink/72"></div>
+            </div>
+        </div>
+    </div>
+</div>
+<?php endif; ?>
+
 <style>
 .pixelwar-profile > summary::-webkit-details-marker {
     display: none;
@@ -230,14 +279,30 @@ $headerUnreadNotifications = count(array_filter($headerNotifications, static fn 
     box-shadow: 0 2px 0 rgba(38, 25, 15, 0.25);
 }
 
+.pixelwar-notifications__badge.hidden,
+[data-notification-new-label].hidden {
+    display: none !important;
+}
+
 .pixelwar-notification {
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
     gap: 0.75rem;
+    width: 100%;
+    border: 0;
     border-radius: 1rem;
     padding: 0.75rem;
     background: rgba(255, 247, 232, 0.72);
+    color: inherit;
+    cursor: pointer;
+    font-family: inherit;
+    transition: transform 160ms ease, background-color 160ms ease;
+}
+
+.pixelwar-notification:hover {
+    transform: translateY(-1px);
+    background: rgba(255, 209, 102, 0.3);
 }
 
 .pixelwar-notification--unread {
@@ -254,6 +319,13 @@ $headerUnreadNotifications = count(array_filter($headerNotifications, static fn 
     border-radius: 999px;
     background: #f97373;
     box-shadow: 0 0 0 3px rgba(249, 115, 115, 0.18);
+}
+
+.announcement-notification-modal__body a {
+    color: #ff8c42;
+    font-weight: 900;
+    text-decoration: underline;
+    overflow-wrap: anywhere;
 }
 
 .pixelwar-toggle {
@@ -353,6 +425,17 @@ body.pixelwar-dark-mode .pixelwar-notification--unread {
             return;
         }
     };
+    const cookieGet = (key) => {
+        const encodedKey = `${encodeURIComponent(key)}=`;
+        return document.cookie
+            .split(';')
+            .map((cookie) => cookie.trim())
+            .find((cookie) => cookie.startsWith(encodedKey))
+            ?.slice(encodedKey.length) || null;
+    };
+    const cookieSet = (key, value, maxAgeSeconds = 31536000) => {
+        document.cookie = `${encodeURIComponent(key)}=${encodeURIComponent(value)}; Max-Age=${maxAgeSeconds}; Path=/; SameSite=Lax`;
+    };
     const soundIsOn = () => storageGet('pixelwarSound') !== 'off';
     const playPopSound = () => {
         if (!soundIsOn()) {
@@ -400,12 +483,19 @@ body.pixelwar-dark-mode .pixelwar-notification--unread {
         });
     }
 
+    const applyPixelwarTheme = (isDarkMode) => {
+        document.body.classList.toggle('pixelwar-dark-mode', isDarkMode);
+        storageSet('pixelwarDarkMode', isDarkMode ? 'on' : 'off');
+        window.dispatchEvent(new CustomEvent('pixelwar:theme-change', {
+            detail: { theme: isDarkMode ? 'dark' : 'light', isDarkMode },
+        }));
+    };
+
     if (darkToggle) {
         darkToggle.checked = storageGet('pixelwarDarkMode') === 'on';
-        document.body.classList.toggle('pixelwar-dark-mode', darkToggle.checked);
+        applyPixelwarTheme(darkToggle.checked);
         darkToggle.addEventListener('change', () => {
-            document.body.classList.toggle('pixelwar-dark-mode', darkToggle.checked);
-            storageSet('pixelwarDarkMode', darkToggle.checked ? 'on' : 'off');
+            applyPixelwarTheme(darkToggle.checked);
         });
     }
 
@@ -415,6 +505,118 @@ body.pixelwar-dark-mode .pixelwar-notification--unread {
             playPopSound();
         }
     }, { capture: true });
+
+    if (notificationMenu) {
+        const scope = notificationMenu.dataset.notificationScope || 'student';
+        const latestId = Number(notificationMenu.dataset.latestNotificationId || 0);
+        const cookieName = notificationMenu.dataset.notificationCookie || `pixelwar_seen_notification_${scope}`;
+        const serverSeenId = Number(notificationMenu.dataset.seenNotificationId || 0);
+        const seenId = Math.max(serverSeenId, Number(cookieGet(cookieName) || 0));
+        const badge = notificationMenu.querySelector('[data-notification-badge]');
+        const newLabel = notificationMenu.querySelector('[data-notification-new-label]');
+        const setUnreadIndicatorVisible = (isVisible) => {
+            [badge, newLabel].forEach((element) => {
+                if (!element) {
+                    return;
+                }
+
+                element.classList.toggle('hidden', !isVisible);
+                element.style.display = isVisible ? '' : 'none';
+                element.setAttribute('aria-hidden', isVisible ? 'false' : 'true');
+            });
+        };
+        const markNotificationsSeen = () => {
+            if (latestId <= 0) {
+                return;
+            }
+
+            cookieSet(cookieName, String(latestId));
+            notificationMenu.dataset.seenNotificationId = String(latestId);
+            setUnreadIndicatorVisible(false);
+            notificationMenu.querySelectorAll('[data-notification-item]').forEach((item) => {
+                item.classList.remove('pixelwar-notification--unread');
+            });
+        };
+
+        if (latestId > seenId) {
+            setUnreadIndicatorVisible(true);
+            notificationMenu.querySelectorAll('[data-notification-item]').forEach((item) => {
+                if (Number(item.dataset.notificationId || 0) > seenId) {
+                    item.classList.add('pixelwar-notification--unread');
+                }
+            });
+        } else {
+            setUnreadIndicatorVisible(false);
+        }
+
+        notificationMenu.addEventListener('toggle', () => {
+            if (notificationMenu.open) {
+                markNotificationsSeen();
+            }
+        });
+
+        notificationMenu.querySelectorAll('[data-notification-item]').forEach((item) => {
+            item.addEventListener('click', markNotificationsSeen);
+        });
+    }
+
+    const announcementModal = document.getElementById('announcement-notification-modal');
+    const announcementModalTitle = document.getElementById('announcement-notification-modal-title');
+    const announcementModalTime = document.getElementById('announcement-notification-modal-time');
+    const announcementModalBody = document.getElementById('announcement-notification-modal-body');
+    const appendFormattedAnnouncementText = (container, text) => {
+        if (!container) {
+            return;
+        }
+
+        container.innerHTML = '';
+        const urlPattern = /(https?:\/\/[^\s<]+|www\.[^\s<]+)/gi;
+        const parts = String(text || '').split(urlPattern);
+
+        parts.forEach((part) => {
+            if (part === '') {
+                return;
+            }
+
+            urlPattern.lastIndex = 0;
+            if (urlPattern.test(part)) {
+                urlPattern.lastIndex = 0;
+                const link = document.createElement('a');
+                link.href = part.toLowerCase().startsWith('www.') ? `https://${part}` : part;
+                link.textContent = part;
+                link.target = '_blank';
+                link.rel = 'noopener noreferrer';
+                container.appendChild(link);
+                return;
+            }
+
+            part.split('\n').forEach((line, index, lines) => {
+                if (line !== '') {
+                    container.appendChild(document.createTextNode(line));
+                }
+                if (index < lines.length - 1) {
+                    container.appendChild(document.createElement('br'));
+                }
+            });
+        });
+    };
+
+    announcementModal?.addEventListener('show.bs.modal', (event) => {
+        const trigger = event.relatedTarget;
+        if (!(trigger instanceof HTMLElement)) {
+            return;
+        }
+
+        if (announcementModalTitle) {
+            announcementModalTitle.textContent = trigger.dataset.announcementTitle || 'Announcement';
+        }
+
+        if (announcementModalTime) {
+            announcementModalTime.textContent = trigger.dataset.announcementTime || '';
+        }
+
+        appendFormattedAnnouncementText(announcementModalBody, trigger.dataset.announcementBody || '');
+    });
 
     document.addEventListener('click', (event) => {
         if (profileMenu && !profileMenu.contains(event.target)) {

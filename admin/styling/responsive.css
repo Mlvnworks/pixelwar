@@ -1,0 +1,424 @@
+@import url("../../styling/responsive.css");
+
+@media (max-width: 768px) {
+    .teacher-shell > .container,
+    .teacher-footer > .container {
+        width: calc(100vw - 1rem) !important;
+        max-width: calc(100vw - 1rem) !important;
+    }
+
+    .admin-room-challenge-modal,
+    .admin-panel,
+    .admin-card {
+        max-width: 100%;
+        overflow-x: auto;
+    }
+}
+
+.admin-mobile-topbar,
+.admin-sidebar-backdrop,
+.admin-sidebar-close {
+    display: none;
+}
+
+@media (max-width: 1024px) {
+    body.admin-sidebar-open {
+        overflow: hidden;
+    }
+
+    .admin-mobile-topbar {
+        position: sticky;
+        top: 0;
+        z-index: 1040;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem;
+        width: 100%;
+        min-height: 4.25rem;
+        border-bottom: 1px solid var(--admin-border);
+        background: color-mix(in srgb, var(--admin-surface) 94%, transparent);
+        padding: 0.75rem max(0.85rem, env(safe-area-inset-left)) 0.75rem max(0.85rem, env(safe-area-inset-right));
+        backdrop-filter: blur(12px) saturate(1.1);
+    }
+
+    .admin-mobile-menu-button,
+    .admin-mobile-brand,
+    .admin-sidebar-close {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.55rem;
+        border: 1px solid var(--admin-border-strong);
+        border-radius: 0.9rem;
+        background: var(--admin-surface-muted);
+        color: var(--admin-text);
+        min-height: 2.6rem;
+        padding: 0.65rem 0.85rem;
+        font-size: 0.9rem;
+        font-weight: 800;
+        text-decoration: none;
+    }
+
+    .admin-mobile-menu-button:hover,
+    .admin-mobile-brand:hover,
+    .admin-sidebar-close:hover {
+        border-color: var(--admin-accent);
+        background: var(--admin-accent-soft);
+        color: var(--admin-text);
+    }
+
+    .admin-mobile-brand {
+        min-width: 0;
+        justify-content: flex-end;
+        border-color: transparent;
+        background: transparent;
+        padding-inline: 0;
+    }
+
+    .admin-mobile-brand img {
+        width: 2rem;
+        height: 2rem;
+        flex: 0 0 auto;
+    }
+
+    .admin-mobile-brand span {
+        max-width: 48vw;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .admin-sidebar-backdrop {
+        position: fixed;
+        inset: 0;
+        z-index: 1045;
+        display: block;
+        background: rgba(15, 23, 42, 0.42);
+        backdrop-filter: blur(3px);
+    }
+
+    .admin-sidebar-backdrop[hidden] {
+        display: none !important;
+    }
+
+    .admin-sidebar-close {
+        position: absolute;
+        right: 0.85rem;
+        top: 0.85rem;
+        width: 2.65rem;
+        padding: 0;
+    }
+
+    .teacher-sidebar.teacher-sidebar--admin {
+        position: fixed !important;
+        inset: 0 auto 0 0 !important;
+        z-index: 1050;
+        display: flex !important;
+        width: min(21rem, calc(100vw - 2.25rem)) !important;
+        max-width: calc(100vw - 2.25rem) !important;
+        max-height: 100dvh !important;
+        min-height: 100dvh !important;
+        overflow-y: auto !important;
+        overscroll-behavior: contain;
+        border-right: 1px solid var(--admin-border) !important;
+        border-bottom: 0 !important;
+        background: var(--admin-surface) !important;
+        padding: 1rem !important;
+        padding-top: max(1rem, env(safe-area-inset-top)) !important;
+        transform: translateX(calc(-100% - 1rem));
+        transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
+        box-shadow: 18px 0 45px rgba(15, 23, 42, 0.18) !important;
+    }
+
+    .teacher-sidebar.teacher-sidebar--admin.is-open {
+        transform: translateX(0);
+    }
+
+    .teacher-sidebar--admin .teacher-sidebar__brand {
+        position: relative;
+        padding-right: 3.25rem;
+    }
+
+    .teacher-sidebar--admin .teacher-sidebar__logo {
+        min-width: 0;
+    }
+
+    .teacher-sidebar--admin .teacher-nav {
+        display: grid !important;
+        grid-template-columns: 1fr !important;
+        gap: 0.3rem !important;
+    }
+
+    .teacher-sidebar--admin .teacher-nav__link,
+    .teacher-sidebar--admin .teacher-nav__summary {
+        min-height: 2.85rem;
+        border: 1px solid var(--admin-border) !important;
+        border-radius: 0.85rem !important;
+        padding: 0.72rem 0.85rem !important;
+    }
+
+    .teacher-sidebar--admin .teacher-nav__children {
+        padding: 0.25rem 0 0.35rem 0.65rem !important;
+    }
+
+    .teacher-sidebar--admin .teacher-sidebar__controls {
+        margin-top: auto !important;
+    }
+
+    .teacher-shell,
+    .teacher-footer {
+        margin-left: 0 !important;
+        width: 100% !important;
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+    }
+
+    .teacher-shell {
+        min-height: calc(100dvh - 4.25rem);
+        padding-top: 0 !important;
+    }
+
+    .teacher-shell > .container,
+    .teacher-footer > .container {
+        width: min(100% - 1rem, 100%) !important;
+        max-width: calc(100vw - 1rem) !important;
+        margin-left: auto !important;
+        margin-right: auto !important;
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+    }
+
+    .teacher-topbar,
+    .teacher-hero,
+    .teacher-panel,
+    .teacher-page-card,
+    .teacher-stat-card,
+    .teacher-list-card,
+    .teacher-activity-card,
+    .teacher-log-card,
+    .teacher-student-card,
+    .teacher-challenge-card,
+    .teacher-settings-card,
+    .admin-metric-card {
+        max-width: 100% !important;
+    }
+
+    .teacher-topbar {
+        display: grid !important;
+        grid-template-columns: 1fr !important;
+        align-items: start !important;
+        gap: 0.65rem !important;
+        padding: 0.95rem !important;
+    }
+
+    .teacher-topbar > * {
+        width: 100%;
+        min-width: 0;
+    }
+
+    .teacher-filterbar,
+    .teacher-search,
+    .teacher-panel form,
+    .teacher-page-card form {
+        max-width: 100%;
+    }
+}
+
+@media (max-width: 640px) {
+    .admin-mobile-topbar {
+        min-height: 3.85rem;
+        padding-block: 0.55rem;
+    }
+
+    .admin-mobile-menu-button span {
+        display: none;
+    }
+
+    .admin-mobile-menu-button {
+        width: 2.75rem;
+        padding-inline: 0;
+    }
+
+    .teacher-sidebar.teacher-sidebar--admin {
+        width: min(20rem, calc(100vw - 1.25rem)) !important;
+        max-width: calc(100vw - 1.25rem) !important;
+    }
+
+    .teacher-shell > .container,
+    .teacher-footer > .container {
+        width: calc(100vw - 0.75rem) !important;
+        max-width: calc(100vw - 0.75rem) !important;
+    }
+
+    .teacher-hero,
+    .teacher-panel,
+    .teacher-page-card,
+    .teacher-stat-card,
+    .teacher-list-card,
+    .teacher-activity-card,
+    .teacher-log-card,
+    .teacher-student-card,
+    .teacher-challenge-card,
+    .teacher-settings-card,
+    .admin-metric-card {
+        padding: 0.85rem !important;
+        border-radius: 0.95rem !important;
+    }
+}
+
+/* Admin-wide table sizing. Wide data scrolls inside panels instead of squeezing or pushing the viewport. */
+.teacher-shell :where(.teacher-panel, .teacher-page-card, .teacher-log-card, .teacher-student-card, .admin-panel, .admin-card) {
+    overflow: hidden;
+}
+
+.teacher-shell :where(.teacher-panel, .teacher-page-card, .teacher-log-card, .teacher-student-card, .admin-panel, .admin-card) > :where(.overflow-auto, .overflow-x-auto, [class*="overflow-x-auto"], [class*="overflow-x-scroll"]),
+.teacher-shell :where(.teacher-panel, .teacher-page-card, .teacher-log-card, .teacher-student-card, .admin-panel, .admin-card) :where(.max-h-\[38rem\], .max-h-\[32rem\]) {
+    max-width: 100%;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-gutter: stable;
+}
+
+.teacher-shell table {
+    width: 100%;
+    min-width: 56rem;
+    table-layout: auto;
+}
+
+.teacher-shell table.min-w-full {
+    min-width: 58rem !important;
+}
+
+.teacher-shell table[class*="min-w-"] {
+    width: 100%;
+}
+
+.teacher-shell table th,
+.teacher-shell table td {
+    padding: 0.78rem 1rem !important;
+    vertical-align: top;
+}
+
+.teacher-shell table th {
+    white-space: nowrap;
+}
+
+.teacher-shell table td {
+    overflow-wrap: anywhere;
+    word-break: normal;
+}
+
+.teacher-shell table td :where(.teacher-pill, .badge, [class*="pill"], [class*="badge"], a, button) {
+    white-space: nowrap;
+}
+
+.teacher-shell table td :where(.teacher-pill, .badge, [class*="pill"], [class*="badge"]) {
+    max-width: 100%;
+}
+
+.teacher-shell table :where(.whitespace-nowrap) {
+    white-space: nowrap !important;
+}
+
+.teacher-shell :where(.teacher-panel, .teacher-page-card, .teacher-log-card, .teacher-student-card, .admin-panel, .admin-card):has(table) {
+    max-width: 100%;
+}
+
+.teacher-shell :where(.teacher-panel, .teacher-page-card, .teacher-log-card, .teacher-student-card, .admin-panel, .admin-card):has(table) > div:not(.flex):not(.grid) {
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.admin-dashboard-logs-table__table {
+    min-width: 74rem !important;
+}
+
+.admin-room-player-table-wrap table {
+    min-width: 58rem !important;
+}
+
+@media (max-width: 1024px) {
+    .teacher-shell table {
+        min-width: 54rem;
+        font-size: 0.88rem;
+    }
+
+    .teacher-shell table.min-w-full {
+        min-width: 56rem !important;
+    }
+}
+
+@media (max-width: 640px) {
+    .teacher-shell :where(.teacher-panel, .teacher-page-card, .teacher-log-card, .teacher-student-card, .admin-panel, .admin-card):has(table) {
+        padding-inline: 0.65rem !important;
+    }
+
+    .teacher-shell :where(.teacher-panel, .teacher-page-card, .teacher-log-card, .teacher-student-card, .admin-panel, .admin-card):has(table) > div:not(.flex):not(.grid),
+    .teacher-shell :where(.overflow-auto, .overflow-x-auto, [class*="overflow-x-auto"], [class*="overflow-x-scroll"]) {
+        margin-inline: -0.35rem;
+        max-width: calc(100% + 0.7rem);
+        padding-inline: 0.35rem;
+        padding-bottom: 0.45rem;
+    }
+
+    .teacher-shell table {
+        min-width: 52rem !important;
+        font-size: 0.82rem;
+    }
+
+    .teacher-shell table.min-w-full {
+        min-width: 52rem !important;
+    }
+
+    .teacher-shell table th,
+    .teacher-shell table td {
+        padding: 0.65rem 0.75rem !important;
+    }
+
+    .admin-dashboard-logs-table__table,
+    .teacher-shell table[class*="min-w-\[72rem\]"] {
+        min-width: 68rem !important;
+    }
+}
+
+/* Other admin card grids with the same mobile compression issue. */
+@media (max-width: 640px) {
+    .teacher-shell :where(.announcement-stat, .leaderboards-rank-card, .student-admin-rank-card) {
+        width: 90vw !important;
+        max-width: 90vw !important;
+        margin-left: 50% !important;
+        transform: translateX(-50%);
+    }
+
+    .teacher-shell :where(.announcement-stat, .leaderboards-rank-card, .student-admin-rank-card) + :where(.announcement-stat, .leaderboards-rank-card, .student-admin-rank-card) {
+        margin-top: 1rem;
+    }
+
+    .teacher-shell :where(.grid:has(.announcement-stat), .grid:has(.leaderboards-rank-card)) {
+        display: block !important;
+        width: 100% !important;
+    }
+}
+
+@media (max-width: 767px) {
+    .teacher-shell .announcement-stat-grid.grid {
+        display: block !important;
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+
+    .teacher-shell .announcement-stat-grid .announcement-stat {
+        display: block !important;
+        width: 90vw !important;
+        max-width: min(90vw, 100%) !important;
+        margin-inline: auto !important;
+        margin-left: auto !important;
+        transform: none !important;
+    }
+
+    .teacher-shell .announcement-stat-grid .announcement-stat + .announcement-stat {
+        margin-top: 1rem !important;
+    }
+}

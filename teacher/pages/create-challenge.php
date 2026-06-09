@@ -580,6 +580,50 @@ foreach ($difficultyRows as $difficultyRow) {
         window.lucide?.createIcons();
     };
 
+    const disablePreviewLinks = (frame) => {
+        if (!(frame instanceof HTMLIFrameElement)) {
+            return;
+        }
+
+        const doc = frame.contentDocument;
+        if (!doc) {
+            return;
+        }
+
+        if (!doc.getElementById('pixelwar-preview-link-guard')) {
+            const style = doc.createElement('style');
+            style.id = 'pixelwar-preview-link-guard';
+            style.textContent = 'a, area { cursor: default !important; }';
+            doc.head?.appendChild(style);
+        }
+
+        doc.querySelectorAll('a, area').forEach((link) => {
+            link.setAttribute('tabindex', '-1');
+            link.setAttribute('aria-disabled', 'true');
+        });
+
+        if (doc.defaultView?.pixelwarPreviewLinksBlocked) {
+            return;
+        }
+
+        doc.defaultView.pixelwarPreviewLinksBlocked = true;
+        doc.addEventListener('click', (event) => {
+            if (event.target?.closest?.('a, area')) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+        }, true);
+        doc.addEventListener('keydown', (event) => {
+            if ((event.key === 'Enter' || event.key === ' ') && event.target?.closest?.('a, area')) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+        }, true);
+    };
+
+    preview.addEventListener('load', () => disablePreviewLinks(preview), { once: false });
+    confirmPreview.addEventListener('load', () => disablePreviewLinks(confirmPreview), { once: false });
+
     const buildPreviewDocument = (html, css) => `<!doctype html>
 <html lang="en">
 <head>
@@ -589,6 +633,7 @@ foreach ($difficultyRows as $difficultyRow) {
 * { box-sizing: border-box; }
 html, body { margin: 0; min-height: 100%; }
 body { display: grid; min-height: 100vh; place-items: center; background: #fff7e8; font-family: Arial, sans-serif; padding: 24px; }
+a, area { cursor: default !important; }
 ${css}
 </style>
 </head>

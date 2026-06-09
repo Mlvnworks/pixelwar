@@ -138,7 +138,7 @@ foreach ($roomSessionPlayers as $roomSessionPlayer) {
 }
 ?>
 
-<main class="teacher-shell relative overflow-hidden px-4 py-6 text-arcade-ink md:py-8">
+<main class="teacher-shell teacher-room-session-page relative overflow-hidden px-4 py-6 text-arcade-ink md:py-8">
     <div class="teacher-bg absolute inset-0"></div>
     <section class="container relative grid gap-5">
         <?php
@@ -195,22 +195,22 @@ foreach ($roomSessionPlayers as $roomSessionPlayer) {
             </div>
         </article>
 
-        <section class="grid gap-3 md:grid-cols-3">
-            <article class="teacher-panel rounded-[24px] border-4 border-arcade-ink bg-arcade-panel px-4 py-4 shadow-[7px_7px_0_#26190f]">
+        <section class="room-session-summary-grid grid gap-3 md:grid-cols-3">
+            <article class="teacher-panel room-session-summary-card rounded-[24px] border-4 border-arcade-ink bg-arcade-panel px-4 py-4 shadow-[7px_7px_0_#26190f]">
                 <p class="font-arcade text-[10px] uppercase tracking-[0.18em] text-arcade-orange">Joined</p>
                 <strong id="room-session-joined-count" class="mt-3 block text-3xl font-black"><?= (int) $roomSessionJoinedCount ?></strong>
             </article>
-            <article class="teacher-panel rounded-[24px] border-4 border-arcade-ink bg-arcade-panel px-4 py-4 shadow-[7px_7px_0_#26190f]">
+            <article class="teacher-panel room-session-summary-card rounded-[24px] border-4 border-arcade-ink bg-arcade-panel px-4 py-4 shadow-[7px_7px_0_#26190f]">
                 <p class="font-arcade text-[10px] uppercase tracking-[0.18em] text-arcade-orange">Solving</p>
                 <strong id="room-session-solving-count" class="mt-3 block text-3xl font-black"><?= (int) $roomSessionStartedCount ?></strong>
             </article>
-            <article class="teacher-panel rounded-[24px] border-4 border-arcade-ink bg-arcade-panel px-4 py-4 shadow-[7px_7px_0_#26190f]">
+            <article class="teacher-panel room-session-summary-card rounded-[24px] border-4 border-arcade-ink bg-arcade-panel px-4 py-4 shadow-[7px_7px_0_#26190f]">
                 <p class="font-arcade text-[10px] uppercase tracking-[0.18em] text-arcade-orange">Completed</p>
                 <strong id="room-session-completed-count" class="mt-3 block text-3xl font-black"><?= (int) $roomSessionCompletedCount ?></strong>
             </article>
         </section>
 
-        <section class="teacher-panel rounded-[26px] border-4 border-arcade-ink bg-arcade-panel p-4 shadow-[7px_7px_0_#26190f] md:p-5">
+        <section class="teacher-panel room-session-player-panel rounded-[26px] border-4 border-arcade-ink bg-arcade-panel p-4 shadow-[7px_7px_0_#26190f] md:p-5">
             <div class="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
                 <div>
                     <p class="font-arcade text-[10px] uppercase tracking-[0.22em] text-arcade-cyan">Joined Players</p>
@@ -228,7 +228,7 @@ foreach ($roomSessionPlayers as $roomSessionPlayer) {
                     No players have joined this room yet.
                 </div>
             <?php endif; ?>
-            <div id="room-session-player-list" class="mt-4 grid gap-3<?= $roomSessionPlayers === [] ? ' hidden' : '' ?>">
+            <div id="room-session-player-list" class="room-session-player-list mt-4 grid gap-3<?= $roomSessionPlayers === [] ? ' hidden' : '' ?>">
                 <?php foreach ($roomSessionPlayers as $roomSessionPlayer) : ?>
                     <?php
                     $playerStatus = $displayStatusForPlayer($roomSessionPlayer, $roomSessionIsEnded, $strictModeEnabled);
@@ -265,7 +265,7 @@ foreach ($roomSessionPlayers as $roomSessionPlayer) {
                             </span>
                         </div>
 
-                        <div class="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                        <div class="room-session-info-grid mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
                             <div class="room-session-info-card">
                                 <p>Student ID</p>
                                 <strong><?= htmlspecialchars($studentNumber !== '' ? $studentNumber : 'Not set', ENT_QUOTES, 'UTF-8') ?></strong>
@@ -362,6 +362,79 @@ foreach ($roomSessionPlayers as $roomSessionPlayer) {
     font-size: 0.98rem;
     font-weight: 900;
     color: #26190f;
+}
+
+@media (max-width: 640px) {
+    .teacher-room-session-page {
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+    }
+
+    .teacher-room-session-page .teacher-hero,
+    .teacher-room-session-page .room-session-summary-grid,
+    .teacher-room-session-page .room-session-player-panel {
+        width: min(95vw, 34rem) !important;
+        max-width: min(95vw, 34rem) !important;
+        margin-left: auto !important;
+        margin-right: auto !important;
+    }
+
+    .teacher-room-session-page .room-session-summary-grid,
+    .teacher-room-session-page .room-session-player-list,
+    .teacher-room-session-page .room-session-info-grid {
+        display: block !important;
+    }
+
+    .teacher-room-session-page .room-session-summary-card,
+    .teacher-room-session-page .room-session-card {
+        width: 100% !important;
+        max-width: 100% !important;
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+    }
+
+    .teacher-room-session-page .room-session-summary-card + .room-session-summary-card,
+    .teacher-room-session-page .room-session-card + .room-session-card,
+    .teacher-room-session-page .room-session-info-card + .room-session-info-card {
+        margin-top: 0.75rem !important;
+    }
+
+    .teacher-room-session-page .room-session-summary-card {
+        padding: 0.8rem 1rem !important;
+        text-align: center;
+    }
+
+    .teacher-room-session-page .room-session-summary-card strong {
+        margin-top: 0.35rem !important;
+        font-size: 1.65rem !important;
+    }
+
+    .teacher-room-session-page .room-session-player-panel,
+    .teacher-room-session-page .room-session-card {
+        padding: 1rem !important;
+    }
+
+    .teacher-room-session-page .room-session-card h3 {
+        font-size: 1.05rem !important;
+        line-height: 1.35 !important;
+    }
+
+    .teacher-room-session-page .room-session-pill {
+        align-self: flex-start;
+        margin-left: 4.25rem;
+    }
+
+    .teacher-room-session-page .room-session-info-grid {
+        margin-top: 0.85rem !important;
+    }
+
+    .teacher-room-session-page .room-session-info-card {
+        padding: 0.72rem 0.85rem !important;
+    }
+
+    .teacher-room-session-page .room-session-info-card:nth-child(2) {
+        display: none !important;
+    }
 }
 </style>
 
@@ -562,7 +635,7 @@ foreach ($roomSessionPlayers as $roomSessionPlayer) {
                     </div>
                     <span class="teacher-pill room-session-pill room-session-pill--joined" data-room-player-status-pill>Waiting</span>
                 </div>
-                <div class="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                <div class="room-session-info-grid mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
                     <div class="room-session-info-card">
                         <p>Student ID</p>
                         <strong>${payload.student_number || 'Not set'}</strong>

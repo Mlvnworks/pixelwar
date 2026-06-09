@@ -206,3 +206,127 @@
         align-items: flex-start;
     }
 }
+
+.ranks-ladder-card h2,
+.ranks-pill {
+    color: #26190f !important;
+}
+
+body.pixelwar-dark-mode .ranks-ladder-card {
+    border-color: var(--pw-border) !important;
+    background: var(--pw-surface) !important;
+    color: var(--pw-text) !important;
+    box-shadow: 7px 7px 0 var(--pw-shadow) !important;
+}
+
+body.pixelwar-dark-mode .ranks-ladder-card--current {
+    background:
+        linear-gradient(135deg, rgba(255, 209, 102, 0.18), var(--pw-surface) 48%, rgba(76, 201, 240, 0.12)) !important;
+}
+
+body.pixelwar-dark-mode .ranks-ladder-card h2 {
+    color: var(--pw-text) !important;
+}
+
+body.pixelwar-dark-mode .ranks-pill {
+    border-color: var(--pw-border) !important;
+    background: #ffd166 !important;
+    color: #26190f !important;
+}
+
+body.pixelwar-dark-mode .ranks-pill--current {
+    background: #74ddff !important;
+}
+
+body.pixelwar-dark-mode .ranks-pill--unlocked {
+    background: #a7f3d0 !important;
+}
+
+body.pixelwar-dark-mode .ranks-pill--locked {
+    background: #ff9a9a !important;
+}
+
+/* Keep rank ladder items visually consistent and centered. */
+.ranks-ladder {
+    width: min(100%, 980px);
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.ranks-ladder-card {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+}
+
+.ranks-ladder-card > .min-w-0 {
+    min-width: 0;
+    width: 100%;
+}
+
+.ranks-ladder-card .ranks-pill {
+    max-width: 100%;
+    white-space: nowrap;
+}
+
+@media (max-width: 640px) {
+    .ranks-ladder {
+        width: 100%;
+    }
+
+    .ranks-ladder-card {
+        gap: 0.75rem;
+        padding: 0.85rem;
+    }
+
+    .ranks-ladder-card__marker {
+        width: 3.15rem;
+        height: 3.15rem;
+        border-width: 3px;
+        border-radius: 1rem;
+    }
+
+    .ranks-ladder-card__marker span {
+        font-size: 0.78rem;
+    }
+
+    .ranks-ladder-card h2 {
+        font-size: clamp(1.1rem, 6vw, 1.45rem) !important;
+        line-height: 1.15;
+    }
+
+    .ranks-ladder-card .ranks-pill {
+        flex: 1 1 auto;
+        min-width: min(8.5rem, 100%);
+        padding-inline: 0.55rem;
+        font-size: 0.62rem;
+    }
+}
+
+@media (max-width: 420px) {
+    .ranks-ladder-card {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .ranks-ladder-card__marker {
+        align-self: flex-start;
+    }
+
+    .ranks-ladder-card .ranks-pill {
+        width: 100%;
+    }
+}
+
+/* Rank cards should sit at 90% of the ladder container and remain centered. */
+.ranks-ladder-card {
+    width: 90% !important;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+@media (max-width: 640px) {
+    .ranks-ladder-card {
+        width: 90% !important;
+    }
+}

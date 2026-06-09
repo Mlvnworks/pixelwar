@@ -104,26 +104,24 @@ if ($userRepository instanceof UserRepository) {
 
     const playerCard = (player) => `
         <article class="versus-player-card versus-player-card--${escapeHtml(player.accent)} rounded-[24px] border-4 border-arcade-ink bg-white p-4 shadow-[7px_7px_0_rgba(38,25,15,0.22)] transition hover:-translate-y-1 hover:shadow-[9px_9px_0_rgba(38,25,15,0.26)]">
-            <div class="flex items-start justify-between gap-4">
-                <div class="flex min-w-0 items-center gap-3">
-                    <span class="versus-player-avatar grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-2xl border-4 border-arcade-ink bg-arcade-yellow font-arcade text-sm text-arcade-ink">
-                        ${player.avatar_url
-                            ? `<img src="${escapeHtml(player.avatar_url)}" alt="" class="h-full w-full object-cover">`
-                            : escapeHtml(player.initials)}
-                    </span>
-                    <div class="min-w-0">
-                        <h2 class="truncate text-lg font-black">${escapeHtml(player.name)}</h2>
-                        <div class="mt-2 flex flex-wrap items-center gap-2">
-                            <span class="inline-flex max-w-full items-center rounded-full border-2 border-arcade-ink bg-arcade-yellow px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-arcade-ink shadow-[2px_2px_0_rgba(38,25,15,0.22)]">
-                                ${escapeHtml(player.rank)}
-                            </span>
-                            <span class="text-xs font-black text-arcade-ink/55">${Number(player.points || 0)} pts</span>
-                        </div>
+            <div class="versus-player-card__profile">
+                <span class="versus-player-avatar grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-2xl border-4 border-arcade-ink bg-arcade-yellow font-arcade text-sm text-arcade-ink">
+                    ${player.avatar_url
+                        ? `<img src="${escapeHtml(player.avatar_url)}" alt="" class="h-full w-full object-cover">`
+                        : escapeHtml(player.initials)}
+                </span>
+                <div class="versus-player-card__identity">
+                    <div class="versus-player-card__title-row">
+                        <h2>${escapeHtml(player.name)}</h2>
+                        <span class="versus-status">${escapeHtml(player.status)}</span>
+                    </div>
+                    <div class="versus-player-card__meta">
+                        <span class="versus-rank-chip">${escapeHtml(player.rank)}</span>
+                        <span class="versus-points-chip">${Number(player.points || 0)} pts</span>
                     </div>
                 </div>
-                <span class="versus-status rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-[0.14em]">${escapeHtml(player.status)}</span>
             </div>
-            <button type="button" data-versus-invite-button data-player-id="${Number(player.user_id || 0)}" class="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl border-2 border-arcade-ink bg-arcade-orange px-4 py-2 text-sm font-bold text-white shadow-[0_4px_0_#26190f] transition hover:-translate-y-0.5 hover:bg-arcade-yellow hover:text-arcade-ink">
+            <button type="button" data-versus-invite-button data-player-id="${Number(player.user_id || 0)}" class="versus-invite-button">
                 <svg class="h-4 w-4" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path fill="currentColor" d="M5 7a2 2 0 1 0 0-4 2 2 0 0 0 0 4Zm6 0a2 2 0 1 0 0-4 2 2 0 0 0 0 4ZM2 13c0-2.2 1.4-4 3-4s3 1.8 3 4H2Zm6 0c0-2.2 1.4-4 3-4s3 1.8 3 4H8Z" /></svg>
                 Invite Player
             </button>

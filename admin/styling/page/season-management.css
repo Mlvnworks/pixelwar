@@ -1,0 +1,71 @@
+.admin-season-card-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1rem;
+    align-items: stretch;
+}
+
+.admin-season-card {
+    display: grid;
+    gap: 1.15rem;
+    min-width: 0;
+    min-height: 14rem;
+    padding: 1.35rem !important;
+}
+
+.admin-season-card > div:nth-child(2) {
+    align-items: flex-start;
+    min-height: 4rem;
+}
+
+.admin-season-card h3.truncate {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+    line-height: 1.15;
+}
+
+.admin-season-card > .mt-5,
+.admin-season-card > .mt-4 {
+    margin-top: 0 !important;
+}
+
+.admin-season-card .rounded-2xl {
+    min-width: 0;
+}
+
+@media (min-width: 1600px) {
+    .admin-season-card-grid {
+        grid-template-columns: repeat(2, minmax(36rem, 1fr));
+    }
+}
+
+@media (max-width: 640px) {
+    .admin-season-card-grid {
+        display: block !important;
+        width: 100% !important;
+    }
+
+    .admin-season-card {
+        width: 90vw !important;
+        max-width: 90vw !important;
+        min-height: 12rem;
+        margin-left: 50% !important;
+        padding: 0.5rem !important;
+        transform: translateX(-50%);
+    }
+
+    .admin-season-card + .admin-season-card {
+        margin-top: 1rem;
+    }
+
+    .admin-season-card > div:nth-child(2),
+    .admin-season-card > .mt-5,
+    .admin-season-card > .mt-4 {
+        gap: 0.45rem !important;
+    }
+
+    .admin-season-card .rounded-2xl {
+        padding: 0.65rem !important;
+    }
+}

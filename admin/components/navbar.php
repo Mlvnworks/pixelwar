@@ -8,19 +8,50 @@ $adminPendingReviewCount = $userRepository instanceof UserRepository
     ? $userRepository->countPendingStudentReviews('', 0)
     : 0;
 $adminNavItems = [
-    'dashboard' => ['label' => 'Dashboard', 'icon' => 'layout-dashboard'],
-    'teachers' => ['label' => 'Teachers', 'icon' => 'graduation-cap'],
-    'students' => ['label' => 'Students', 'icon' => 'users'],
-    'student-verification' => ['label' => 'Reviews', 'icon' => 'badge-check', 'badge' => $adminPendingReviewCount],
-    'rank-management' => ['label' => 'Ranks', 'icon' => 'medal'],
-    'logs' => ['label' => 'Logs', 'icon' => 'history'],
-    'settings' => ['label' => 'Settings', 'icon' => 'settings'],
+    ['type' => 'link', 'page' => 'dashboard', 'label' => 'Dashboard', 'icon' => 'layout-dashboard'],
+    [
+        'type' => 'group',
+        'label' => 'User',
+        'icon' => 'users',
+        'children' => [
+            'teachers' => ['label' => 'Teachers', 'icon' => 'graduation-cap'],
+            'students' => ['label' => 'Students', 'icon' => 'users'],
+        ],
+    ],
+    ['type' => 'link', 'page' => 'student-verification', 'label' => 'Reviews', 'icon' => 'badge-check', 'badge' => $adminPendingReviewCount],
+    [
+        'type' => 'group',
+        'label' => 'Game Settings',
+        'icon' => 'sliders-horizontal',
+        'children' => [
+            'rank-management' => ['label' => 'Ranks', 'icon' => 'medal'],
+            'season-management' => ['label' => 'Seasons', 'icon' => 'calendar-range'],
+            'point-rates' => ['label' => 'Point Rates', 'icon' => 'coins'],
+        ],
+    ],
+    ['type' => 'link', 'page' => 'announcement', 'label' => 'Announcement', 'icon' => 'megaphone'],
+    ['type' => 'link', 'page' => 'logs', 'label' => 'Logs', 'icon' => 'history'],
+    ['type' => 'link', 'page' => 'settings', 'label' => 'Settings', 'icon' => 'settings'],
 ];
 ?>
 
 <header class="teacher-header admin-shell-nav">
-    <aside class="teacher-sidebar teacher-sidebar--admin" aria-label="Admin panel sidebar">
+    <div class="admin-mobile-topbar" data-admin-mobile-topbar>
+        <button type="button" class="admin-mobile-menu-button" data-admin-menu-toggle aria-controls="admin-sidebar" aria-expanded="false" aria-label="Open admin navigation">
+            <i data-lucide="menu" class="h-5 w-5" aria-hidden="true"></i>
+            <span>Menu</span>
+        </button>
+        <a class="admin-mobile-brand" href="./?c=dashboard" aria-label="Go to admin dashboard">
+            <img src="../assets/img/pixelwar-braces-logo.svg" alt="" aria-hidden="true">
+            <span><?= htmlspecialchars(APP_NAME, ENT_QUOTES, 'UTF-8') ?></span>
+        </a>
+    </div>
+    <div class="admin-sidebar-backdrop" data-admin-sidebar-backdrop hidden></div>
+    <aside id="admin-sidebar" class="teacher-sidebar teacher-sidebar--admin" aria-label="Admin panel sidebar" data-admin-sidebar>
         <div class="teacher-sidebar__brand">
+            <button type="button" class="admin-sidebar-close" data-admin-menu-close aria-label="Close admin navigation">
+                <i data-lucide="x" class="h-5 w-5" aria-hidden="true"></i>
+            </button>
             <a class="teacher-sidebar__logo" href="./?c=dashboard" aria-label="Go to admin dashboard">
                 <img class="teacher-sidebar__mark" src="../assets/img/pixelwar-braces-logo.svg" alt="" aria-hidden="true">
                 <span>
@@ -45,16 +76,39 @@ $adminNavItems = [
         </div>
 
         <nav class="teacher-nav" aria-label="Admin navigation">
-            <?php foreach ($adminNavItems as $adminPage => $adminItem) : ?>
-                <a class="teacher-nav__link <?= $adminCurrentPage === $adminPage ? 'teacher-nav__link--active' : '' ?>" href="./?c=<?= htmlspecialchars($adminPage, ENT_QUOTES, 'UTF-8') ?>">
-                    <i data-lucide="<?= htmlspecialchars($adminItem['icon'], ENT_QUOTES, 'UTF-8') ?>" class="h-4 w-4" aria-hidden="true"></i>
-                    <span><?= htmlspecialchars($adminItem['label'], ENT_QUOTES, 'UTF-8') ?></span>
-                    <?php if (isset($adminItem['badge']) && (int) $adminItem['badge'] > 0) : ?>
-                        <span class="ml-auto inline-flex min-w-[1.45rem] items-center justify-center rounded-full border border-arcade-ink/10 bg-arcade-yellow px-1.5 py-0.5 text-[10px] font-bold leading-none text-arcade-ink">
-                            <?= (int) $adminItem['badge'] ?>
-                        </span>
-                    <?php endif; ?>
-                </a>
+            <?php foreach ($adminNavItems as $adminItem) : ?>
+                <?php if (($adminItem['type'] ?? 'link') === 'group') : ?>
+                    <?php
+                    $adminChildren = $adminItem['children'] ?? [];
+                    $adminGroupOpen = array_key_exists($adminCurrentPage, $adminChildren);
+                    ?>
+                    <details class="teacher-nav__group" <?= $adminGroupOpen ? 'open' : '' ?>>
+                        <summary class="teacher-nav__summary <?= $adminGroupOpen ? 'teacher-nav__summary--active' : '' ?>">
+                            <i data-lucide="<?= htmlspecialchars((string) ($adminItem['icon'] ?? 'folder'), ENT_QUOTES, 'UTF-8') ?>" class="h-4 w-4" aria-hidden="true"></i>
+                            <span><?= htmlspecialchars((string) ($adminItem['label'] ?? 'Group'), ENT_QUOTES, 'UTF-8') ?></span>
+                            <i data-lucide="chevron-down" class="teacher-nav__summary-chevron ml-auto h-4 w-4" aria-hidden="true"></i>
+                        </summary>
+                        <div class="teacher-nav__children" data-admin-nav-panel>
+                            <?php foreach ($adminChildren as $adminPage => $adminChild) : ?>
+                                <a class="teacher-nav__link teacher-nav__link--child <?= $adminCurrentPage === $adminPage ? 'teacher-nav__link--active' : '' ?>" href="./?c=<?= htmlspecialchars($adminPage, ENT_QUOTES, 'UTF-8') ?>">
+                                    <i data-lucide="<?= htmlspecialchars($adminChild['icon'], ENT_QUOTES, 'UTF-8') ?>" class="h-4 w-4" aria-hidden="true"></i>
+                                    <span><?= htmlspecialchars($adminChild['label'], ENT_QUOTES, 'UTF-8') ?></span>
+                                </a>
+                            <?php endforeach; ?>
+                        </div>
+                    </details>
+                <?php else : ?>
+                    <?php $adminPage = (string) ($adminItem['page'] ?? 'dashboard'); ?>
+                    <a class="teacher-nav__link <?= $adminCurrentPage === $adminPage ? 'teacher-nav__link--active' : '' ?>" href="./?c=<?= htmlspecialchars($adminPage, ENT_QUOTES, 'UTF-8') ?>">
+                        <i data-lucide="<?= htmlspecialchars((string) ($adminItem['icon'] ?? 'circle'), ENT_QUOTES, 'UTF-8') ?>" class="h-4 w-4" aria-hidden="true"></i>
+                        <span><?= htmlspecialchars((string) ($adminItem['label'] ?? $adminPage), ENT_QUOTES, 'UTF-8') ?></span>
+                        <?php if (isset($adminItem['badge']) && (int) $adminItem['badge'] > 0) : ?>
+                            <span class="ml-auto inline-flex min-w-[1.45rem] items-center justify-center rounded-full border border-arcade-ink/10 bg-arcade-yellow px-1.5 py-0.5 text-[10px] font-bold leading-none text-arcade-ink">
+                                <?= (int) $adminItem['badge'] ?>
+                            </span>
+                        <?php endif; ?>
+                    </a>
+                <?php endif; ?>
             <?php endforeach; ?>
         </nav>
 
@@ -88,6 +142,10 @@ $adminNavItems = [
 (() => {
     const soundToggle = document.getElementById('pixelwar-sound-toggle');
     const darkToggle = document.getElementById('pixelwar-dark-toggle');
+    const adminSidebar = document.querySelector('[data-admin-sidebar]');
+    const adminMenuToggle = document.querySelector('[data-admin-menu-toggle]');
+    const adminMenuClose = document.querySelector('[data-admin-menu-close]');
+    const adminSidebarBackdrop = document.querySelector('[data-admin-sidebar-backdrop]');
     let audioContext = null;
     const storageGet = (key) => {
         try { return localStorage.getItem(key); } catch (error) { return null; }
@@ -127,14 +185,47 @@ $adminNavItems = [
         });
     }
 
+    const applyPixelwarTheme = (isDarkMode) => {
+        document.body.classList.toggle('pixelwar-dark-mode', isDarkMode);
+        storageSet('pixelwarDarkMode', isDarkMode ? 'on' : 'off');
+        window.dispatchEvent(new CustomEvent('pixelwar:theme-change', {
+            detail: { theme: isDarkMode ? 'dark' : 'light', isDarkMode },
+        }));
+    };
+
     if (darkToggle) {
         darkToggle.checked = storageGet('pixelwarDarkMode') === 'on';
-        document.body.classList.toggle('pixelwar-dark-mode', darkToggle.checked);
+        applyPixelwarTheme(darkToggle.checked);
         darkToggle.addEventListener('change', () => {
-            document.body.classList.toggle('pixelwar-dark-mode', darkToggle.checked);
-            storageSet('pixelwarDarkMode', darkToggle.checked ? 'on' : 'off');
+            applyPixelwarTheme(darkToggle.checked);
         });
     }
+
+    const setAdminMenuOpen = (isOpen) => {
+        document.body.classList.toggle('admin-sidebar-open', isOpen);
+        adminSidebar?.classList.toggle('is-open', isOpen);
+        adminMenuToggle?.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+        if (adminSidebarBackdrop) {
+            adminSidebarBackdrop.hidden = !isOpen;
+        }
+    };
+
+    adminMenuToggle?.addEventListener('click', () => setAdminMenuOpen(true));
+    adminMenuClose?.addEventListener('click', () => setAdminMenuOpen(false));
+    adminSidebarBackdrop?.addEventListener('click', () => setAdminMenuOpen(false));
+    adminSidebar?.querySelectorAll('a').forEach((link) => {
+        link.addEventListener('click', () => setAdminMenuOpen(false));
+    });
+    window.addEventListener('resize', () => {
+        if (window.innerWidth > 1024) {
+            setAdminMenuOpen(false);
+        }
+    });
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') {
+            setAdminMenuOpen(false);
+        }
+    });
 
     document.addEventListener('pointerdown', (event) => {
         const soundTarget = event.target.closest('a, button, summary, input[type="checkbox"]');
@@ -142,5 +233,64 @@ $adminNavItems = [
             playPopSound();
         }
     }, { capture: true });
+
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const dropdownDuration = 220;
+
+    document.querySelectorAll('.teacher-nav__group').forEach((group) => {
+        const summary = group.querySelector('.teacher-nav__summary');
+        const panel = group.querySelector('[data-admin-nav-panel]');
+
+        if (!summary || !panel) {
+            return;
+        }
+
+        panel.style.height = group.open ? 'auto' : '0px';
+
+        const finishDropdownAnimation = () => {
+            group.classList.remove('teacher-nav__group--animating');
+            panel.style.height = group.open ? 'auto' : '0px';
+            panel.style.opacity = '';
+        };
+
+        summary.addEventListener('click', (event) => {
+            event.preventDefault();
+
+            if (group.classList.contains('teacher-nav__group--animating')) {
+                return;
+            }
+
+            if (prefersReducedMotion) {
+                group.open = !group.open;
+                panel.style.height = group.open ? 'auto' : '0px';
+                return;
+            }
+
+            group.classList.add('teacher-nav__group--animating');
+
+            if (group.open) {
+                panel.style.height = `${panel.scrollHeight}px`;
+                panel.style.opacity = '1';
+                window.requestAnimationFrame(() => {
+                    panel.style.height = '0px';
+                    panel.style.opacity = '0';
+                });
+                window.setTimeout(() => {
+                    group.open = false;
+                    finishDropdownAnimation();
+                }, dropdownDuration);
+                return;
+            }
+
+            group.open = true;
+            panel.style.height = '0px';
+            panel.style.opacity = '0';
+            window.requestAnimationFrame(() => {
+                panel.style.height = `${panel.scrollHeight}px`;
+                panel.style.opacity = '1';
+            });
+            window.setTimeout(finishDropdownAnimation, dropdownDuration);
+        });
+    });
 })();
 </script>

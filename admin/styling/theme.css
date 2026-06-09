@@ -1,0 +1,74 @@
+@import url("../../styling/theme.css");
+
+/* Admin shell theme bridge. Uses the shared Pixelwar variables from ../../styling/theme.css. */
+body.pixelwar-dark-mode {
+    --admin-bg: var(--pw-bg);
+    --admin-surface: var(--pw-surface);
+    --admin-surface-muted: var(--pw-surface-2);
+    --admin-border: var(--pw-border-soft);
+    --admin-border-strong: var(--pw-border);
+    --admin-text: var(--pw-text);
+    --admin-text-muted: var(--pw-text-muted);
+    --admin-accent: var(--pw-yellow);
+    --admin-accent-soft: rgba(255, 209, 102, 0.16);
+    --admin-danger: var(--pw-danger);
+    --admin-danger-soft: rgba(249, 115, 115, 0.14);
+    --admin-success-soft: rgba(139, 211, 167, 0.14);
+}
+
+body.pixelwar-dark-mode .teacher-shell,
+body.pixelwar-dark-mode .teacher-footer {
+    background: transparent !important;
+    color: var(--admin-text) !important;
+}
+
+body.pixelwar-dark-mode :where(.teacher-sidebar, .teacher-topbar, .teacher-panel, .teacher-page-card, .teacher-stat-card, .teacher-list-card, .teacher-activity-card, .teacher-log-card, .teacher-student-card, .teacher-challenge-card, .teacher-settings-card, .teacher-sidebar__account, .teacher-filterbar, .admin-card, .admin-panel, .admin-section, .modal-content, .toast, .dropdown-menu) {
+    border-color: var(--admin-border) !important;
+    background: var(--admin-surface) !important;
+    color: var(--admin-text) !important;
+}
+
+body.pixelwar-dark-mode :where(.teacher-sidebar__app, .teacher-sidebar__name, .teacher-topbar__title, .teacher-card-title, .teacher-panel-title, .teacher-stat-card strong, h1, h2, h3, h4, h5, h6) {
+    color: var(--admin-text) !important;
+}
+
+body.pixelwar-dark-mode :where(.teacher-sidebar__role, .teacher-sidebar__email, .teacher-muted, .text-muted, small, .form-text) {
+    color: var(--admin-text-muted) !important;
+}
+
+body.pixelwar-dark-mode :where(.teacher-nav__link, .teacher-nav__summary, .teacher-profile__item, .admin-sidebar-control) {
+    color: var(--admin-text-muted) !important;
+    background: transparent !important;
+}
+
+body.pixelwar-dark-mode :where(.teacher-nav__link:hover, .teacher-nav__summary:hover, .teacher-nav__link--active, .teacher-nav__summary--active) {
+    border-color: var(--admin-border-strong) !important;
+    background: var(--admin-accent-soft) !important;
+    color: var(--admin-text) !important;
+}
+
+body.pixelwar-dark-mode :where(input, textarea, select, .form-control, .form-select, .teacher-search input, .teacher-filterbar input, .teacher-filterbar select) {
+    border-color: var(--admin-border) !important;
+    background: var(--pw-input-bg) !important;
+    color: var(--pw-input-text) !important;
+}
+
+body.pixelwar-dark-mode :where(table, .table) {
+    color: var(--admin-text) !important;
+}
+
+body.pixelwar-dark-mode :where(table th, table td, .table th, .table td) {
+    border-color: var(--admin-border) !important;
+    color: var(--admin-text-muted) !important;
+}
+
+body.pixelwar-dark-mode :where(table thead, .table thead, .table-light) {
+    background: var(--admin-surface-muted) !important;
+    color: var(--admin-text) !important;
+}
+
+body.pixelwar-dark-mode :where(.teacher-button, .teacher-link-button, .teacher-small-button, .btn-primary) {
+    border-color: var(--admin-border-strong) !important;
+    background: var(--admin-accent) !important;
+    color: #26190f !important;
+}

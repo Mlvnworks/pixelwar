@@ -578,11 +578,52 @@ $gameUserChallengeId = $gameUserChallenge !== null ? (int) $gameUserChallenge['u
 * { box-sizing: border-box; }
 html, body { width: 100%; min-height: 100%; margin: 0; }
 body { display: grid; min-height: 100vh; place-items: center; background: #f7efe1; font-family: Arial, sans-serif; padding: 24px; overflow: auto; }
+a, area { cursor: default !important; }
 ${css}
 </style>
 </head>
 <body>${html}</body>
 </html>`;
+
+    const disablePreviewLinks = (frame) => {
+        if (!(frame instanceof HTMLIFrameElement)) {
+            return;
+        }
+
+        const doc = frame.contentDocument;
+        if (!doc) {
+            return;
+        }
+
+        if (!doc.getElementById('pixelwar-preview-link-guard')) {
+            const style = doc.createElement('style');
+            style.id = 'pixelwar-preview-link-guard';
+            style.textContent = 'a, area { cursor: default !important; }';
+            doc.head?.appendChild(style);
+        }
+
+        doc.querySelectorAll('a, area').forEach((link) => {
+            link.setAttribute('tabindex', '-1');
+            link.setAttribute('aria-disabled', 'true');
+        });
+
+        if (doc.defaultView?.pixelwarPreviewLinksBlocked) {
+            return;
+        }
+
+        doc.defaultView.pixelwarPreviewLinksBlocked = true;
+        doc.addEventListener('click', (event) => {
+            if (event.target?.closest?.('a, area')) {
+                event.preventDefault();
+            }
+        }, true);
+        doc.addEventListener('keydown', (event) => {
+            if ((event.key === 'Enter' || event.key === ' ') && event.target?.closest?.('a, area')) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+        }, true);
+    };
 
     const fitPreviewFrame = (frame) => {
         if (!(frame instanceof HTMLIFrameElement)) {
@@ -1667,9 +1708,15 @@ ${css}
 
         doc.body.addEventListener('click', (event) => {
             event.preventDefault();
+            event.stopPropagation();
+            event.stopImmediatePropagation?.();
             const key = resolveSelectorKeyFromTarget(event.target);
             state.pinnedSelectorKey = key;
             highlightSelectorCard(key, true);
+
+            if (previewModal?.classList.contains('show')) {
+                bootstrap.Modal.getOrCreateInstance(previewModal).hide();
+            }
         });
 
         const handleTargetMove = (event) => {
@@ -1740,6 +1787,7 @@ ${css}
             }
 
             preview.addEventListener('load', () => {
+                disablePreviewLinks(preview);
                 fitPreviewFrame(preview);
                 attachTargetInspectorHandlers(preview);
             }, { once: false });
@@ -1756,7 +1804,10 @@ ${css}
     };
 
     allPreviewFrames.forEach((frame) => {
-        frame.addEventListener('load', () => fitPreviewFrame(frame), { once: false });
+        frame.addEventListener('load', () => {
+            disablePreviewLinks(frame);
+            fitPreviewFrame(frame);
+        }, { once: false });
     });
 
     const resetGame = () => {

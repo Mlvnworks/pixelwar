@@ -468,3 +468,13 @@ body.pixelwar-dark-mode .create-rules code {
         height: 22rem;
     }
 }
+
+@media (max-width: 640px) {
+    .create-example-card {
+        display: none !important;
+    }
+
+    .create-step-panel[data-step-panel="1"] > .grid {
+        display: block !important;
+    }
+}

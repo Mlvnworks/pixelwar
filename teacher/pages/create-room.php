@@ -105,16 +105,31 @@ $strictModeValue = (int) ($roomOld['strict_mode'] ?? $defaultStrictMode);
                         <h2 class="mt-2 text-2xl font-black">Setup</h2>
 
                         <div class="mt-5 grid gap-4">
-                            <label class="create-room-field">
-                                <span>Challenge</span>
-                                <select id="room-challenge-id" name="challenge_id" required>
-                                    <option value="">Select challenge</option>
-                                    <?php foreach ($challengePreviewRows as $challengeRow) : ?>
-                                        <option value="<?= (int) $challengeRow['challenge_id'] ?>" <?= $selectedChallengeId === (int) $challengeRow['challenge_id'] ? 'selected' : '' ?>>
-                                            <?= htmlspecialchars((string) $challengeRow['name'], ENT_QUOTES, 'UTF-8') ?>
-                                        </option>
-                                    <?php endforeach; ?>
-                                </select>
+                            <label class="create-room-field create-room-field--challenge">
+                                <div class="create-room-field-heading">
+                                    <span>Challenge</span>
+                                    <button type="button" class="create-room-details-button" data-bs-toggle="modal" data-bs-target="#create-room-challenge-preview-modal">
+                                        <i data-lucide="eye" class="h-3.5 w-3.5" aria-hidden="true"></i>
+                                        <span>Details</span>
+                                    </button>
+                                </div>
+                                <input id="room-challenge-id" name="challenge_id" type="hidden" value="<?= (int) $selectedChallengeId ?>" required>
+                                <div class="create-room-combobox" data-challenge-combobox>
+                                    <div class="create-room-combobox__control">
+                                        <i data-lucide="search" class="h-4 w-4" aria-hidden="true"></i>
+                                        <input
+                                            id="room-challenge-search"
+                                            type="search"
+                                            autocomplete="off"
+                                            role="combobox"
+                                            aria-controls="room-challenge-results"
+                                            aria-expanded="false"
+                                            placeholder="Type challenge name..."
+                                            value="<?= htmlspecialchars((string) ($selectedChallenge['name'] ?? ''), ENT_QUOTES, 'UTF-8') ?>">
+                                    </div>
+                                    <div id="room-challenge-results" class="create-room-combobox__results" role="listbox" hidden></div>
+                                    <p class="create-room-combobox__hint">Search and select one of your challenges.</p>
+                                </div>
                             </label>
 
                             <label class="create-room-field">
@@ -156,8 +171,8 @@ $strictModeValue = (int) ($roomOld['strict_mode'] ?? $defaultStrictMode);
                     </article>
 
                     <aside class="grid gap-5">
-                        <article class="teacher-panel rounded-[26px] border-4 border-arcade-ink bg-arcade-panel p-4 shadow-[7px_7px_0_#26190f] md:p-5">
-                            <div class="flex flex-wrap items-center justify-between gap-3">
+                        <article class="teacher-panel create-room-summary-card rounded-[26px] border-4 border-arcade-ink bg-arcade-panel p-4 shadow-[7px_7px_0_#26190f] md:p-5">
+                            <div class="create-room-summary-card__header flex flex-wrap items-center justify-between gap-3">
                                 <div>
                                     <p class="font-arcade text-[10px] uppercase tracking-[0.22em] text-arcade-cyan">Room Preview</p>
                                     <h2 id="room-preview-name" class="mt-2 text-3xl font-black">Room name pending</h2>
@@ -165,8 +180,8 @@ $strictModeValue = (int) ($roomOld['strict_mode'] ?? $defaultStrictMode);
                                 <span id="room-preview-code" class="create-room-pill create-room-pill--code">Room code after create</span>
                             </div>
 
-                            <div class="mt-3 flex flex-wrap gap-2">
-                                <span class="create-room-pill">
+                            <div class="create-room-summary-card__pills mt-3 flex flex-wrap gap-2">
+                                <span class="create-room-pill create-room-pill--host">
                                     Host: <?= htmlspecialchars($teacherName, ENT_QUOTES, 'UTF-8') ?>
                                 </span>
                                 <span id="room-preview-mode" class="create-room-pill">Normal mode</span>
@@ -178,8 +193,8 @@ $strictModeValue = (int) ($roomOld['strict_mode'] ?? $defaultStrictMode);
                             </div>
                         </article>
 
-                        <article class="teacher-panel rounded-[26px] border-4 border-arcade-ink bg-arcade-panel p-4 shadow-[7px_7px_0_#26190f] md:p-5">
-                            <div class="flex flex-wrap items-center justify-between gap-3">
+                        <article class="teacher-panel create-room-challenge-card rounded-[26px] border-4 border-arcade-ink bg-arcade-panel p-4 shadow-[7px_7px_0_#26190f] md:p-5">
+                            <div class="create-room-challenge-card__header flex flex-wrap items-center justify-between gap-3">
                                 <div>
                                     <p class="font-arcade text-[10px] uppercase tracking-[0.22em] text-arcade-orange">Challenge Preview</p>
                                     <h2 id="room-challenge-name" class="mt-2 text-2xl font-black"><?= htmlspecialchars((string) ($selectedChallenge['name'] ?? 'Select a challenge'), ENT_QUOTES, 'UTF-8') ?></h2>
@@ -189,12 +204,12 @@ $strictModeValue = (int) ($roomOld['strict_mode'] ?? $defaultStrictMode);
                                 </span>
                             </div>
 
-                            <div class="mt-3 grid gap-2 sm:grid-cols-2">
-                                <div class="create-room-info-card">
+                            <div class="create-room-challenge-card__info mt-3 grid gap-2 sm:grid-cols-2">
+                                <div class="create-room-info-card create-room-info-card--author">
                                     <p>Author</p>
                                     <strong id="room-challenge-author"><?= htmlspecialchars((string) ($selectedChallenge['author'] ?? $teacherName), ENT_QUOTES, 'UTF-8') ?></strong>
                                 </div>
-                                <div class="create-room-info-card">
+                                <div class="create-room-info-card create-room-info-card--points">
                                     <p>Points</p>
                                     <strong id="room-challenge-points"><?= (int) ($selectedChallenge['points'] ?? 0) ?> pts</strong>
                                 </div>
@@ -224,12 +239,58 @@ $strictModeValue = (int) ($roomOld['strict_mode'] ?? $defaultStrictMode);
                 </section>
             </form>
 
+            <div class="modal fade create-room-challenge-preview-modal" id="create-room-challenge-preview-modal" tabindex="-1" aria-labelledby="create-room-challenge-preview-modal-title" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered modal-lg">
+                    <div class="modal-content rounded-[24px] border-4 border-arcade-ink bg-arcade-panel text-arcade-ink shadow-[8px_8px_0_#26190f]">
+                        <div class="modal-header border-b-2 border-arcade-ink/10 px-4 py-3">
+                            <div class="min-w-0">
+                                <p class="font-arcade text-[9px] uppercase tracking-[0.18em] text-arcade-orange">Challenge Preview</p>
+                                <h2 id="create-room-challenge-preview-modal-title" class="mt-1 truncate text-xl font-black"><?= htmlspecialchars((string) ($selectedChallenge['name'] ?? 'Select a challenge'), ENT_QUOTES, 'UTF-8') ?></h2>
+                            </div>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body p-4">
+                            <div class="create-room-modal-details grid gap-3 sm:grid-cols-3">
+                                <div class="create-room-info-card">
+                                    <p>Difficulty</p>
+                                    <strong id="room-modal-challenge-difficulty"><?= htmlspecialchars((string) ($selectedChallenge['difficulty_name'] ?? 'Not set'), ENT_QUOTES, 'UTF-8') ?></strong>
+                                </div>
+                                <div class="create-room-info-card">
+                                    <p>Author</p>
+                                    <strong id="room-modal-challenge-author"><?= htmlspecialchars((string) ($selectedChallenge['author'] ?? $teacherName), ENT_QUOTES, 'UTF-8') ?></strong>
+                                </div>
+                                <div class="create-room-info-card">
+                                    <p>Points</p>
+                                    <strong id="room-modal-challenge-points"><?= (int) ($selectedChallenge['points'] ?? 0) ?> pts</strong>
+                                </div>
+                            </div>
+                            <div id="room-modal-challenge-instruction" class="create-room-copy mt-4">
+                                <?= $tools->formatRichText((string) ($selectedChallenge['instruction'] ?? 'Select a challenge to preview its instruction.')) ?>
+                            </div>
+                            <div class="create-room-preview-frame create-room-preview-frame--modal mt-4">
+                                <div id="room-modal-preview-loader" class="create-room-preview-loader">
+                                    <span class="create-room-preview-loader__spinner" aria-hidden="true"></span>
+                                    <strong>Loading preview...</strong>
+                                    <small>Fetching the selected challenge source files.</small>
+                                </div>
+                                <div class="create-room-preview-stage">
+                                    <iframe id="room-modal-challenge-preview" title="Room challenge modal preview" sandbox="allow-same-origin"></iframe>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <script>
             window.addEventListener('load', () => {
                 window.lucide?.createIcons();
 
                 const challengeMap = <?= json_encode($challengePreviewRows, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?>;
                 const challengeSelect = document.getElementById('room-challenge-id');
+                const challengeSearchInput = document.getElementById('room-challenge-search');
+                const challengeResults = document.getElementById('room-challenge-results');
+                const challengeCombobox = document.querySelector('[data-challenge-combobox]');
                 const roomNameInput = document.getElementById('room-name');
                 const roomDescriptionInput = document.getElementById('room-description');
                 const timerLimitInput = document.getElementById('room-timer-limit');
@@ -243,8 +304,16 @@ $strictModeValue = (int) ($roomOld['strict_mode'] ?? $defaultStrictMode);
                 const challengeAuthor = document.getElementById('room-challenge-author');
                 const challengePoints = document.getElementById('room-challenge-points');
                 const challengeInstruction = document.getElementById('room-challenge-instruction');
+                const modalChallengeTitle = document.getElementById('create-room-challenge-preview-modal-title');
+                const modalChallengeDifficulty = document.getElementById('room-modal-challenge-difficulty');
+                const modalChallengeAuthor = document.getElementById('room-modal-challenge-author');
+                const modalChallengePoints = document.getElementById('room-modal-challenge-points');
+                const modalChallengeInstruction = document.getElementById('room-modal-challenge-instruction');
                 const previewFrame = document.getElementById('room-challenge-preview');
+                const modalPreviewFrame = document.getElementById('room-modal-challenge-preview');
                 const previewLoader = document.getElementById('room-preview-loader');
+                const modalPreviewLoader = document.getElementById('room-modal-preview-loader');
+                const challengePreviewModal = document.getElementById('create-room-challenge-preview-modal');
 
                 const escapeHtml = (value) => String(value)
                     .replace(/&/g, '&amp;')
@@ -265,25 +334,68 @@ $strictModeValue = (int) ($roomOld['strict_mode'] ?? $defaultStrictMode);
                 };
 
                 const setPreviewStatus = (label, error = false) => {
-                    if (!(previewLoader instanceof HTMLElement)) {
-                        return;
-                    }
+                    [previewLoader, modalPreviewLoader].forEach((loader) => {
+                        if (!(loader instanceof HTMLElement)) {
+                            return;
+                        }
 
-                    const strong = previewLoader.querySelector('strong');
-                    const small = previewLoader.querySelector('small');
-                    if (strong) {
-                        strong.textContent = label;
-                    }
-                    if (small) {
-                        small.textContent = error
-                            ? 'The selected challenge preview could not be loaded right now.'
-                            : 'Fetching the selected challenge source files.';
-                    }
-                    previewLoader.classList.toggle('is-error', error);
-                    previewLoader.hidden = false;
+                        const strong = loader.querySelector('strong');
+                        const small = loader.querySelector('small');
+                        if (strong) {
+                            strong.textContent = label;
+                        }
+                        if (small) {
+                            small.textContent = error
+                                ? 'The selected challenge preview could not be loaded right now.'
+                                : 'Fetching the selected challenge source files.';
+                        }
+                        loader.classList.toggle('is-error', error);
+                        loader.hidden = false;
+                    });
                 };
 
-                const fitPreviewFrame = (frame) => {
+                const disablePreviewLinks = (frame) => {
+        if (!(frame instanceof HTMLIFrameElement)) {
+            return;
+        }
+
+        const doc = frame.contentDocument;
+        if (!doc) {
+            return;
+        }
+
+        if (!doc.getElementById('pixelwar-preview-link-guard')) {
+            const style = doc.createElement('style');
+            style.id = 'pixelwar-preview-link-guard';
+            style.textContent = 'a, area { cursor: default !important; }';
+            doc.head?.appendChild(style);
+        }
+
+        doc.querySelectorAll('a, area').forEach((link) => {
+            link.setAttribute('tabindex', '-1');
+            link.setAttribute('aria-disabled', 'true');
+        });
+
+        if (doc.defaultView?.pixelwarPreviewLinksBlocked) {
+            return;
+        }
+
+        doc.defaultView.pixelwarPreviewLinksBlocked = true;
+        doc.addEventListener('click', (event) => {
+            if (event.target?.closest?.('a, area')) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+        }, true);
+        doc.addEventListener('keydown', (event) => {
+            if ((event.key === 'Enter' || event.key === ' ') && event.target?.closest?.('a, area')) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+        }, true);
+    };
+
+    const fitPreviewFrame = (frame) => {
                     if (!(frame instanceof HTMLIFrameElement)) {
                         return;
                     }
@@ -327,12 +439,13 @@ $strictModeValue = (int) ($roomOld['strict_mode'] ?? $defaultStrictMode);
                 };
 
                 const loadPreview = async (htmlSource, cssSource) => {
-                    if (!(previewFrame instanceof HTMLIFrameElement)) {
+                    const previewFrames = [previewFrame, modalPreviewFrame].filter((frame) => frame instanceof HTMLIFrameElement);
+                    if (previewFrames.length === 0) {
                         return;
                     }
 
                     if (!htmlSource || !cssSource) {
-                        previewFrame.removeAttribute('srcdoc');
+                        previewFrames.forEach((frame) => frame.removeAttribute('srcdoc'));
                         setPreviewStatus('Preview unavailable', true);
                         return;
                     }
@@ -363,6 +476,7 @@ $strictModeValue = (int) ($roomOld['strict_mode'] ?? $defaultStrictMode);
 *{box-sizing:border-box}
 html,body{margin:0;padding:0;background:#fff7e8;width:max-content;height:max-content}
 body{display:inline-block;font-family:Arial,sans-serif}
+a,area{cursor:default!important}
 .preview-canvas{display:inline-block;padding:24px}
 ${cssText}
 </style>
@@ -371,13 +485,21 @@ ${cssText}
 <div class="preview-canvas">${htmlText}</div>
 </body>
 </html>`;
-                        previewFrame.onload = () => {
-                            previewLoader.hidden = true;
-                            fitPreviewFrame(previewFrame);
-                        };
-                        previewFrame.srcdoc = srcdoc;
+                        previewFrames.forEach((frame) => {
+                            frame.onload = () => {
+                                disablePreviewLinks(frame);
+                                if (frame === previewFrame && previewLoader) {
+                                    previewLoader.hidden = true;
+                                }
+                                if (frame === modalPreviewFrame && modalPreviewLoader) {
+                                    modalPreviewLoader.hidden = true;
+                                }
+                                fitPreviewFrame(frame);
+                            };
+                            frame.srcdoc = srcdoc;
+                        });
                     } catch (error) {
-                        previewFrame.removeAttribute('srcdoc');
+                        previewFrames.forEach((frame) => frame.removeAttribute('srcdoc'));
                         setPreviewStatus('Preview unavailable', true);
                     }
                 };
@@ -399,6 +521,52 @@ ${cssText}
                     if (roomPreviewMode) {
                         roomPreviewMode.textContent = strictModeInput.value === '1' ? 'Strict mode' : 'Normal mode';
                     }
+                };
+
+                const challengeRows = Object.values(challengeMap);
+                const selectedChallengeName = () => {
+                    const selected = challengeMap[challengeSelect.value] || null;
+                    return selected?.name || '';
+                };
+                const closeChallengeResults = () => {
+                    if (challengeResults) {
+                        challengeResults.hidden = true;
+                    }
+                    challengeSearchInput?.setAttribute('aria-expanded', 'false');
+                };
+                const selectChallenge = (challengeId) => {
+                    const selected = challengeMap[String(challengeId)] || null;
+                    if (!selected || !challengeSelect) {
+                        return;
+                    }
+
+                    challengeSelect.value = String(selected.challenge_id || challengeId);
+                    if (challengeSearchInput) {
+                        challengeSearchInput.value = selected.name || '';
+                    }
+                    closeChallengeResults();
+                    challengeSelect.dispatchEvent(new Event('change', { bubbles: true }));
+                };
+                const renderChallengeResults = () => {
+                    if (!challengeResults || !challengeSearchInput) {
+                        return;
+                    }
+
+                    const query = challengeSearchInput.value.trim().toLowerCase();
+                    const matches = challengeRows
+                        .filter((challenge) => !query || String(challenge.name || '').toLowerCase().includes(query))
+                        .slice(0, 8);
+
+                    challengeResults.innerHTML = matches.length > 0
+                        ? matches.map((challenge) => `
+                            <button type="button" class="create-room-combobox__option" role="option" data-challenge-option="${Number(challenge.challenge_id || 0)}">
+                                <span>${escapeHtml(challenge.name || 'Untitled challenge')}</span>
+                                <small>${escapeHtml(challenge.difficulty_name || 'Not set')} · ${Number(challenge.points || 0)} pts</small>
+                            </button>
+                        `).join('')
+                        : '<p class="create-room-combobox__empty">No matching challenges.</p>';
+                    challengeResults.hidden = false;
+                    challengeSearchInput.setAttribute('aria-expanded', 'true');
                 };
 
                 const updateChallengePreview = () => {
@@ -423,6 +591,38 @@ ${cssText}
                     loadPreview(selected.html_source || '', selected.css_source || '');
                 };
 
+                challengeSearchInput?.addEventListener('focus', renderChallengeResults);
+                challengeSearchInput?.addEventListener('input', () => {
+                    if (challengeSelect) {
+                        challengeSelect.value = '';
+                    }
+                    renderChallengeResults();
+                    updateChallengePreview();
+                });
+                challengeResults?.addEventListener('click', (event) => {
+                    const option = event.target instanceof Element ? event.target.closest('[data-challenge-option]') : null;
+                    if (!(option instanceof HTMLElement)) {
+                        return;
+                    }
+                    selectChallenge(option.dataset.challengeOption || '');
+                });
+                document.addEventListener('click', (event) => {
+                    if (challengeCombobox && !challengeCombobox.contains(event.target)) {
+                        if (challengeSearchInput && challengeSelect?.value === '') {
+                            challengeSearchInput.value = selectedChallengeName();
+                        }
+                        closeChallengeResults();
+                    }
+                });
+                challengeSearchInput?.addEventListener('keydown', (event) => {
+                    if (event.key === 'Escape') {
+                        if (challengeSelect?.value === '') {
+                            challengeSearchInput.value = selectedChallengeName();
+                        }
+                        closeChallengeResults();
+                    }
+                });
+
                 [challengeSelect, roomNameInput, roomDescriptionInput, timerLimitInput, strictModeInput].forEach((field) => {
                     if (!field) {
                         return;
@@ -443,7 +643,11 @@ ${cssText}
 
                 updateRoomPreview();
                 updateChallengePreview();
-                window.addEventListener('resize', () => fitPreviewFrame(previewFrame));
+                window.addEventListener('resize', () => {
+                    fitPreviewFrame(previewFrame);
+                    fitPreviewFrame(modalPreviewFrame);
+                });
+                challengePreviewModal?.addEventListener('shown.bs.modal', () => requestAnimationFrame(() => fitPreviewFrame(modalPreviewFrame)));
             });
             </script>
         <?php endif; ?>

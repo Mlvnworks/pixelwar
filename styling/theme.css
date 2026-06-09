@@ -1,0 +1,257 @@
+/* Central Pixelwar theme layer. Keep this last so page-specific utility classes inherit readable colors. */
+:root {
+    --pw-bg: #fff7e8;
+    --pw-bg-radial-a: rgba(255, 209, 102, 0.38);
+    --pw-bg-radial-b: rgba(76, 201, 240, 0.24);
+    --pw-surface: #fffdf6;
+    --pw-surface-2: #fff7e8;
+    --pw-surface-3: #ffffff;
+    --pw-text: #26190f;
+    --pw-text-muted: rgba(38, 25, 15, 0.66);
+    --pw-text-soft: rgba(38, 25, 15, 0.48);
+    --pw-border: #26190f;
+    --pw-border-soft: rgba(38, 25, 15, 0.18);
+    --pw-shadow: rgba(38, 25, 15, 0.24);
+    --pw-accent: #ff8c42;
+    --pw-accent-contrast: #26190f;
+    --pw-yellow: #ffd166;
+    --pw-cyan: #4cc9f0;
+    --pw-coral: #f97373;
+    --pw-mint: #8bd3c7;
+    --pw-danger: #d94c3f;
+    --pw-success: #167a55;
+    --pw-input-bg: #ffffff;
+    --pw-input-text: #26190f;
+    --pw-input-placeholder: rgba(38, 25, 15, 0.46);
+    --pw-focus: rgba(76, 201, 240, 0.45);
+    --pw-overlay: rgba(38, 25, 15, 0.48);
+}
+
+body.pixelwar-dark-mode {
+    --pw-bg: #120d08;
+    --pw-bg-radial-a: rgba(255, 140, 66, 0.2);
+    --pw-bg-radial-b: rgba(76, 201, 240, 0.16);
+    --pw-surface: #1f160f;
+    --pw-surface-2: #2a1d13;
+    --pw-surface-3: #18110c;
+    --pw-text: #fff7e8;
+    --pw-text-muted: rgba(255, 247, 232, 0.72);
+    --pw-text-soft: rgba(255, 247, 232, 0.52);
+    --pw-border: rgba(255, 247, 232, 0.72);
+    --pw-border-soft: rgba(255, 247, 232, 0.22);
+    --pw-shadow: rgba(0, 0, 0, 0.46);
+    --pw-accent: #ffb15f;
+    --pw-accent-contrast: #120d08;
+    --pw-yellow: #ffd166;
+    --pw-cyan: #74ddff;
+    --pw-coral: #ff9a9a;
+    --pw-mint: #a7f3d0;
+    --pw-danger: #ff9a9a;
+    --pw-success: #8bd3a7;
+    --pw-input-bg: #2a1d13;
+    --pw-input-text: #fff7e8;
+    --pw-input-placeholder: rgba(255, 247, 232, 0.5);
+    --pw-focus: rgba(255, 209, 102, 0.42);
+    --pw-overlay: rgba(0, 0, 0, 0.72);
+}
+
+html,
+body {
+    background-color: var(--pw-bg);
+    color: var(--pw-text);
+}
+
+body.pixelwar-dark-mode {
+    background:
+        radial-gradient(circle at 12% 12%, var(--pw-bg-radial-a), transparent 28%),
+        radial-gradient(circle at 86% 18%, var(--pw-bg-radial-b), transparent 26%),
+        linear-gradient(135deg, #120d08 0%, #1c120b 48%, #0f1720 100%) !important;
+    color: var(--pw-text) !important;
+}
+
+body.pixelwar-dark-mode :where(main, section, article, aside, header, footer, nav, div, p, span, h1, h2, h3, h4, h5, h6, label, small, strong, th, td, li):not([class*="bg-arcade-yellow"]):not([class*="bg-arcade-cyan"]):not([class*="bg-arcade-mint"]):not([class*="text-white"]) {
+    color: inherit;
+}
+
+body.pixelwar-dark-mode :where(.modal-content, .dropdown-menu, details > div, .card, .table, .toast, .alert, .offcanvas),
+body.pixelwar-dark-mode :where([class*="card"], [class*="panel"], [class*="shell"], [class*="surface"], [class*="box"], [class*="menu"], [class*="dropdown"]):not(.modal):not(.modal-backdrop):not([class*="bg-arcade-yellow"]):not([class*="bg-arcade-cyan"]):not([class*="bg-arcade-orange"]):not([class*="bg-arcade-coral"]):not([class*="bg-arcade-mint"]) {
+    border-color: var(--pw-border-soft) !important;
+    background-color: var(--pw-surface) !important;
+    color: var(--pw-text) !important;
+}
+
+body.pixelwar-dark-mode :where([class*="bg-white"], [class*="bg-arcade-panel"], [class*="bg-arcade-cream"], [class*="bg-slate"], [class*="bg-gray"], [class*="bg-zinc"]):not([class*="bg-arcade-yellow"]):not([class*="bg-arcade-cyan"]):not([class*="bg-arcade-orange"]):not([class*="bg-arcade-coral"]):not([class*="bg-arcade-mint"]) {
+    background-color: var(--pw-surface) !important;
+    color: var(--pw-text) !important;
+}
+
+body.pixelwar-dark-mode :where([class*="text-arcade-ink"], [class*="text-slate"], [class*="text-gray"], [class*="text-zinc"], [class*="text-neutral"]) {
+    color: var(--pw-text-muted) !important;
+}
+
+body.pixelwar-dark-mode :where([class*="text-arcade-orange"], a:not([class*="bg-"])) {
+    color: var(--pw-accent) !important;
+}
+
+body.pixelwar-dark-mode :where([class*="text-arcade-cyan"]) {
+    color: var(--pw-cyan) !important;
+}
+
+body.pixelwar-dark-mode :where([class*="text-arcade-coral"], [class*="text-red"], .text-danger) {
+    color: var(--pw-danger) !important;
+}
+
+body.pixelwar-dark-mode :where([class*="border-arcade-ink"], [class*="border-slate"], [class*="border-gray"], [class*="border-zinc"], [class*="border-neutral"], .border) {
+    border-color: var(--pw-border-soft) !important;
+}
+
+body.pixelwar-dark-mode :where(input, textarea, select, .form-control, .form-select) {
+    border-color: var(--pw-border-soft) !important;
+    background-color: var(--pw-input-bg) !important;
+    color: var(--pw-input-text) !important;
+    caret-color: var(--pw-yellow);
+}
+
+body.pixelwar-dark-mode :where(input, textarea)::placeholder {
+    color: var(--pw-input-placeholder) !important;
+    opacity: 1;
+}
+
+body.pixelwar-dark-mode :where(input, textarea, select, button, a, summary, [tabindex]):focus-visible {
+    outline: 3px solid var(--pw-focus) !important;
+    outline-offset: 2px;
+}
+
+body.pixelwar-dark-mode :where(button, .btn, [role="button"], a[class*="button"], a[class*="btn"]):disabled,
+body.pixelwar-dark-mode :where(button, .btn, [role="button"], a[class*="button"], a[class*="btn"]).disabled {
+    border-color: var(--pw-border-soft) !important;
+    background-color: rgba(255, 247, 232, 0.1) !important;
+    color: var(--pw-text-soft) !important;
+    cursor: not-allowed;
+    opacity: 0.75;
+}
+
+body.pixelwar-dark-mode :where(.table, table) {
+    --bs-table-bg: transparent;
+    --bs-table-color: var(--pw-text);
+    --bs-table-border-color: var(--pw-border-soft);
+    color: var(--pw-text) !important;
+}
+
+body.pixelwar-dark-mode :where(table th, table td) {
+    border-color: var(--pw-border-soft) !important;
+    color: var(--pw-text-muted) !important;
+}
+
+body.pixelwar-dark-mode :where(thead, .table-light, .table thead th) {
+    background-color: var(--pw-surface-2) !important;
+    color: var(--pw-text) !important;
+}
+
+body.pixelwar-dark-mode :where(.modal-backdrop) {
+    background-color: var(--pw-overlay) !important;
+}
+
+body.pixelwar-dark-mode :where(.modal-header, .modal-footer) {
+    border-color: var(--pw-border-soft) !important;
+}
+
+body.pixelwar-dark-mode :where(.btn-close) {
+    filter: invert(1) grayscale(100%) brightness(1.8);
+    opacity: 0.9;
+}
+
+body.pixelwar-dark-mode :where(.alert) {
+    border-color: var(--pw-border-soft) !important;
+    background-color: var(--pw-surface-2) !important;
+    color: var(--pw-text) !important;
+}
+
+body.pixelwar-dark-mode :where(.alert-success) {
+    background-color: rgba(139, 211, 167, 0.14) !important;
+    color: #c8ffd9 !important;
+}
+
+body.pixelwar-dark-mode :where(.alert-danger, .alert-error) {
+    background-color: rgba(249, 115, 115, 0.14) !important;
+    color: #ffd0d0 !important;
+}
+
+body.pixelwar-dark-mode :where(.alert-warning) {
+    background-color: rgba(255, 209, 102, 0.16) !important;
+    color: #ffe6a6 !important;
+}
+
+body.pixelwar-dark-mode :where(.badge, .chip, [class*="badge"], [class*="chip"], [class*="pill"]) {
+    border-color: var(--pw-border-soft);
+}
+
+body.pixelwar-dark-mode :where(.shadow, [class*="shadow-"]) {
+    box-shadow: 8px 8px 0 var(--pw-shadow) !important;
+}
+
+body.pixelwar-dark-mode :where([class*="hover:bg-white"]:hover, [class*="hover:bg-arcade-cream"]:hover, [class*="hover:bg-arcade-panel"]:hover) {
+    background-color: var(--pw-surface-2) !important;
+}
+
+body.pixelwar-dark-mode :where([class*="bg-arcade-yellow"], [class*="bg-arcade-cyan"], [class*="bg-arcade-mint"]) {
+    color: #26190f !important;
+}
+
+body.pixelwar-dark-mode :where([class*="bg-arcade-orange"], [class*="bg-arcade-coral"]) {
+    color: #120d08 !important;
+}
+
+/* Modal/backdrop polish for dark mode. Keep modal content clear while the page behind is dimmed. */
+body.pixelwar-dark-mode.modal-open {
+    background-color: var(--pw-bg) !important;
+}
+
+body.pixelwar-dark-mode .modal-backdrop,
+body.pixelwar-dark-mode .modal-backdrop.show {
+    background:
+        radial-gradient(circle at 20% 10%, rgba(255, 140, 66, 0.18), transparent 32%),
+        radial-gradient(circle at 82% 18%, rgba(76, 201, 240, 0.14), transparent 34%),
+        rgba(3, 2, 1, 0.86) !important;
+    opacity: 1 !important;
+    backdrop-filter: blur(3px) saturate(1.15);
+}
+
+body.pixelwar-dark-mode .modal {
+    --bs-modal-bg: var(--pw-surface);
+    --bs-modal-color: var(--pw-text);
+    --bs-modal-border-color: var(--pw-border);
+    color: var(--pw-text) !important;
+}
+
+body.pixelwar-dark-mode .modal-dialog,
+body.pixelwar-dark-mode .modal-dialog-centered,
+body.pixelwar-dark-mode .modal-dialog-scrollable {
+    border: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    color: var(--pw-text) !important;
+}
+
+body.pixelwar-dark-mode .modal-content:not(.bg-transparent) {
+    border-color: var(--pw-border) !important;
+    background:
+        linear-gradient(145deg, rgba(31, 22, 15, 0.98), rgba(24, 17, 12, 0.98)) !important;
+    color: var(--pw-text) !important;
+    box-shadow: 10px 10px 0 rgba(0, 0, 0, 0.58), 0 0 0 1px rgba(255, 247, 232, 0.08) inset !important;
+}
+
+body.pixelwar-dark-mode .modal-content :where(.bg-white, [class*="bg-white"], [class*="bg-arcade-panel"], [class*="bg-arcade-cream"]):not([class*="bg-arcade-yellow"]):not([class*="bg-arcade-cyan"]):not([class*="bg-arcade-orange"]):not([class*="bg-arcade-coral"]):not([class*="bg-arcade-mint"]) {
+    background-color: var(--pw-surface-2) !important;
+    color: var(--pw-text) !important;
+}
+
+body.pixelwar-dark-mode .modal-content :where(p, span, label, small, strong, h1, h2, h3, h4, h5, h6, li):not([class*="bg-arcade-yellow"]):not([class*="bg-arcade-cyan"]):not([class*="bg-arcade-orange"]):not([class*="bg-arcade-coral"]):not([class*="bg-arcade-mint"]) {
+    color: inherit;
+}
+
+body.pixelwar-dark-mode .modal-content :where(input, textarea, select, .form-control, .form-select) {
+    border-color: var(--pw-border-soft) !important;
+    background-color: var(--pw-input-bg) !important;
+    color: var(--pw-input-text) !important;
+}

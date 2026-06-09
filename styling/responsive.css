@@ -1,0 +1,487 @@
+/* Central responsive layer for Pixelwar. Loaded last across student, teacher, and admin shells. */
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+html,
+body {
+    max-width: 100%;
+    overflow-x: clip;
+}
+
+body {
+    min-width: 0;
+}
+
+img,
+svg,
+canvas,
+video,
+iframe {
+    max-width: 100%;
+}
+
+img,
+video,
+iframe {
+    height: auto;
+}
+
+canvas {
+    display: block;
+}
+
+:where(main, section, article, aside, header, footer, nav, div, form, fieldset) {
+    min-width: 0;
+}
+
+:where(p, h1, h2, h3, h4, h5, h6, span, small, strong, label, a, button, td, th, li) {
+    overflow-wrap: anywhere;
+}
+
+:where(.container) {
+    width: min(100% - clamp(1rem, 4vw, 2rem), 1200px) !important;
+    max-width: 1200px !important;
+}
+
+:where(.modal-dialog) {
+    width: min(100% - 1rem, var(--bs-modal-width, 500px));
+    max-width: min(100% - 1rem, var(--bs-modal-width, 500px));
+    margin-inline: auto;
+}
+
+:where(.modal-xl) {
+    --bs-modal-width: min(1140px, calc(100vw - 1rem));
+}
+
+:where(.modal-lg) {
+    --bs-modal-width: min(800px, calc(100vw - 1rem));
+}
+
+:where(.modal-content) {
+    max-height: calc(100dvh - 1rem);
+    overflow: hidden;
+}
+
+:where(.modal-body) {
+    min-width: 0;
+    overflow-x: auto;
+    overflow-y: auto;
+}
+
+:where(input, textarea, select, .form-control, .form-select, button, .btn, [role="button"]) {
+    max-width: 100%;
+}
+
+:where(textarea) {
+    min-height: 7rem;
+    resize: vertical;
+}
+
+:where(button, .btn, a[class*="button"], a[class*="btn"], [role="button"]) {
+    white-space: normal;
+    text-align: center;
+}
+
+:where(.table-responsive, [class*="overflow-x-auto"], [class*="overflow-x-scroll"]) {
+    max-width: 100%;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-gutter: stable;
+}
+
+:where(table) {
+    max-width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+:where(table th, table td) {
+    vertical-align: middle;
+}
+
+:where(.teacher-shell, .teacher-footer) {
+    min-width: 0;
+}
+
+:where(.teacher-shell > .container, .teacher-footer > .container) {
+    max-width: min(100%, 1180px) !important;
+}
+
+:where(.teacher-panel, .teacher-page-card, .teacher-hero, .teacher-stat-card, .teacher-list-card, .teacher-activity-card, .teacher-log-card, .teacher-student-card, .teacher-challenge-card, .teacher-settings-card, .ranking-card, .challenge-card, .panel-card, .selector-card, .auth-card, .login-card, .forgot-card, .settings-card, .settings-form, .room-shell, .challenge-detail-card, .ranks-hero, .leaderboards-hero) {
+    max-width: 100%;
+}
+
+:where([class*="grid-cols-"]) {
+    min-width: 0;
+}
+
+:where(.teacher-filterbar, .teacher-topbar, .teacher-hero, .teacher-panel, .home-dashboard article, .settings-card, .settings-form) :where(.flex) {
+    min-width: 0;
+}
+
+:where(.pixelwar-header .container, .teacher-topbar, .teacher-sidebar__account, .teacher-sidebar__controls, .teacher-nav__link, .teacher-nav__summary) {
+    min-width: 0;
+}
+
+:where(.pixelwar-notifications__menu, .pixelwar-profile__menu) {
+    width: min(19rem, calc(100vw - 1rem)) !important;
+    max-width: calc(100vw - 1rem);
+}
+
+:where(.pixelwar-notifications__menu) {
+    right: 0;
+}
+
+:where(.pixelwar-profile__menu) {
+    right: 0;
+}
+
+:where(.teacher-sidebar__email, .teacher-sidebar__name, .teacher-sidebar__app, .teacher-sidebar__role) {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+@media (max-width: 1280px) {
+    :where(.container) {
+        max-width: calc(100vw - 2rem) !important;
+    }
+
+    :where(.teacher-shell > .container, .teacher-footer > .container) {
+        max-width: calc(100vw - 2rem) !important;
+    }
+}
+
+@media (max-width: 1024px) {
+    html,
+    body {
+        overflow-x: hidden;
+    }
+
+    :where(.teacher-sidebar) {
+        position: relative !important;
+        inset: auto !important;
+        width: 100% !important;
+        max-height: none !important;
+        min-height: auto !important;
+        border-right: 0 !important;
+        border-bottom: 2px solid var(--pw-border-soft, rgba(38, 25, 15, 0.18));
+        padding: 1rem !important;
+    }
+
+    :where(.teacher-shell, .teacher-footer) {
+        margin-left: 0 !important;
+        width: 100% !important;
+        padding-inline: 1rem !important;
+    }
+
+    :where(.teacher-nav) {
+        grid-template-columns: repeat(auto-fit, minmax(min(11rem, 100%), 1fr)) !important;
+        gap: 0.45rem !important;
+    }
+
+    :where(.teacher-nav__link, .teacher-nav__summary) {
+        border: 1px solid var(--pw-border-soft, rgba(38, 25, 15, 0.18)) !important;
+        border-radius: 0.85rem !important;
+        padding: 0.72rem 0.85rem !important;
+    }
+
+    :where(.teacher-nav__children) {
+        padding-left: 0 !important;
+    }
+
+    :where(.teacher-sidebar__controls) {
+        margin-top: 0 !important;
+    }
+
+    :where(.teacher-topbar) {
+        flex-wrap: wrap;
+        gap: 0.75rem;
+    }
+
+    :where(.teacher-topbar > *) {
+        min-width: 0;
+    }
+
+    :where(.sticky) {
+        position: static !important;
+    }
+}
+
+@media (max-width: 768px) {
+    :where(.container) {
+        width: min(100% - 1rem, 100%) !important;
+        max-width: calc(100vw - 1rem) !important;
+        margin-left: auto !important;
+        margin-right: auto !important;
+    }
+
+    :where(main) {
+        padding-inline: 0 !important;
+    }
+
+    :where(.home-dashboard, .versus-page, .settings-page, .analytics-page, .challenge-detail-page, .challenges-page, .room-page, .ranks-page, .leaderboards-page, .auth-page, .login-page, .forgot-page, .signup-page, .profile-setup-page) {
+        width: 100% !important;
+        max-width: 100vw !important;
+        overflow-x: hidden !important;
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+    }
+
+    :where(.home-dashboard, .versus-page, .settings-page, .analytics-page, .challenge-detail-page, .challenges-page, .room-page, .ranks-page, .leaderboards-page, .auth-page, .login-page, .forgot-page, .signup-page, .profile-setup-page) > .container,
+    :where(.home-dashboard, .versus-page, .settings-page, .analytics-page, .challenge-detail-page, .challenges-page, .room-page, .ranks-page, .leaderboards-page, .auth-page, .login-page, .forgot-page, .signup-page, .profile-setup-page) .container {
+        width: calc(100vw - 1rem) !important;
+        max-width: calc(100vw - 1rem) !important;
+        margin-left: auto !important;
+        margin-right: auto !important;
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+    }
+
+    :where(.home-dashboard, .versus-page, .settings-page, .analytics-page, .challenge-detail-page, .challenges-page, .room-page, .ranks-page, .leaderboards-page) :where(.ranking-card, .challenge-card, .panel-card, .selector-card, .settings-card, .settings-form, .room-shell, .challenge-detail-card, .challenge-library-card, .ranks-hero, .leaderboards-hero, .leaderboards-list, .versus-hero, .versus-player-card, article, section) {
+        max-width: 100% !important;
+        margin-left: auto !important;
+        margin-right: auto !important;
+    }
+
+    :where(.pixelwar-header) {
+        padding-inline: 0.5rem !important;
+    }
+
+    :where(.pixelwar-header .container) {
+        gap: 0.65rem !important;
+        padding-inline: 0 !important;
+    }
+
+    :where(.pixelwar-header .font-arcade) {
+        max-width: 52vw;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-size: 0.72rem !important;
+        letter-spacing: 0.12em !important;
+    }
+
+    :where(.pixelwar-profile__summary) {
+        max-width: 11rem;
+    }
+
+    :where(.pixelwar-profile__summary > span:not(:first-child)) {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    :where(.modal-dialog) {
+        width: calc(100vw - 0.75rem);
+        max-width: calc(100vw - 0.75rem);
+        margin: 0.375rem auto;
+    }
+
+    :where(.modal-content) {
+        border-width: 3px !important;
+        border-radius: 1.25rem !important;
+        max-height: calc(100dvh - 0.75rem);
+    }
+
+    :where(.modal-header, .modal-body, .modal-footer) {
+        padding: 0.95rem !important;
+    }
+
+    :where(.modal-footer) {
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+
+    :where(.modal-footer > *, .modal-body button, .modal-body .btn) {
+        min-width: 0;
+    }
+
+    :where(.teacher-hero, .teacher-panel, .teacher-page-card, .teacher-stat-card, .teacher-list-card, .teacher-activity-card, .teacher-log-card, .teacher-student-card, .teacher-challenge-card, .teacher-settings-card, .ranking-card, .challenge-card, .panel-card, .selector-card, .auth-card, .login-card, .forgot-card, .settings-card, .settings-form, .room-shell, .challenge-detail-card, .ranks-hero, .leaderboards-hero, .leaderboards-list) {
+        border-width: 3px !important;
+        border-radius: 1.25rem !important;
+        padding: 1rem !important;
+        box-shadow: 5px 5px 0 var(--pw-shadow, rgba(38, 25, 15, 0.22)) !important;
+    }
+
+    :where(h1) {
+        font-size: clamp(1.75rem, 9vw, 2.75rem) !important;
+        line-height: 1.08 !important;
+    }
+
+    :where(h2) {
+        font-size: clamp(1.25rem, 6vw, 2rem) !important;
+        line-height: 1.14 !important;
+    }
+
+    :where(.font-arcade) {
+        line-height: 1.6;
+    }
+
+    :where(.grid) {
+        min-width: 0;
+    }
+
+    :where(.teacher-filterbar) {
+        grid-template-columns: 1fr !important;
+    }
+
+    :where(.teacher-filterbar, .teacher-search, .teacher-topbar, .teacher-hero, .teacher-panel) :where(input, select, textarea, button, a[class*="button"], .btn) {
+        min-width: 0;
+    }
+
+    :where(table) {
+        font-size: 0.84rem;
+    }
+
+    :where(table th, table td) {
+        padding: 0.65rem 0.75rem !important;
+    }
+
+    :where(canvas) {
+        max-height: 22rem;
+    }
+}
+
+@media (max-width: 640px) {
+    :where(.teacher-sidebar) {
+        padding: 0.85rem !important;
+    }
+
+    :where(.teacher-sidebar__account) {
+        align-items: flex-start;
+    }
+
+    :where(.teacher-nav) {
+        grid-template-columns: 1fr !important;
+    }
+
+    :where(.teacher-shell, .teacher-footer) {
+        padding-inline: 0.65rem !important;
+    }
+
+    :where(.teacher-button, .teacher-link-button, .teacher-small-button, .teacher-sidebar__switch, .teacher-profile__item, .admin-sidebar-control) {
+        width: 100%;
+        justify-content: center;
+    }
+
+    :where(.pixelwar-notifications__menu, .pixelwar-profile__menu) {
+        position: fixed !important;
+        left: 0.5rem !important;
+        right: 0.5rem !important;
+        top: 4.25rem !important;
+        width: auto !important;
+        max-width: none !important;
+        max-height: calc(100dvh - 5rem);
+        overflow-y: auto;
+    }
+
+    :where(.pixelwar-notification) {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    :where(.flex) {
+        min-width: 0;
+    }
+
+    :where(.flex-wrap) > * {
+        min-width: 0;
+    }
+
+    :where(button, .btn, a[class*="button"], a[class*="btn"]) {
+        min-height: 2.45rem;
+    }
+
+    :where(.modal-footer > button, .modal-footer > a, .modal-footer > .btn, .modal-footer > form, .modal-footer form > button) {
+        width: 100%;
+    }
+
+    :where(.table-responsive, [class*="overflow-x-auto"], [class*="overflow-x-scroll"]) {
+        margin-inline: 0;
+        padding-bottom: 0.35rem;
+    }
+
+    :where(table) {
+        min-width: 42rem;
+    }
+
+    :where(.auth-card, .login-card, .forgot-card) {
+        width: 100% !important;
+        max-width: calc(100vw - 1rem) !important;
+    }
+
+    :where(.home-dashboard, .versus-page, .settings-page, .analytics-page, .challenge-detail-page, .challenges-page, .room-page, .ranks-page, .leaderboards-page, .auth-page, .login-page, .forgot-page, .signup-page, .profile-setup-page) > .container,
+    :where(.home-dashboard, .versus-page, .settings-page, .analytics-page, .challenge-detail-page, .challenges-page, .room-page, .ranks-page, .leaderboards-page, .auth-page, .login-page, .forgot-page, .signup-page, .profile-setup-page) .container {
+        width: min(100% - 0.75rem, calc(100vw - 0.75rem)) !important;
+        max-width: calc(100vw - 0.75rem) !important;
+    }
+
+    :where(.settings-avatar, .teacher-sidebar__avatar, .rank-badge) {
+        transform-origin: center;
+    }
+}
+
+@media (max-width: 480px) {
+    :where(main) {
+        padding-inline: 0 !important;
+    }
+
+    :where(.container) {
+        width: min(100% - 0.75rem, calc(100vw - 0.75rem)) !important;
+        max-width: calc(100vw - 0.75rem) !important;
+        margin-left: auto !important;
+        margin-right: auto !important;
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+    }
+
+    :where(.teacher-hero, .teacher-panel, .teacher-page-card, .teacher-stat-card, .teacher-list-card, .teacher-activity-card, .teacher-log-card, .teacher-student-card, .teacher-challenge-card, .teacher-settings-card, .ranking-card, .challenge-card, .panel-card, .selector-card, .auth-card, .login-card, .forgot-card, .settings-card, .settings-form, .room-shell, .challenge-detail-card, .ranks-hero, .leaderboards-hero, .leaderboards-list) {
+        padding: 0.85rem !important;
+        box-shadow: 4px 4px 0 var(--pw-shadow, rgba(38, 25, 15, 0.2)) !important;
+    }
+
+    :where(.rounded-\[38px\], .rounded-\[32px\], .rounded-\[30px\], .rounded-\[28px\], .rounded-\[26px\], .rounded-\[24px\]) {
+        border-radius: 1.1rem !important;
+    }
+
+    :where(.border-4) {
+        border-width: 3px !important;
+    }
+
+    :where(.font-arcade) {
+        font-size: clamp(0.52rem, 2.9vw, 0.72rem) !important;
+        letter-spacing: 0.12em !important;
+    }
+
+    :where(button, .btn, a[class*="button"], a[class*="btn"]) {
+        padding-inline: 0.8rem !important;
+        font-size: 0.82rem !important;
+    }
+
+    :where(input, textarea, select, .form-control, .form-select) {
+        font-size: 1rem !important;
+    }
+
+    :where(canvas) {
+        max-height: 18rem;
+    }
+}
+
+@media (max-width: 640px) {
+    table:not(.no-responsive-table) {
+        display: block;
+        width: 100%;
+        max-width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    table:not(.no-responsive-table) thead,
+    table:not(.no-responsive-table) tbody,
+    table:not(.no-responsive-table) tfoot {
+        min-width: 42rem;
+    }
+}

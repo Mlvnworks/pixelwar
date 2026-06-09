@@ -6,12 +6,40 @@ $challenge = $challengeRepository instanceof ChallengeRepository
 $solvedPlayerCount = $userChallengeRepository instanceof UserChallengeRepository
     ? $userChallengeRepository->countCompletedByChallenge($challengeId)
     : 0;
+$challengeComments = [];
 
-$dummyComments = [
-    ['name' => 'Mika Reyes', 'body' => 'Clear target design. Students should focus on spacing and border weight first.', 'time' => 'Today, 10:24 AM'],
-    ['name' => 'Jon Cruz', 'body' => 'Good practice challenge for selector accuracy and visual matching.', 'time' => 'Yesterday, 4:18 PM'],
-    ['name' => 'Ari Santos', 'body' => 'The button shadow makes this one easier to explain during review.', 'time' => 'Apr 18, 2026'],
-];
+if ($challenge !== null && isset($connection) && $connection instanceof mysqli) {
+    $commentStatement = $connection->prepare(
+        'SELECT
+            comments.comment_id,
+            comments.comment,
+            comments.date_created,
+            users.username,
+            user_details.firstname,
+            user_details.lastname
+         FROM comments
+         INNER JOIN users ON users.user_id = comments.user_id
+         LEFT JOIN user_details ON user_details.user_id = users.user_id
+         WHERE comments.challenge_id = ?
+         ORDER BY comments.date_created DESC, comments.comment_id DESC'
+    );
+    $commentStatement->bind_param('i', $challengeId);
+    $commentStatement->execute();
+    $commentRows = $commentStatement->get_result()->fetch_all(MYSQLI_ASSOC);
+    $commentStatement->close();
+
+    foreach ($commentRows as $commentRow) {
+        $commentFirstname = trim((string) ($commentRow['firstname'] ?? ''));
+        $commentLastname = trim((string) ($commentRow['lastname'] ?? ''));
+        $commentFullName = trim($commentFirstname . ' ' . $commentLastname);
+        $commentTimestamp = strtotime((string) ($commentRow['date_created'] ?? ''));
+        $challengeComments[] = [
+            'name' => $commentFullName !== '' ? $commentFullName : (string) ($commentRow['username'] ?? 'Player'),
+            'body' => (string) ($commentRow['comment'] ?? ''),
+            'time' => $commentTimestamp > 0 ? date('M j, Y g:i A', $commentTimestamp) : 'Recently',
+        ];
+    }
+}
 ?>
 
 <main class="teacher-shell relative overflow-hidden px-4 py-6 text-arcade-ink md:py-8">
@@ -127,10 +155,15 @@ $dummyComments = [
                         <p class="text-sm font-semibold uppercase tracking-[0.08em] text-arcade-ink/60">Comments</p>
                         <h2 class="mt-1 text-2xl font-bold">Player Notes</h2>
                     </div>
-                    <span class="teacher-pill bg-arcade-yellow/35"><?= count($dummyComments) ?> comments</span>
+                    <span class="teacher-pill bg-arcade-yellow/35"><?= count($challengeComments) ?> comments</span>
                 </div>
                 <div class="mt-4 grid gap-3">
-                    <?php foreach ($dummyComments as $comment) : ?>
+                    <?php if ($challengeComments === []) : ?>
+                        <article class="rounded-2xl border border-dashed border-arcade-ink/15 bg-white/70 p-4">
+                            <p class="text-sm font-bold leading-6 text-arcade-ink/58">No player comments have been posted for this challenge yet.</p>
+                        </article>
+                    <?php else : ?>
+                        <?php foreach ($challengeComments as $comment) : ?>
                         <article class="rounded-2xl border border-arcade-ink/10 bg-white/80 p-4">
                             <div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                                 <div>
@@ -140,7 +173,8 @@ $dummyComments = [
                                 <p class="text-xs font-semibold uppercase tracking-[0.08em] text-arcade-ink/55"><?= htmlspecialchars($comment['time'], ENT_QUOTES, 'UTF-8') ?></p>
                             </div>
                         </article>
-                    <?php endforeach; ?>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
                 </div>
             </section>
         <?php endif; ?>
@@ -285,6 +319,47 @@ window.addEventListener('load', () => {
         return;
     }
 
+    const disablePreviewLinks = (frame) => {
+        if (!(frame instanceof HTMLIFrameElement)) {
+            return;
+        }
+
+        const doc = frame.contentDocument;
+        if (!doc) {
+            return;
+        }
+
+        if (!doc.getElementById('pixelwar-preview-link-guard')) {
+            const style = doc.createElement('style');
+            style.id = 'pixelwar-preview-link-guard';
+            style.textContent = 'a, area { cursor: default !important; }';
+            doc.head?.appendChild(style);
+        }
+
+        doc.querySelectorAll('a, area').forEach((link) => {
+            link.setAttribute('tabindex', '-1');
+            link.setAttribute('aria-disabled', 'true');
+        });
+
+        if (doc.defaultView?.pixelwarPreviewLinksBlocked) {
+            return;
+        }
+
+        doc.defaultView.pixelwarPreviewLinksBlocked = true;
+        doc.addEventListener('click', (event) => {
+            if (event.target?.closest?.('a, area')) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+        }, true);
+        doc.addEventListener('keydown', (event) => {
+            if ((event.key === 'Enter' || event.key === ' ') && event.target?.closest?.('a, area')) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+        }, true);
+    };
+
     const fitPreviewFrame = (frame) => {
         if (!(frame instanceof HTMLIFrameElement)) {
             return;
@@ -333,6 +408,7 @@ window.addEventListener('load', () => {
     };
 
     preview.addEventListener('load', () => {
+        disablePreviewLinks(preview);
         fitPreviewFrame(preview);
         preview.classList.add('is-ready');
     }, { once: false });
@@ -346,6 +422,7 @@ window.addEventListener('load', () => {
 * { box-sizing: border-box; }
 html, body { margin: 0; padding: 0; background: #fff7e8; width: max-content; height: max-content; }
 body { display: inline-block; font-family: Arial, sans-serif; }
+a, area { cursor: default !important; }
 .preview-canvas { display: inline-block; padding: 24px; }
 ${css}
 </style>

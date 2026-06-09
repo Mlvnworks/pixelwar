@@ -52,6 +52,15 @@ function adminPanelRequireActivityLogRepository($activityLogRepository): Activit
     return $activityLogRepository;
 }
 
+function adminPanelRequireChallengeRepository($challengeRepository): ChallengeRepository
+{
+    if (!$challengeRepository instanceof ChallengeRepository) {
+        throw new RuntimeException('Challenge repository is not available.');
+    }
+
+    return $challengeRepository;
+}
+
 function adminPanelRequireRankRepository($rankRepository): RankRepository
 {
     if (!$rankRepository instanceof RankRepository) {
@@ -59,6 +68,24 @@ function adminPanelRequireRankRepository($rankRepository): RankRepository
     }
 
     return $rankRepository;
+}
+
+function adminPanelRequireVerificationRepository($verificationRepository): VerificationRepository
+{
+    if (!$verificationRepository instanceof VerificationRepository) {
+        throw new RuntimeException('Verification repository is not available.');
+    }
+
+    return $verificationRepository;
+}
+
+function adminPanelRequireSeasonRepository($seasonRepository): SeasonRepository
+{
+    if (!$seasonRepository instanceof SeasonRepository) {
+        throw new RuntimeException('Season repository is not available.');
+    }
+
+    return $seasonRepository;
 }
 
 function adminPanelRequireTools($tools): Tools
@@ -97,6 +124,73 @@ function adminPanelCsrfField(): string
     return '<input type="hidden" name="_csrf_token" value="'
         . htmlspecialchars(adminPanelCsrfToken(), ENT_QUOTES, 'UTF-8')
         . '">';
+}
+
+function adminPanelValidateCsrf(): bool
+{
+    return hash_equals(
+        (string) ($_SESSION['_csrf_token'] ?? ''),
+        (string) ($_POST['_csrf_token'] ?? '')
+    );
+}
+
+function adminPanelAppUrl(string $path = ''): string
+{
+    $https = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+        || ((string) ($_SERVER['SERVER_PORT'] ?? '') === '443');
+    $scheme = $https ? 'https' : 'http';
+    $host = (string) ($_SERVER['HTTP_HOST'] ?? 'localhost');
+    $scriptPath = str_replace('\\', '/', dirname(dirname((string) ($_SERVER['SCRIPT_NAME'] ?? '/admin/index.php'))));
+    $basePath = rtrim($scriptPath, '/');
+    $path = ltrim($path, '/');
+
+    return $scheme . '://' . $host . ($basePath !== '' ? $basePath : '') . '/' . $path;
+}
+
+function adminPanelSendPasswordResetLink(Tools $tools, string $email, string $username, string $resetLink): bool
+{
+    $safeUsername = htmlspecialchars($username, ENT_QUOTES, 'UTF-8');
+    $safeLink = htmlspecialchars($resetLink, ENT_QUOTES, 'UTF-8');
+    $content = '<!doctype html>'
+        . '<html lang="en">'
+        . '<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Pixelwar Password Reset</title></head>'
+        . '<body style="margin:0;padding:0;background:#fff7e8;color:#26190f;font-family:Arial,Helvetica,sans-serif;">'
+        . '<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="width:100%;background:#fff7e8;padding:28px 14px;">'
+        . '<tr><td align="center">'
+        . '<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:560px;background:#fffdf6;border:4px solid #26190f;border-radius:28px;box-shadow:8px 8px 0 #26190f;overflow:hidden;">'
+        . '<tr><td style="padding:24px 24px 18px;background:linear-gradient(135deg,#4cc9f0 0%,#ffd166 52%,#ff8c42 100%);border-bottom:4px solid #26190f;">'
+        . '<p style="margin:0 0 12px;font-size:11px;font-weight:900;letter-spacing:4px;text-transform:uppercase;color:#26190f;">Pixelwar Admin</p>'
+        . '<h1 style="margin:0;font-size:28px;line-height:1.12;color:#26190f;">Reset your password</h1>'
+        . '</td></tr>'
+        . '<tr><td style="padding:26px 24px 24px;">'
+        . '<p style="margin:0 0 14px;font-size:16px;line-height:1.65;color:#26190f;">Hello <strong>' . $safeUsername . '</strong>, we received a request to change your Pixelwar admin password.</p>'
+        . '<p style="margin:0 0 18px;font-size:14px;line-height:1.65;color:#26190f;">Use the secure link below to open the password reset page. The link expires in 20 minutes and becomes invalid after one successful use.</p>'
+        . '<p style="margin:0 0 22px;text-align:center;">'
+        . '<a href="' . $safeLink . '" style="display:inline-block;background:#ffd166;color:#26190f;text-decoration:none;font-size:14px;font-weight:900;padding:14px 22px;border:3px solid #26190f;border-radius:18px;box-shadow:5px 5px 0 rgba(38,25,15,0.25);">Open Reset Page</a>'
+        . '</p>'
+        . '<div style="margin:18px 0;padding:14px 16px;background:#4cc9f0;border:3px solid #26190f;border-radius:18px;">'
+        . '<p style="margin:0;font-size:14px;line-height:1.55;font-weight:800;color:#26190f;">If you did not request this change, ignore this email. Your current password will stay active until the link is used.</p>'
+        . '</div>'
+        . '<p style="margin:18px 0 0;font-size:12px;line-height:1.65;color:rgba(38,25,15,0.7);word-break:break-all;">If the button does not work, copy this link into your browser:<br>' . $safeLink . '</p>'
+        . '</td></tr>'
+        . '<tr><td style="padding:16px 24px 22px;background:#fff7e8;border-top:2px solid rgba(38,25,15,0.12);">'
+        . '<p style="margin:0;font-size:12px;line-height:1.6;font-weight:700;color:rgba(38,25,15,0.55);">Pixelwar account security notice.</p>'
+        . '</td></tr>'
+        . '</table>'
+        . '</td></tr>'
+        . '</table>'
+        . '</body></html>';
+
+    $result = $tools->sendEmail($content, $email, 'Reset your Pixelwar admin password');
+
+    if (empty($result['success'])) {
+        $error = $result['err'] ?? null;
+        error_log('Pixelwar admin password reset email failed: ' . ($error instanceof Throwable ? $error->getMessage() : 'Unknown mail error'));
+
+        return false;
+    }
+
+    return true;
 }
 
 function adminPanelRefreshSession(array $user): void

@@ -73,6 +73,7 @@ final class DatabaseInitializer
                 `username` VARCHAR(50) NOT NULL,
                 `email` VARCHAR(255) NOT NULL,
                 `password` VARCHAR(255) NOT NULL,
+                `acc_type` VARCHAR(30) NOT NULL DEFAULT \'manual\',
                 `is_verified` INT NOT NULL DEFAULT 0,
                 `is_active` INT NOT NULL DEFAULT 0,
                 `last_seen_at` TIMESTAMP NULL DEFAULT NULL,
@@ -128,6 +129,15 @@ final class DatabaseInitializer
                 UNIQUE KEY `ranks_name_unique` (`name`),
                 UNIQUE KEY `ranks_points_requirements_unique` (`points_requirements`)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci',
+            'CREATE TABLE IF NOT EXISTS `seasons` (
+                `season_id` INT NOT NULL AUTO_INCREMENT,
+                `name` VARCHAR(150) NOT NULL,
+                `start_date` TIMESTAMP NOT NULL,
+                `end_date` TIMESTAMP NOT NULL,
+                PRIMARY KEY (`season_id`),
+                UNIQUE KEY `seasons_name_unique` (`name`),
+                KEY `seasons_date_range_index` (`start_date`, `end_date`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci',
             'CREATE TABLE IF NOT EXISTS `challenges` (
                 `challenge_id` INT NOT NULL AUTO_INCREMENT,
                 `user_id` INT NOT NULL,
@@ -145,6 +155,31 @@ final class DatabaseInitializer
                 KEY `challenges_status_index` (`status`),
                 CONSTRAINT `challenges_user_id_foreign` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`),
                 CONSTRAINT `challenges_difficulty_id_foreign` FOREIGN KEY (`difficulty_id`) REFERENCES `difficulties` (`difficulty_id`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci',
+            'CREATE TABLE IF NOT EXISTS `comments` (
+                `comment_id` INT NOT NULL AUTO_INCREMENT,
+                `user_id` INT NOT NULL,
+                `challenge_id` INT NOT NULL,
+                `comment` VARCHAR(1000) NOT NULL,
+                `date_created` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (`comment_id`),
+                KEY `comments_user_id_index` (`user_id`),
+                KEY `comments_challenge_id_index` (`challenge_id`),
+                KEY `comments_date_created_index` (`date_created`),
+                CONSTRAINT `comments_user_id_foreign` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`),
+                CONSTRAINT `comments_challenge_id_foreign` FOREIGN KEY (`challenge_id`) REFERENCES `challenges` (`challenge_id`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci',
+            'CREATE TABLE IF NOT EXISTS `notifications` (
+                `notif_id` INT NOT NULL AUTO_INCREMENT,
+                `user_id` INT NOT NULL,
+                `text` TEXT NOT NULL,
+                `type` VARCHAR(80) NOT NULL,
+                `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (`notif_id`),
+                KEY `notifications_user_id_index` (`user_id`),
+                KEY `notifications_type_index` (`type`),
+                KEY `notifications_created_at_index` (`created_at`),
+                CONSTRAINT `notifications_user_id_foreign` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci',
             'CREATE TABLE IF NOT EXISTS `rooms` (
                 `room_id` INT NOT NULL AUTO_INCREMENT,
@@ -213,6 +248,7 @@ final class DatabaseInitializer
                 `user_id` INT NOT NULL,
                 `room_id` INT NULL DEFAULT NULL,
                 `pvp_id` INT NULL DEFAULT NULL,
+                `season_id` INT NULL DEFAULT NULL,
                 `started_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 `completed_at` TIMESTAMP NULL DEFAULT NULL,
                 PRIMARY KEY (`uc_id`),
@@ -220,10 +256,12 @@ final class DatabaseInitializer
                 KEY `user_challenge_user_id_index` (`user_id`),
                 KEY `user_challenge_room_id_index` (`room_id`),
                 KEY `user_challenge_pvp_id_index` (`pvp_id`),
+                KEY `user_challenge_season_id_index` (`season_id`),
                 CONSTRAINT `user_challenge_challenge_id_foreign` FOREIGN KEY (`challenge_id`) REFERENCES `challenges` (`challenge_id`),
                 CONSTRAINT `user_challenge_user_id_foreign` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`),
                 CONSTRAINT `user_challenge_room_id_foreign` FOREIGN KEY (`room_id`) REFERENCES `rooms` (`room_id`),
-                CONSTRAINT `user_challenge_pvp_id_foreign` FOREIGN KEY (`pvp_id`) REFERENCES `pvp_matches` (`pvp_id`)
+                CONSTRAINT `user_challenge_pvp_id_foreign` FOREIGN KEY (`pvp_id`) REFERENCES `pvp_matches` (`pvp_id`),
+                CONSTRAINT `user_challenge_season_id_foreign` FOREIGN KEY (`season_id`) REFERENCES `seasons` (`season_id`)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci',
             'CREATE TABLE IF NOT EXISTS `activity_logs` (
                 `al_id` INT NOT NULL AUTO_INCREMENT,
@@ -239,11 +277,14 @@ final class DatabaseInitializer
             'CREATE TABLE IF NOT EXISTS `player_progress` (
                 `pp_id` INT NOT NULL AUTO_INCREMENT,
                 `user_id` INT NOT NULL,
+                `season_id` INT NULL DEFAULT NULL,
                 `points` INT NOT NULL DEFAULT 0,
                 PRIMARY KEY (`pp_id`),
-                UNIQUE KEY `player_progress_user_id_unique` (`user_id`),
+                UNIQUE KEY `player_progress_user_season_unique` (`user_id`, `season_id`),
                 KEY `player_progress_user_id_index` (`user_id`),
-                CONSTRAINT `player_progress_user_id_foreign` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`)
+                KEY `player_progress_season_id_index` (`season_id`),
+                CONSTRAINT `player_progress_user_id_foreign` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`),
+                CONSTRAINT `player_progress_season_id_foreign` FOREIGN KEY (`season_id`) REFERENCES `seasons` (`season_id`)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci',
         ];
     }
@@ -546,8 +587,16 @@ final class DatabaseInitializer
             $connection->query('ALTER TABLE `user_challenge` ADD `pvp_id` INT NULL DEFAULT NULL AFTER `room_id`');
         }
 
+        if ($this->tableExists($connection, 'user_challenge') && !$this->columnExists($connection, 'user_challenge', 'season_id')) {
+            $connection->query('ALTER TABLE `user_challenge` ADD `season_id` INT NULL DEFAULT NULL AFTER `pvp_id`');
+        }
+
         if ($this->tableExists($connection, 'player_progress') && !$this->columnExists($connection, 'player_progress', 'user_id')) {
             $connection->query('ALTER TABLE `player_progress` ADD `user_id` INT NOT NULL AFTER `pp_id`');
+        }
+
+        if ($this->tableExists($connection, 'player_progress') && !$this->columnExists($connection, 'player_progress', 'season_id')) {
+            $connection->query('ALTER TABLE `player_progress` ADD `season_id` INT NULL DEFAULT NULL AFTER `user_id`');
         }
 
         if ($this->tableExists($connection, 'player_progress') && !$this->columnExists($connection, 'player_progress', 'points')) {
@@ -589,11 +638,20 @@ final class DatabaseInitializer
         }
 
         if (
-            $this->tableExists($connection, 'player_progress')
-            && $this->columnExists($connection, 'player_progress', 'user_id')
-            && !$this->indexExists($connection, 'player_progress', 'player_progress_user_id_unique')
+            $this->tableExists($connection, 'seasons')
+            && $this->columnExists($connection, 'seasons', 'name')
+            && !$this->indexExists($connection, 'seasons', 'seasons_name_unique')
         ) {
-            $connection->query('ALTER TABLE `player_progress` ADD UNIQUE KEY `player_progress_user_id_unique` (`user_id`)');
+            $connection->query('ALTER TABLE `seasons` ADD UNIQUE KEY `seasons_name_unique` (`name`)');
+        }
+
+        if (
+            $this->tableExists($connection, 'seasons')
+            && $this->columnExists($connection, 'seasons', 'start_date')
+            && $this->columnExists($connection, 'seasons', 'end_date')
+            && !$this->indexExists($connection, 'seasons', 'seasons_date_range_index')
+        ) {
+            $connection->query('ALTER TABLE `seasons` ADD KEY `seasons_date_range_index` (`start_date`, `end_date`)');
         }
 
         if (
@@ -606,10 +664,42 @@ final class DatabaseInitializer
 
         if (
             $this->tableExists($connection, 'player_progress')
+            && $this->indexExists($connection, 'player_progress', 'player_progress_user_id_unique')
+        ) {
+            $connection->query('ALTER TABLE `player_progress` DROP INDEX `player_progress_user_id_unique`');
+        }
+
+        if (
+            $this->tableExists($connection, 'player_progress')
+            && $this->columnExists($connection, 'player_progress', 'season_id')
+            && !$this->indexExists($connection, 'player_progress', 'player_progress_season_id_index')
+        ) {
+            $connection->query('ALTER TABLE `player_progress` ADD KEY `player_progress_season_id_index` (`season_id`)');
+        }
+
+        if (
+            $this->tableExists($connection, 'player_progress')
+            && $this->columnExists($connection, 'player_progress', 'user_id')
+            && $this->columnExists($connection, 'player_progress', 'season_id')
+            && !$this->indexExists($connection, 'player_progress', 'player_progress_user_season_unique')
+        ) {
+            $connection->query('ALTER TABLE `player_progress` ADD UNIQUE KEY `player_progress_user_season_unique` (`user_id`, `season_id`)');
+        }
+
+        if (
+            $this->tableExists($connection, 'player_progress')
             && $this->columnExists($connection, 'player_progress', 'user_id')
             && !$this->constraintExists($connection, 'player_progress', 'player_progress_user_id_foreign')
         ) {
             $connection->query('ALTER TABLE `player_progress` ADD CONSTRAINT `player_progress_user_id_foreign` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`)');
+        }
+
+        if (
+            $this->tableExists($connection, 'player_progress')
+            && $this->columnExists($connection, 'player_progress', 'season_id')
+            && !$this->constraintExists($connection, 'player_progress', 'player_progress_season_id_foreign')
+        ) {
+            $connection->query('ALTER TABLE `player_progress` ADD CONSTRAINT `player_progress_season_id_foreign` FOREIGN KEY (`season_id`) REFERENCES `seasons` (`season_id`)');
         }
 
         if (
@@ -630,6 +720,14 @@ final class DatabaseInitializer
 
         if (
             $this->tableExists($connection, 'user_challenge')
+            && $this->columnExists($connection, 'user_challenge', 'season_id')
+            && !$this->indexExists($connection, 'user_challenge', 'user_challenge_season_id_index')
+        ) {
+            $connection->query('ALTER TABLE `user_challenge` ADD KEY `user_challenge_season_id_index` (`season_id`)');
+        }
+
+        if (
+            $this->tableExists($connection, 'user_challenge')
             && $this->columnExists($connection, 'user_challenge', 'room_id')
             && !$this->constraintExists($connection, 'user_challenge', 'user_challenge_room_id_foreign')
         ) {
@@ -642,6 +740,18 @@ final class DatabaseInitializer
             && !$this->constraintExists($connection, 'user_challenge', 'user_challenge_pvp_id_foreign')
         ) {
             $connection->query('ALTER TABLE `user_challenge` ADD CONSTRAINT `user_challenge_pvp_id_foreign` FOREIGN KEY (`pvp_id`) REFERENCES `pvp_matches` (`pvp_id`)');
+        }
+
+        if (
+            $this->tableExists($connection, 'user_challenge')
+            && $this->columnExists($connection, 'user_challenge', 'season_id')
+            && !$this->constraintExists($connection, 'user_challenge', 'user_challenge_season_id_foreign')
+        ) {
+            $connection->query('ALTER TABLE `user_challenge` ADD CONSTRAINT `user_challenge_season_id_foreign` FOREIGN KEY (`season_id`) REFERENCES `seasons` (`season_id`)');
+        }
+
+        if ($this->tableExists($connection, 'users') && !$this->columnExists($connection, 'users', 'acc_type')) {
+            $connection->query('ALTER TABLE `users` ADD `acc_type` VARCHAR(30) NOT NULL DEFAULT \'manual\' AFTER `password`');
         }
 
         if ($this->tableExists($connection, 'users') && !$this->columnExists($connection, 'users', 'is_active')) {
@@ -821,8 +931,7 @@ final class DatabaseInitializer
             'INSERT INTO `difficulties` (`difficulty_id`, `name`, `description`, `points`) VALUES (?, ?, ?, ?)
              ON DUPLICATE KEY UPDATE
                 `name` = VALUES(`name`),
-                `description` = VALUES(`description`),
-                `points` = VALUES(`points`)'
+                `description` = VALUES(`description`)'
         );
 
         foreach ($difficulties as $difficultyId => $difficulty) {

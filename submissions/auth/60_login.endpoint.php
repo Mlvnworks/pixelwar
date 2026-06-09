@@ -29,6 +29,10 @@ if ($requestMethod === 'POST' && $requestedPage === 'login') {
             $errors[] = 'You no longer have access to this account. If you think this is a mistake, please contact your admin or instructor.';
         }
 
+        if ($errors === [] && $user && strtolower((string) ($user['acc_type'] ?? 'manual')) === 'google') {
+            $errors[] = 'This account uses Google sign-in. Continue with Google instead.';
+        }
+
         if ($errors === [] && (!$user || !password_verify($password, (string) $user['password']))) {
             $errors[] = 'Login details do not match our records.';
         }

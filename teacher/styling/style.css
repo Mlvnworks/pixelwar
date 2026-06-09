@@ -777,14 +777,30 @@
     box-shadow: 0 2px 0 rgba(38, 25, 15, 0.25);
 }
 
+.pixelwar-notifications__badge.hidden,
+[data-notification-new-label].hidden {
+    display: none !important;
+}
+
 .pixelwar-notification {
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
     gap: 0.75rem;
+    width: 100%;
+    border: 0;
     border-radius: 1rem;
     padding: 0.75rem;
     background: rgba(255, 247, 232, 0.72);
+    color: inherit;
+    cursor: pointer;
+    font-family: inherit;
+    transition: transform 160ms ease, background-color 160ms ease;
+}
+
+.pixelwar-notification:hover {
+    transform: translateY(-1px);
+    background: rgba(255, 209, 102, 0.3);
 }
 
 .pixelwar-notification--unread {
@@ -801,6 +817,13 @@
     border-radius: 999px;
     background: #f97373;
     box-shadow: 0 0 0 3px rgba(249, 115, 115, 0.18);
+}
+
+.announcement-notification-modal__body a {
+    color: #ff8c42;
+    font-weight: 900;
+    text-decoration: underline;
+    overflow-wrap: anywhere;
 }
 
 .teacher-profile__item {

@@ -97,7 +97,7 @@ $studentViewBuildQuery = static function (array $overrides = []) use ($studentVi
 };
 ?>
 
-<main class="teacher-shell relative overflow-hidden px-4 py-6 text-arcade-ink md:py-8">
+<main class="teacher-shell teacher-student-view-page relative overflow-hidden px-4 py-6 text-arcade-ink md:py-8">
     <div class="teacher-bg absolute inset-0"></div>
     <section class="container relative grid gap-5">
         <a href="./?c=students" class="teacher-button teacher-button--light gap-2 w-fit no-underline">
@@ -437,6 +437,61 @@ body.pixelwar-dark-mode .student-view-pill--pending {
 
 body.pixelwar-dark-mode .student-view-pill--rejected {
     background: rgba(249, 115, 115, 0.2) !important;
+}
+
+@media (max-width: 640px) {
+    .teacher-student-view-page {
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+    }
+
+    .teacher-student-view-page .student-view-shell {
+        display: block !important;
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+
+    .teacher-student-view-page .student-view-shell > aside,
+    .teacher-student-view-page .student-view-shell > section {
+        width: min(95vw, 34rem) !important;
+        max-width: min(95vw, 34rem) !important;
+        margin-left: auto !important;
+        margin-right: auto !important;
+    }
+
+    .teacher-student-view-page .student-view-shell > section {
+        margin-top: 1rem !important;
+    }
+
+    .teacher-student-view-page .student-view-shell > section > .student-view-panel,
+    .teacher-student-view-page .student-view-shell aside .student-view-surface,
+    .teacher-student-view-page .student-view-shell aside .student-view-panel {
+        width: 100% !important;
+        max-width: 100% !important;
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+    }
+
+    .teacher-student-view-page .grid:has(> .student-view-surface),
+    .teacher-student-view-page .grid:has(> .student-view-panel) {
+        display: block !important;
+        width: 100% !important;
+    }
+
+    .teacher-student-view-page .grid:has(> .student-view-surface) > .student-view-surface + .student-view-surface,
+    .teacher-student-view-page .grid:has(> .student-view-panel) > .student-view-panel + .student-view-panel {
+        margin-top: 0.75rem !important;
+    }
+
+    .teacher-student-view-page .student-view-shell > aside,
+    .teacher-student-view-page .student-view-shell > section > .student-view-panel {
+        padding: 1rem !important;
+    }
+
+    .teacher-student-view-page .student-view-chart-shell {
+        width: 100% !important;
+        max-width: 100% !important;
+    }
 }
 </style>
 

@@ -1,0 +1,52 @@
+@import url("../../styling/theme.css");
+
+/* Teacher shell theme bridge. Uses the shared Pixelwar variables from ../../styling/theme.css. */
+body.pixelwar-dark-mode :where(.teacher-shell, .teacher-footer) {
+    background: transparent !important;
+    color: var(--pw-text) !important;
+}
+
+body.pixelwar-dark-mode :where(.teacher-header .container, .teacher-sidebar, .teacher-topbar, .teacher-hero, .teacher-panel, .teacher-page-card, .teacher-stat-card, .teacher-list-card, .teacher-activity-card, .teacher-log-card, .teacher-top-challenge, .teacher-student-card, .teacher-challenge-card, .teacher-settings-card, .teacher-sidebar__account, .teacher-profile__menu, .pixelwar-notifications__menu, .modal-content, .toast, .dropdown-menu) {
+    border-color: var(--pw-border-soft) !important;
+    background: var(--pw-surface) !important;
+    color: var(--pw-text) !important;
+}
+
+body.pixelwar-dark-mode :where(.teacher-sidebar__app, .teacher-sidebar__name, .teacher-topbar__title, .teacher-card-title, .teacher-panel-title, .teacher-stat-card strong, h1, h2, h3, h4, h5, h6) {
+    color: var(--pw-text) !important;
+}
+
+body.pixelwar-dark-mode :where(.teacher-sidebar__role, .teacher-sidebar__email, .teacher-muted, .text-muted, small, .form-text) {
+    color: var(--pw-text-muted) !important;
+}
+
+body.pixelwar-dark-mode :where(.teacher-nav__link, .teacher-nav__summary, .teacher-profile__item) {
+    color: var(--pw-text-muted) !important;
+    background: transparent !important;
+}
+
+body.pixelwar-dark-mode :where(.teacher-nav__link:hover, .teacher-nav__summary:hover, .teacher-nav__link--active, .teacher-nav__summary--active) {
+    border-color: var(--pw-border) !important;
+    background: rgba(255, 209, 102, 0.16) !important;
+    color: var(--pw-text) !important;
+}
+
+body.pixelwar-dark-mode :where(input, textarea, select, .form-control, .form-select, .teacher-search input, .teacher-filterbar input, .teacher-filterbar select) {
+    border-color: var(--pw-border-soft) !important;
+    background: var(--pw-input-bg) !important;
+    color: var(--pw-input-text) !important;
+}
+
+body.pixelwar-dark-mode :where(table, .table) {
+    color: var(--pw-text) !important;
+}
+
+body.pixelwar-dark-mode :where(table th, table td, .table th, .table td) {
+    border-color: var(--pw-border-soft) !important;
+    color: var(--pw-text-muted) !important;
+}
+
+body.pixelwar-dark-mode :where(table thead, .table thead, .table-light) {
+    background: var(--pw-surface-2) !important;
+    color: var(--pw-text) !important;
+}

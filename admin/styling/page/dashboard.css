@@ -1,0 +1,62 @@
+.admin-dashboard-logs-table {
+    max-width: 100%;
+}
+
+.admin-dashboard-logs-table > div {
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-gutter: stable;
+}
+
+.admin-dashboard-logs-table__table {
+    width: 100%;
+    min-width: 74rem;
+    table-layout: fixed;
+}
+
+.admin-dashboard-logs-table__table th:nth-child(1),
+.admin-dashboard-logs-table__table td:nth-child(1) {
+    width: 13.5rem;
+}
+
+.admin-dashboard-logs-table__table th:nth-child(2),
+.admin-dashboard-logs-table__table td:nth-child(2) {
+    width: 18rem;
+}
+
+.admin-dashboard-logs-table__table th:nth-child(3),
+.admin-dashboard-logs-table__table td:nth-child(3) {
+    width: 8rem;
+}
+
+.admin-dashboard-logs-table__table th:nth-child(4),
+.admin-dashboard-logs-table__table td:nth-child(4) {
+    width: 11rem;
+}
+
+.admin-dashboard-logs-table__table th:nth-child(5),
+.admin-dashboard-logs-table__table td:nth-child(5) {
+    width: 24rem;
+}
+
+.admin-dashboard-logs-table__table td:nth-child(2) div,
+.admin-dashboard-logs-table__table td:nth-child(5) {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+
+.admin-dashboard-logs-table__table thead {
+    z-index: 2;
+}
+
+@media (max-width: 768px) {
+    .admin-dashboard-logs-table {
+        margin-inline: -0.25rem;
+    }
+
+    .admin-dashboard-logs-table__table {
+        min-width: 68rem;
+    }
+}

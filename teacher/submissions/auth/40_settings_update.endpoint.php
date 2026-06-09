@@ -1,5 +1,5 @@
 <?php
-if ($teacherRequestMethod === 'POST' && $teacherRequestedPage === 'settings') {
+if ($teacherRequestMethod === 'POST' && $teacherRequestedPage === 'settings' && (string) ($_POST['settings_action'] ?? 'profile_update') === 'profile_update') {
     if (!teacherPanelValidateCsrf()) {
         $_SESSION['alert'] = [
             'error' => true,

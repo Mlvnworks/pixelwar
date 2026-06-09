@@ -52,7 +52,7 @@ unset($_SESSION['signup_errors'], $_SESSION['signup_old']);
                 <span class="h-px flex-1 bg-arcade-ink/15"></span>
             </div>
 
-            <button type="button" class="auth-google-button flex w-full items-center justify-center gap-3 rounded-xl border-2 border-arcade-ink/15 bg-white px-6 py-2 text-sm font-bold text-arcade-ink transition hover:-translate-y-0.5 hover:border-arcade-ink/30 hover:bg-arcade-peach/40">
+            <a href="./?c=google-auth" class="auth-google-button flex w-full items-center justify-center gap-3 rounded-xl border-2 border-arcade-ink/15 bg-white px-6 py-2 text-sm font-bold text-arcade-ink no-underline transition hover:-translate-y-0.5 hover:border-arcade-ink/30 hover:bg-arcade-peach/40">
                 <span class="grid h-6 w-6 place-items-center rounded-full border border-arcade-ink/10 bg-white" aria-hidden="true">
                     <svg class="h-4 w-4" viewBox="0 0 24 24" role="img" focusable="false">
                         <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
@@ -62,7 +62,7 @@ unset($_SESSION['signup_errors'], $_SESSION['signup_old']);
                     </svg>
                 </span>
                 Continue with Google
-            </button>
+            </a>
 
             <p class="mt-2.5 text-center text-sm text-arcade-ink/68">
                 Already registered?

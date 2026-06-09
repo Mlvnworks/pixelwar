@@ -39,6 +39,25 @@ final class ChallengeRepository
         return $difficulties;
     }
 
+    public function updateDifficultyPoints(int $difficultyId, int $points): bool
+    {
+        if ($difficultyId <= 0 || $points < 0) {
+            return false;
+        }
+
+        $statement = $this->connection->prepare(
+            'UPDATE difficulties
+             SET points = ?
+             WHERE difficulty_id = ?'
+        );
+        $statement->bind_param('ii', $points, $difficultyId);
+        $statement->execute();
+        $updated = $statement->affected_rows >= 0;
+        $statement->close();
+
+        return $updated;
+    }
+
     public function createChallenge(
         int $userId,
         int $difficultyId,

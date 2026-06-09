@@ -114,6 +114,19 @@ if (!defined('SUPABASE_STORAGE_CHALLENGE_CSS_FOLDER')) {
     define('SUPABASE_STORAGE_CHALLENGE_CSS_FOLDER', Env::get('SUPABASE_STORAGE_CHALLENGE_CSS_FOLDER', 'challenge-sources/css'));
 }
 
+
+if (!defined('GOOGLE_CLIENT_ID')) {
+    define('GOOGLE_CLIENT_ID', Env::get('GOOGLE_CLIENT_ID', ''));
+}
+
+if (!defined('GOOGLE_CLIENT_SECRET')) {
+    define('GOOGLE_CLIENT_SECRET', Env::get('GOOGLE_CLIENT_SECRET', ''));
+}
+
+if (!defined('GOOGLE_REDIRECT_URI')) {
+    define('GOOGLE_REDIRECT_URI', Env::get('GOOGLE_REDIRECT_URI', APP_URL . '/?c=google-auth'));
+}
+
 if (!defined('PUSHER_APP_ID')) {
     define('PUSHER_APP_ID', Env::get('PUSHER_APP_ID', ''));
 }

@@ -148,20 +148,20 @@ $roleLabels = [
                 </a>
             </div>
 
-            <div class="mt-5 overflow-hidden rounded-2xl border border-arcade-ink/10 bg-white/80">
+            <div class="admin-dashboard-logs-table mt-5 overflow-hidden rounded-2xl border border-arcade-ink/10 bg-white/80">
                 <?php if ($latestLogs === []) : ?>
                     <div class="px-4 py-5 text-sm font-medium text-arcade-ink/55">
                         No activity logs recorded yet.
                     </div>
                 <?php else : ?>
                     <div class="max-h-[38rem] overflow-auto">
-                        <table class="min-w-full text-left text-sm">
+                        <table class="admin-dashboard-logs-table__table text-left text-sm">
                             <thead class="sticky top-0 bg-white/95">
                                 <tr class="border-b border-arcade-ink/10 text-xs uppercase tracking-[0.08em] text-arcade-ink/55">
-                                    <th class="px-4 py-3 font-semibold">Date</th>
-                                    <th class="px-4 py-3 font-semibold">User</th>
-                                    <th class="px-4 py-3 font-semibold">Role</th>
-                                    <th class="px-4 py-3 font-semibold">Category</th>
+                                    <th class="px-4 py-3 font-semibold whitespace-nowrap">Date</th>
+                                    <th class="px-4 py-3 font-semibold whitespace-nowrap">User</th>
+                                    <th class="px-4 py-3 font-semibold whitespace-nowrap">Role</th>
+                                    <th class="px-4 py-3 font-semibold whitespace-nowrap">Category</th>
                                     <th class="px-4 py-3 font-semibold">Log</th>
                                 </tr>
                             </thead>
@@ -182,7 +182,7 @@ $roleLabels = [
                                             <div class="font-semibold text-arcade-ink"><?= htmlspecialchars($displayUser, ENT_QUOTES, 'UTF-8') ?></div>
                                             <div class="text-xs text-arcade-ink/55"><?= htmlspecialchars((string) ($log['email'] ?? ''), ENT_QUOTES, 'UTF-8') ?></div>
                                         </td>
-                                        <td class="px-4 py-3 text-arcade-ink/65"><?= htmlspecialchars($roleText, ENT_QUOTES, 'UTF-8') ?></td>
+                                        <td class="px-4 py-3 text-arcade-ink/65 whitespace-nowrap"><?= htmlspecialchars($roleText, ENT_QUOTES, 'UTF-8') ?></td>
                                         <td class="px-4 py-3">
                                             <span class="teacher-pill bg-arcade-peach/60"><?= htmlspecialchars(ucfirst((string) ($log['category'] ?? 'general')), ENT_QUOTES, 'UTF-8') ?></span>
                                         </td>

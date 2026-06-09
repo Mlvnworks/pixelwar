@@ -143,7 +143,6 @@ foreach ($attemptHistoryRows as $attemptRow) {
             <div class="mt-3 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
                 <div>
                     <h1 class="text-3xl font-bold leading-tight md:text-5xl">Challenge History</h1>
-                    <p class="mt-2 max-w-2xl text-sm leading-7 text-arcade-ink/70">Search completed, ongoing, and failed attempts with completion details and solving duration.</p>
                 </div>
                 <div class="flex flex-wrap items-center gap-2">
                     <button type="button" class="inline-flex justify-center rounded-xl border-2 border-arcade-ink bg-arcade-yellow px-4 py-2 text-sm font-bold text-arcade-ink shadow-[0_3px_0_#26190f] transition hover:-translate-y-0.5 hover:bg-arcade-orange hover:text-white" data-bs-toggle="modal" data-bs-target="#analytics-export-modal">Export CSV</button>

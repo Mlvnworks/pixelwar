@@ -1,4 +1,5 @@
 <?php
+$teacherPresenceThreshold = time() - 90;
 $teacherSearch = trim((string) ($_GET['q'] ?? ''));
 $teacherStatus = strtolower(trim((string) ($_GET['status'] ?? 'all')));
 $teacherStatusMap = [
@@ -131,16 +132,18 @@ $teacherBuildQuery = static function (array $overrides = []) use ($teacherSearch
                                     $isVerified = (int) ($teacher['is_verified'] ?? 0) === 1;
                                     $statusLabel = $isVerified ? 'Profile ready' : ($hasProfile ? 'Not set' : 'Pending setup');
                                     $statusClass = $isVerified ? 'bg-arcade-mint' : ($hasProfile ? 'bg-arcade-cyan/30' : 'bg-arcade-yellow/40');
+                                    $isOnline = !empty($teacher['last_seen_at']) && strtotime((string) $teacher['last_seen_at']) >= $teacherPresenceThreshold;
                                     ?>
                                     <tr class="border-b border-arcade-ink/10 align-top last:border-b-0">
                                         <td class="px-4 py-3">
                                             <div class="flex items-center gap-3">
-                                                <span class="grid h-11 w-11 shrink-0 place-items-center overflow-hidden rounded-2xl border-2 border-arcade-ink bg-arcade-yellow font-bold text-arcade-ink">
+                                                <span class="relative grid h-11 w-11 shrink-0 place-items-center overflow-hidden rounded-2xl border-2 border-arcade-ink bg-arcade-yellow font-bold text-arcade-ink">
                                                     <?php if (trim((string) ($teacher['avatar_url'] ?? '')) !== '') : ?>
                                                         <img src="<?= htmlspecialchars((string) $teacher['avatar_url'], ENT_QUOTES, 'UTF-8') ?>" alt="" class="h-full w-full object-cover">
                                                     <?php else : ?>
                                                         <?= htmlspecialchars($initials, ENT_QUOTES, 'UTF-8') ?>
                                                     <?php endif; ?>
+                                                    <span class="absolute bottom-0.5 right-0.5 h-3 w-3 rounded-full border-2 border-white <?= $isOnline ? 'bg-emerald-500' : 'bg-slate-300' ?>" aria-label="<?= $isOnline ? 'Online' : 'Offline' ?>"></span>
                                                 </span>
                                                 <div class="min-w-0">
                                                     <div class="truncate font-semibold text-arcade-ink"><?= htmlspecialchars($displayName, ENT_QUOTES, 'UTF-8') ?></div>

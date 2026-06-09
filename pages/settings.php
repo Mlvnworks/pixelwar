@@ -6,6 +6,10 @@ $profileAvatarUrl = trim((string) ($_SESSION['avatar_url'] ?? ''));
 $profileFirstname = trim((string) ($_SESSION['firstname'] ?? ''));
 $profileLastname = trim((string) ($_SESSION['lastname'] ?? ''));
 $profileStudentNumber = '';
+$settingsPasswordResetAvailableAt = function_exists('pixelwarForgotPasswordCooldownAvailableAt')
+    ? pixelwarForgotPasswordCooldownAvailableAt()
+    : 0;
+$settingsPasswordResetSecondsLeft = max(0, $settingsPasswordResetAvailableAt - time());
 
 if (isset($connection) && $connection instanceof mysqli && isset($_SESSION['user_id'])) {
     $settingsUserId = (int) $_SESSION['user_id'];
@@ -74,6 +78,11 @@ if (isset($connection) && $connection instanceof mysqli && isset($_SESSION['user
                 </div>
             </aside>
 
+            <form id="settings-password-reset-form" action="./?c=settings" method="post" class="hidden">
+                <?= pixelwarCsrfField() ?>
+                <input type="hidden" name="settings_action" value="password_reset">
+            </form>
+
             <form
                 class="settings-form rounded-[28px] border-4 border-arcade-ink bg-arcade-panel p-5 shadow-[8px_8px_0_#26190f] md:p-6"
                 action="./?c=settings" method="post" enctype="multipart/form-data">
@@ -83,10 +92,12 @@ if (isset($connection) && $connection instanceof mysqli && isset($_SESSION['user
                         <p class="font-arcade text-[10px] uppercase tracking-[0.24em] text-arcade-cyan">Edit Profile</p>
                         <h2 class="mt-3 text-2xl font-bold">Account details</h2>
                     </div>
-                    <?php if (isset($_GET['updated'])): ?>
-                        <span
-                            class="inline-flex rounded-full border-2 border-arcade-ink bg-arcade-mint px-3 py-1 text-xs font-extrabold uppercase tracking-[0.14em] text-arcade-ink">Saved</span>
-                    <?php endif; ?>
+                    <div class="flex flex-wrap items-center gap-2">
+                        <?php if (isset($_GET['updated'])): ?>
+                            <span
+                                class="inline-flex rounded-full border-2 border-arcade-ink bg-arcade-mint px-3 py-1 text-xs font-extrabold uppercase tracking-[0.14em] text-arcade-ink">Saved</span>
+                        <?php endif; ?>
+                    </div>
                 </div>
 
                 <div class="mt-6 grid gap-4 sm:grid-cols-2">
@@ -149,6 +160,40 @@ if (isset($connection) && $connection instanceof mysqli && isset($_SESSION['user
                     </label>
                 </div>
 
+                <section class="mt-6 rounded-2xl border-2 border-arcade-ink/10 bg-white/75 p-4">
+                    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <div class="min-w-0">
+                            <p class="text-xs font-extrabold uppercase tracking-[0.18em] text-arcade-orange">Security</p>
+                            <h3 class="mt-1 text-lg font-bold text-arcade-ink">Password access</h3>
+                            <p class="mt-1 text-sm font-bold leading-6 text-arcade-ink/58">
+                                Update your password through a secure reset link sent to your registered email.
+                            </p>
+                        </div>
+                        <div class="flex shrink-0 flex-col items-start gap-2 sm:items-end">
+                            <button
+                                type="submit"
+                                form="settings-password-reset-form"
+                                class="inline-flex items-center justify-center gap-2 rounded-xl border-2 border-arcade-ink bg-white px-4 py-2.5 text-sm font-bold text-arcade-ink shadow-[0_4px_0_#26190f] transition hover:-translate-y-0.5 hover:bg-arcade-cyan disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:translate-y-0 disabled:hover:bg-white"
+                                data-settings-password-reset-button
+                                data-settings-password-reset-available-at="<?= (int) $settingsPasswordResetAvailableAt ?>"
+                                <?= $settingsPasswordResetSecondsLeft > 0 ? 'disabled' : '' ?>
+                            >
+                                <span class="settings-password-reset-button__spinner hidden h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" aria-hidden="true"></span>
+                                <svg class="settings-password-reset-button__icon h-4 w-4" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+                                    <path fill="currentColor" d="M8 1a4 4 0 0 1 4 4v2h1v8H3V7h1V5a4 4 0 0 1 4-4Zm2 6V5a2 2 0 0 0-4 0v2h4Zm-5 2v4h6V9H5Z" />
+                                </svg>
+                                <span class="settings-password-reset-button__text">Send Reset Link</span>
+                            </button>
+                            <p
+                                class="<?= $settingsPasswordResetSecondsLeft > 0 ? '' : 'hidden' ?> text-xs font-bold text-arcade-ink/55"
+                                data-settings-password-reset-countdown
+                            >
+                                Resend available in <?= (int) $settingsPasswordResetSecondsLeft ?>s.
+                            </p>
+                        </div>
+                    </div>
+                </section>
+
                 <div class="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <p class="text-sm font-bold leading-6 text-arcade-ink/62">Leave the file empty if you want to keep
                         your current avatar.</p>
@@ -182,6 +227,12 @@ if (isset($connection) && $connection instanceof mysqli && isset($_SESSION['user
         const saveButtonSpinner = saveButton?.querySelector('.settings-save-button__spinner');
         const saveButtonText = saveButton?.querySelector('.settings-save-button__text');
         const saveButtonIcon = saveButton?.querySelector('.settings-save-button__icon');
+        const passwordResetForm = document.querySelector('#settings-password-reset-form');
+        const passwordResetButton = document.querySelector('[data-settings-password-reset-button]');
+        const passwordResetSpinner = passwordResetButton?.querySelector('.settings-password-reset-button__spinner');
+        const passwordResetIcon = passwordResetButton?.querySelector('.settings-password-reset-button__icon');
+        const passwordResetText = passwordResetButton?.querySelector('.settings-password-reset-button__text');
+        const passwordResetCountdown = document.querySelector('[data-settings-password-reset-countdown]');
         let emailIsAvailable = true;
 
         if (!input || !preview || !fileName || !form || !emailInput || !emailMessage) {
@@ -190,6 +241,42 @@ if (isset($connection) && $connection instanceof mysqli && isset($_SESSION['user
 
         const allowedTypes = ['image/png', 'image/jpeg', 'image/webp', 'image/gif'];
         const maxSize = 2 * 1024 * 1024;
+
+        const updatePasswordResetCountdown = () => {
+            if (!passwordResetButton || !passwordResetCountdown || !passwordResetText) {
+                return;
+            }
+
+            const availableAt = Number(passwordResetButton.dataset.settingsPasswordResetAvailableAt || 0);
+            const secondsLeft = Math.max(0, Math.ceil(availableAt - (Date.now() / 1000)));
+
+            if (secondsLeft <= 0) {
+                passwordResetButton.disabled = false;
+                passwordResetCountdown.classList.add('hidden');
+                passwordResetText.textContent = 'Send Reset Link';
+                return;
+            }
+
+            passwordResetButton.disabled = true;
+            passwordResetCountdown.classList.remove('hidden');
+            passwordResetCountdown.textContent = `Resend available in ${secondsLeft}s.`;
+            passwordResetText.textContent = 'Reset Link Sent';
+        };
+
+        updatePasswordResetCountdown();
+        window.setInterval(updatePasswordResetCountdown, 1000);
+
+        passwordResetForm?.addEventListener('submit', () => {
+            if (!passwordResetButton || !passwordResetSpinner || !passwordResetIcon || !passwordResetText) {
+                return;
+            }
+
+            passwordResetButton.disabled = true;
+            passwordResetSpinner.classList.remove('hidden');
+            passwordResetIcon.classList.add('hidden');
+            passwordResetText.textContent = 'Sending...';
+            passwordResetButton.setAttribute('aria-busy', 'true');
+        });
 
         input.addEventListener('change', () => {
             const file = input.files && input.files.length > 0 ? input.files[0] : null;

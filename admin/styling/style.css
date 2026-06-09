@@ -44,12 +44,16 @@ body.pixelwar-dark-mode {
     inset: 0 auto 0 0;
     width: 18rem;
     display: flex;
+    max-height: 100vh;
     min-height: 100vh;
     flex-direction: column;
     gap: 1rem;
+    overflow-y: auto;
+    overscroll-behavior: contain;
     border-right: 1px solid var(--admin-border);
     background: var(--admin-surface);
     padding: 1.25rem;
+    scrollbar-gutter: stable;
     box-shadow: none;
 }
 
@@ -152,6 +156,7 @@ body.pixelwar-dark-mode {
 }
 
 .teacher-nav__link,
+.teacher-nav__summary,
 .teacher-sidebar__switch,
 .teacher-button,
 .teacher-link-button,
@@ -164,7 +169,21 @@ body.pixelwar-dark-mode {
     transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease;
 }
 
-.teacher-nav__link {
+.teacher-nav__group {
+    margin: 0;
+}
+
+.teacher-nav__summary {
+    list-style: none;
+    cursor: pointer;
+}
+
+.teacher-nav__summary::-webkit-details-marker {
+    display: none;
+}
+
+.teacher-nav__link,
+.teacher-nav__summary {
     justify-content: flex-start;
     width: 100%;
     border: 0;
@@ -177,8 +196,31 @@ body.pixelwar-dark-mode {
     font-weight: 500;
 }
 
+.teacher-nav__children {
+    box-sizing: border-box;
+    display: grid;
+    gap: 0.05rem;
+    padding: 0.05rem 0 0.25rem 0.9rem;
+    overflow: hidden;
+    opacity: 1;
+    transition: height 220ms cubic-bezier(0.22, 1, 0.36, 1), opacity 180ms ease;
+    will-change: height, opacity;
+}
+
+.teacher-nav__group:not([open]) .teacher-nav__children {
+    height: 0;
+    opacity: 0;
+}
+
+.teacher-nav__link--child {
+    padding-left: 0.7rem;
+    font-size: 0.86rem;
+}
+
 .teacher-nav__link:hover,
-.teacher-nav__link--active {
+.teacher-nav__link--active,
+.teacher-nav__summary:hover,
+.teacher-nav__summary--active {
     border-left-color: var(--admin-accent);
     background: transparent;
     color: var(--admin-text);
@@ -189,6 +231,14 @@ body.pixelwar-dark-mode {
 .teacher-nav__link i {
     color: inherit;
     opacity: 0.88;
+}
+
+.teacher-nav__summary-chevron {
+    transition: transform 160ms ease;
+}
+
+.teacher-nav__group[open] .teacher-nav__summary-chevron {
+    transform: rotate(180deg);
 }
 
 .teacher-sidebar__controls {
@@ -420,7 +470,9 @@ body.pixelwar-dark-mode {
         position: relative;
         inset: auto;
         width: 100%;
+        max-height: none;
         min-height: auto;
+        overflow: visible;
         border-right: 0;
         border-bottom: 1px solid var(--admin-border);
     }
@@ -430,16 +482,23 @@ body.pixelwar-dark-mode {
         gap: 0.45rem;
     }
 
-    .teacher-nav__link {
+    .teacher-nav__link,
+    .teacher-nav__summary {
         border: 1px solid var(--admin-border);
         border-radius: 0.75rem;
         padding: 0.7rem 0.85rem;
     }
 
     .teacher-nav__link:hover,
-    .teacher-nav__link--active {
+    .teacher-nav__link--active,
+    .teacher-nav__summary:hover,
+    .teacher-nav__summary--active {
         border-color: var(--admin-border-strong);
         background: var(--admin-surface-muted);
+    }
+
+    .teacher-nav__children {
+        padding-left: 0;
     }
 
     .teacher-shell,
