@@ -1,5 +1,5 @@
 <?php
-if ($adminRequestMethod === 'POST' && $adminRequestedPage === 'rank-management') {
+if ($adminRequestMethod === 'POST' && $adminRequestedPage === 'rank-management' && isset($_POST['rank_action'])) {
     try {
         if (!hash_equals((string) ($_SESSION['_csrf_token'] ?? ''), (string) ($_POST['_csrf_token'] ?? ''))) {
             $_SESSION['alert'] = [
@@ -15,7 +15,7 @@ if ($adminRequestMethod === 'POST' && $adminRequestedPage === 'rank-management')
         $pointsInput = trim((string) ($_POST['points_requirements'] ?? ''));
         $pointsRequirements = ctype_digit($pointsInput) ? (int) $pointsInput : -1;
         $ranks = adminPanelRequireRankRepository($rankRepository ?? null);
-        $logs = adminPanelRequireActivityLogRepository($activityLogRepository ?? null);
+        $adminUserId = (int) ($_SESSION['user_id'] ?? 0);
 
         if (!in_array($action, ['create', 'update', 'delete'], true)) {
             throw new RuntimeException('Rank action is not supported.');
@@ -40,8 +40,11 @@ if ($adminRequestMethod === 'POST' && $adminRequestedPage === 'rank-management')
         }
 
         if ($action === 'create') {
-            $ranks->create($name, $pointsRequirements);
-            $logs->create((int) ($_SESSION['user_id'] ?? 0), 'rank', 'Created rank "' . $name . '".');
+            $createdRankId = $ranks->create($name, $pointsRequirements);
+            if ($createdRankId <= 0) {
+                throw new RuntimeException('Rank record could not be created.');
+            }
+            adminPanelLogActivitySafely($activityLogRepository ?? null, $adminUserId, 'rank', 'Created rank "' . $name . '".');
             $_SESSION['alert'] = [
                 'error' => false,
                 'content' => 'Rank created successfully.',
@@ -55,8 +58,10 @@ if ($adminRequestMethod === 'POST' && $adminRequestedPage === 'rank-management')
                 throw new RuntimeException('Rank record was not found.');
             }
 
-            $ranks->update($rankId, $name, $pointsRequirements);
-            $logs->create((int) ($_SESSION['user_id'] ?? 0), 'rank', 'Updated rank "' . $name . '".');
+            if (!$ranks->update($rankId, $name, $pointsRequirements)) {
+                throw new RuntimeException('Rank record could not be updated.');
+            }
+            adminPanelLogActivitySafely($activityLogRepository ?? null, $adminUserId, 'rank', 'Updated rank "' . $name . '".');
             $_SESSION['alert'] = [
                 'error' => false,
                 'content' => 'Rank updated successfully.',
@@ -70,8 +75,10 @@ if ($adminRequestMethod === 'POST' && $adminRequestedPage === 'rank-management')
                 throw new RuntimeException('Rank record was not found.');
             }
 
-            $ranks->delete($rankId);
-            $logs->create((int) ($_SESSION['user_id'] ?? 0), 'rank', 'Deleted rank #' . $rankId . '.');
+            if (!$ranks->delete($rankId)) {
+                throw new RuntimeException('Rank record could not be deleted.');
+            }
+            adminPanelLogActivitySafely($activityLogRepository ?? null, $adminUserId, 'rank', 'Deleted rank #' . $rankId . '.');
             $_SESSION['alert'] = [
                 'error' => false,
                 'content' => 'Rank deleted successfully.',

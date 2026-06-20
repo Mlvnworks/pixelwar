@@ -1,6 +1,6 @@
 <?php
 
-if ($adminRequestMethod === 'POST' && $adminRequestedPage === 'student-verification') {
+if ($adminRequestMethod === 'POST' && $adminRequestedPage === 'student-verification' && isset($_POST['action'])) {
     try {
         if (!hash_equals((string) ($_SESSION['_csrf_token'] ?? ''), (string) ($_POST['_csrf_token'] ?? ''))) {
             $_SESSION['alert'] = [

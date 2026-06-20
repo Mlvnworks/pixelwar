@@ -1,5 +1,5 @@
 <?php
-if ($adminRequestMethod === 'POST' && $adminRequestedPage === 'teachers' && (string) ($_POST['admin_action'] ?? '') !== 'create_teacher') {
+if ($adminRequestMethod === 'POST' && $adminRequestedPage === 'teachers' && isset($_POST['teacher_action'])) {
     try {
         if (!hash_equals((string) ($_SESSION['_csrf_token'] ?? ''), (string) ($_POST['_csrf_token'] ?? ''))) {
             $_SESSION['alert'] = [

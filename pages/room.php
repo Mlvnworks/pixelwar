@@ -307,9 +307,8 @@ HTML;
                         </div>
 
                         <section class="room-preview rounded-[24px] bg-arcade-cream/80 p-4 shadow-[0_10px_30px_rgba(38,25,15,0.12)]">
-                            <div class="flex flex-wrap items-center justify-between gap-3">
+                            <div class="flex flex-wrap items-center gap-3">
                                 <p class="font-arcade text-[10px] uppercase tracking-[0.24em] text-arcade-cyan">Target Preview</p>
-                                <p class="text-xs font-bold uppercase tracking-[0.18em] text-arcade-ink/50"><?= $isRealRoom ? 'Live source preview' : 'Static design' ?></p>
                             </div>
                             <iframe
                                 id="room-source-preview-inline"

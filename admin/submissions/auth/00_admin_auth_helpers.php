@@ -52,6 +52,20 @@ function adminPanelRequireActivityLogRepository($activityLogRepository): Activit
     return $activityLogRepository;
 }
 
+function adminPanelLogActivitySafely($activityLogRepository, int $userId, string $category, string $description): void
+{
+    if (!$activityLogRepository instanceof ActivityLogRepository || $userId <= 0) {
+        error_log('Pixelwar admin activity log skipped: repository or user is unavailable.');
+        return;
+    }
+
+    try {
+        $activityLogRepository->create($userId, $category, $description);
+    } catch (Throwable $err) {
+        error_log('Pixelwar admin activity log failed: ' . $err->getMessage());
+    }
+}
+
 function adminPanelRequireChallengeRepository($challengeRepository): ChallengeRepository
 {
     if (!$challengeRepository instanceof ChallengeRepository) {

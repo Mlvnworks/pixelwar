@@ -92,9 +92,6 @@ $latestCreatedItems = array_slice($latestCreatedItems, 0, 10);
             <div class="mt-3 grid gap-4 lg:grid-cols-[1fr_auto] lg:items-end">
                 <div>
                     <h1 class="text-3xl font-black leading-tight md:text-5xl">Hello, Teacher <?= htmlspecialchars($teacherName, ENT_QUOTES, 'UTF-8') ?></h1>
-                    <p class="mt-3 max-w-3xl text-sm font-bold leading-7 text-arcade-ink/65 md:text-base">
-                        Track creation activity, room activity, and the challenges that are getting the most classroom attention.
-                    </p>
                 </div>
                 <div class="flex flex-wrap gap-2">
                     <a href="./?c=create-room" class="teacher-button teacher-button--light gap-2">

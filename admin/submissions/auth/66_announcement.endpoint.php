@@ -1,5 +1,5 @@
 <?php
-if ($adminRequestMethod === 'POST' && $adminRequestedPage === 'announcement') {
+if ($adminRequestMethod === 'POST' && $adminRequestedPage === 'announcement' && isset($_POST['announcement_action'])) {
     $allowedAnnouncementTypes = ['announcement_all', 'announcement_student', 'announcement_teacher'];
     $action = (string) ($_POST['announcement_action'] ?? '');
 

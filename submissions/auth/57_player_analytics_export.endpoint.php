@@ -82,7 +82,7 @@ if (
             throw new RuntimeException('Could not create the export file.');
         }
 
-        fputcsv($output, ['Challenge', 'Status', 'Difficulty', 'Started At', 'Completed At', 'Duration', 'Awarded Points']);
+        fputcsv($output, ['Challenge', 'Game Type', 'Status', 'Difficulty', 'Started At', 'Completed At', 'Duration', 'Awarded Points']);
 
         foreach ($exportRows as $exportRow) {
             $startedAt = new DateTimeImmutable((string) $exportRow['started_at']);
@@ -90,7 +90,10 @@ if (
                 ? new DateTimeImmutable((string) $exportRow['completed_at'])
                 : null;
             $attemptStatus = (string) ($exportRow['attempt_status'] ?? ($completedAt instanceof DateTimeImmutable ? 'completed' : 'ongoing'));
-            $isStrictRoomAttempt = (int) ($exportRow['room_id'] ?? 0) > 0 && (int) ($exportRow['room_strict_mode'] ?? 0) === 1;
+            $isRoomAttempt = (int) ($exportRow['room_id'] ?? 0) > 0;
+            $isPvpAttempt = (int) ($exportRow['pvp_id'] ?? 0) > 0;
+            $gameType = $isPvpAttempt ? '1v1' : ($isRoomAttempt ? 'Room' : 'Solo');
+            $isStrictRoomAttempt = $isRoomAttempt && (int) ($exportRow['room_strict_mode'] ?? 0) === 1;
             $strictModeScore = max(0, min(100, (int) ($exportRow['strict_mode_score'] ?? 0)));
             $duration = $completedAt instanceof DateTimeImmutable
                 ? $formatDurationLabel(max(0, $completedAt->getTimestamp() - $startedAt->getTimestamp()))
@@ -108,6 +111,7 @@ if (
 
             fputcsv($output, [
                 (string) $exportRow['name'],
+                $gameType,
                 $statusLabel,
                 ucfirst(strtolower((string) ($exportRow['difficulty_name'] ?? 'Beginner'))),
                 $startedAt->format('Y-m-d H:i:s'),

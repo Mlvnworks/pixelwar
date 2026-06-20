@@ -1,6 +1,4 @@
 <?php
-require_once __DIR__ . '/../classes/challenge-catalog.php';
-
 $createdChallengeRows = $challengeRepository instanceof ChallengeRepository
     ? $challengeRepository->searchPublicCreatedChallenges('', '', 100)
     : [];
@@ -33,25 +31,8 @@ foreach ($createdChallengeRows as $challengeRow) {
     ];
 }
 
-if ($challenges === []) {
-    foreach (ChallengeCatalog::all() as $catalogChallenge) {
-        $challenges[] = [
-            'key' => (string) $catalogChallenge['slug'],
-            'title' => $catalogChallenge['title'],
-            'level' => $catalogChallenge['level'],
-            'levelClass' => $catalogChallenge['levelClass'],
-            'reward' => $catalogChallenge['reward'],
-            'author' => $catalogChallenge['author'],
-            'description' => $catalogChallenge['description'],
-            'href' => './?c=challenge&slug=' . urlencode((string) $catalogChallenge['slug']),
-            'isOngoing' => false,
-            'isCompleted' => false,
-            'completionCount' => 0,
-        ];
-    }
-}
-
 $difficulties = array_values(array_unique(array_map(static fn (array $challenge): string => $challenge['level'], $challenges)));
+$hasAvailableChallenges = $challenges !== [];
 ?>
 
 <main class="challenges-page relative overflow-hidden bg-arcade-cream px-4 py-8 text-arcade-ink md:py-10">
@@ -121,7 +102,7 @@ $difficulties = array_values(array_unique(array_map(static fn (array $challenge)
             <?php endforeach; ?>
         </section>
 
-        <p id="challenge-empty" class="mt-5 hidden rounded-2xl border-2 border-arcade-ink/15 bg-white p-5 text-center text-sm font-bold text-arcade-ink/60">No challenges match your search.</p>
+        <p id="challenge-empty" class="mt-5 hidden rounded-2xl border-2 border-arcade-ink/15 bg-white p-5 text-center text-sm font-bold text-arcade-ink/60" data-no-challenges="<?= $hasAvailableChallenges ? 'false' : 'true' ?>"><?= $hasAvailableChallenges ? 'No challenges match your search.' : 'No public challenges are available yet.' ?></p>
 
         <div class="challenges-pagination mt-5 flex items-center justify-between gap-3">
             <button id="challenges-prev" type="button" class="rounded-xl bg-white px-3 py-1.5 text-xs font-bold transition hover:bg-arcade-yellow/50">Prev</button>
@@ -143,6 +124,7 @@ $difficulties = array_values(array_unique(array_map(static fn (array $challenge)
     const pageStatus = document.getElementById('challenges-page-status');
     const mobileQuery = window.matchMedia('(max-width: 768px)');
     const pageSize = 25;
+    const hasAvailableChallenges = emptyState?.dataset.noChallenges !== 'true';
     let activeFilter = 'all';
     let currentPage = 1;
 
@@ -179,6 +161,9 @@ $difficulties = array_values(array_unique(array_map(static fn (array $challenge)
         }
 
         if (emptyState) {
+            emptyState.textContent = hasAvailableChallenges
+                ? 'No challenges match your search.'
+                : 'No public challenges are available yet.';
             emptyState.classList.toggle('hidden', matchedCards.length !== 0);
         }
 

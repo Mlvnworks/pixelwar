@@ -24,17 +24,27 @@ if (
             throw new RuntimeException('Room session not found.');
         }
 
+        $strictModeEnabled = (int) ($room['strict_mode'] ?? 0) === 1;
         $rows = $roomPlayerRepository->listJoinedForRoom($roomId);
-        $fileName = sprintf(
-            'room-session-%d-%s.csv',
-            $roomId,
-            date('Y-m-d')
-        );
+        $sanitizeFilePart = static function (string $value, string $fallback): string {
+            $sanitized = preg_replace('/[^a-zA-Z0-9_-]+/', '_', trim($value));
+            $sanitized = trim((string) $sanitized, '_-');
 
-        $statusLabel = static function (array $row): string {
+            return $sanitized !== '' ? $sanitized : $fallback;
+        };
+        $roomCodeFilePart = $sanitizeFilePart((string) ($room['room_code'] ?? ''), 'room');
+        $roomNameFilePart = $sanitizeFilePart((string) ($room['room_name'] ?? ''), 'session');
+        $fileName = $roomCodeFilePart . '_' . $roomNameFilePart . '.csv';
+
+        $statusLabel = static function (array $row) use ($strictModeEnabled): string {
             $status = (int) ($row['status'] ?? 0);
             $startedAt = trim((string) ($row['started_at'] ?? ''));
             $completedAt = trim((string) ($row['completed_at'] ?? ''));
+
+            if ($strictModeEnabled && in_array($status, [2, 3], true)) {
+                $score = max(0, min(100, (int) ($row['strict_mode_score'] ?? 0)));
+                return $score . '%';
+            }
 
             if ($status === 3) {
                 return 'Failed';

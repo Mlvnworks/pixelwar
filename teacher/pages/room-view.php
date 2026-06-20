@@ -183,12 +183,9 @@ $formatTimestamp = static function (?string $value): string {
 <div class="modal fade" id="room-share-modal" tabindex="-1" aria-labelledby="room-share-modal-label" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content room-share-modal rounded-[24px] border-4 border-arcade-ink bg-arcade-panel shadow-[8px_8px_0_rgba(38,25,15,0.28)]">
-            <div class="modal-header border-b-2 border-arcade-ink/10 px-4 py-3">
-                <div>
-                    <p class="mb-1 font-arcade text-[9px] uppercase tracking-[0.18em] text-arcade-cyan">Share Room</p>
-                    <h2 id="room-share-modal-label" class="mb-0 text-xl font-black">Send access details</h2>
-                </div>
-                <button type="button" class="btn-close m-0" data-bs-dismiss="modal" aria-label="Close"></button>
+            <div class="modal-header relative border-b-2 border-arcade-ink/10 px-4 py-3 pr-14">
+                <p id="room-share-modal-label" class="mb-0 font-arcade text-[9px] uppercase tracking-[0.18em] text-arcade-cyan">Share Room</p>
+                <button type="button" class="btn-close absolute right-4 top-4 z-10 m-0" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body px-4 py-4">
                 <p class="mb-4 text-sm font-bold leading-6 text-arcade-ink/70">

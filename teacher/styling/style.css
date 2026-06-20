@@ -522,11 +522,12 @@
 }
 
 .teacher-created-grid--compact {
-    grid-template-columns: repeat(auto-fit, minmax(min(100%, 17rem), 21rem));
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr));
 }
 
 .teacher-created-challenge--library {
-    max-width: 21rem;
+    width: 100%;
+    max-width: none;
 }
 
 .teacher-created-challenge--library .teacher-card-description {

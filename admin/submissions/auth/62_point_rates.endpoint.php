@@ -1,5 +1,5 @@
 <?php
-if ($adminRequestMethod === 'POST' && $adminRequestedPage === 'point-rates') {
+if ($adminRequestMethod === 'POST' && $adminRequestedPage === 'point-rates' && isset($_POST['difficulty_id'])) {
     try {
         if (!hash_equals((string) ($_SESSION['_csrf_token'] ?? ''), (string) ($_POST['_csrf_token'] ?? ''))) {
             $_SESSION['alert'] = [

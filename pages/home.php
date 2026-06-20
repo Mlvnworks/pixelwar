@@ -1,6 +1,4 @@
 <?php
-require_once __DIR__ . '/../classes/challenge-catalog.php';
-
 $username = $_SESSION['username'] ?? 'Pixel Rookie';
 $playerDisplayName = trim((string) ($_SESSION['firstname'] ?? '') . ' ' . (string) ($_SESSION['lastname'] ?? ''));
 $playerDisplayName = $playerDisplayName !== '' ? $playerDisplayName : (string) $username;
@@ -141,22 +139,6 @@ foreach ($createdChallengeRows as $challengeRow) {
         'isOngoing' => isset($ongoingChallengeLookup[$challengeId]),
         'isCompleted' => isset($completedChallengeLookup[$challengeId]),
     ];
-}
-
-if ($recommendedChallenges === []) {
-    foreach (ChallengeCatalog::all() as $catalogChallenge) {
-        $recommendedChallenges[] = [
-            'title' => $catalogChallenge['title'],
-            'level' => $catalogChallenge['level'],
-            'levelClass' => $catalogChallenge['levelClass'],
-            'reward' => $catalogChallenge['reward'],
-            'author' => $catalogChallenge['author'],
-            'description' => $catalogChallenge['description'],
-            'href' => './?c=challenge&slug=' . urlencode((string) $catalogChallenge['slug']),
-            'isOngoing' => false,
-            'isCompleted' => false,
-        ];
-    }
 }
 
 $firstRecommendedChallenge = array_values($recommendedChallenges)[0] ?? null;
@@ -347,7 +329,6 @@ $pvpResultMessage = $pvpNotice === 'win'
                 <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
                     <div>
                         <h2 class="text-2xl font-bold">Recommended Challenges</h2>
-                        <p class="mt-1 text-sm leading-6 text-arcade-ink/65">Pick a CSS challenge and keep building your design-matching streak.</p>
                     </div>
                     <div class="flex flex-wrap items-center gap-2">
                         <a href="./?c=challenges" class="inline-flex items-center justify-center gap-2 rounded-xl border-2 border-arcade-ink bg-arcade-yellow px-3 py-1.5 text-sm font-bold text-arcade-ink no-underline shadow-[0_3px_0_#26190f] transition hover:-translate-y-0.5 hover:bg-arcade-orange hover:text-white">
@@ -360,6 +341,11 @@ $pvpResultMessage = $pvpNotice === 'win'
                 </div>
 
                 <div class="mt-4 grid gap-3">
+                    <?php if ($recommendedChallenges === []) : ?>
+                        <div class="rounded-[18px] border-2 border-dashed border-arcade-ink/15 bg-white/70 px-4 py-6 text-center">
+                            <p class="text-sm font-bold text-arcade-ink/60">No public challenges are available yet.</p>
+                        </div>
+                    <?php else : ?>
                     <?php foreach ($recommendedChallenges as $challenge) : ?>
                         <article class="challenge-card rounded-[18px] border-2 border-arcade-ink/12 bg-white p-4 transition hover:-translate-y-1 hover:border-arcade-orange hover:shadow-[0_6px_0_rgba(38,25,15,0.18)]">
                             <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
@@ -386,6 +372,7 @@ $pvpResultMessage = $pvpNotice === 'win'
                             </div>
                         </article>
                     <?php endforeach; ?>
+                    <?php endif; ?>
                 </div>
             </section>
         </div>

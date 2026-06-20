@@ -10,6 +10,7 @@ $gameRoomDeadlineIso = '';
 $gameRoomTimerLimit = 0;
 $gameRoomStrictMode = false;
 $gamePusherEnabled = isset($pusherService) && $pusherService instanceof PusherService && $pusherService->isConfigured();
+$gameShouldPlayOpening = (string) ($_GET['intro'] ?? '') === '1' || $gameRoomId > 0 || $gamePvpId > 0;
 
 if ($gameChallengeId > 0) {
     try {
@@ -174,7 +175,7 @@ $gameUserChallengeId = $gameUserChallenge !== null ? (int) $gameUserChallenge['u
             </div>
         <?php endif; ?>
 
-        <div id="game-opening-effect" class="game-opening-effect" aria-hidden="true">
+        <div id="game-opening-effect" class="game-opening-effect<?= $gameShouldPlayOpening ? ' is-playing' : '' ?>" aria-hidden="true">
             <div class="game-opening-effect__panel">
                 <span class="game-opening-effect__eyebrow">Loading Arena</span>
                 <strong>Pixelwar</strong>
@@ -684,7 +685,9 @@ ${css}
             return;
         }
 
-        openingEffect.classList.add('is-playing');
+        if (!openingEffect.classList.contains('is-playing')) {
+            openingEffect.classList.add('is-playing');
+        }
         window.setTimeout(() => openingEffect.remove(), 1500);
     };
 

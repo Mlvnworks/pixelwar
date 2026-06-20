@@ -49,8 +49,7 @@ if ($adminRequestMethod === 'POST' && $adminRequestedPage === 'teachers' && (str
 
         $teachers->createPendingTeacher($username, $email, $password);
         $adminUserId = (int) ($_SESSION['user_id'] ?? 0);
-        $activityLogs = adminPanelRequireActivityLogRepository($activityLogRepository ?? null);
-        $activityLogs->create($adminUserId, 'admin', 'Created teacher account "' . $username . '".');
+        adminPanelLogActivitySafely($activityLogRepository ?? null, $adminUserId, 'admin', 'Created teacher account "' . $username . '".');
 
         unset($_SESSION['admin_teacher_create_old'], $_SESSION['admin_teacher_create_errors']);
         $_SESSION['alert'] = [

@@ -15,7 +15,7 @@ if ($adminRequestMethod === 'POST' && $adminRequestedPage === 'season-management
         $startInput = trim((string) ($_POST['start_date'] ?? ''));
         $endInput = trim((string) ($_POST['end_date'] ?? ''));
         $seasons = adminPanelRequireSeasonRepository($seasonRepository ?? null);
-        $logs = adminPanelRequireActivityLogRepository($activityLogRepository ?? null);
+        $adminUserId = (int) ($_SESSION['user_id'] ?? 0);
 
         if (!in_array($action, ['create', 'update', 'delete'], true)) {
             throw new RuntimeException('Season action is not supported.');
@@ -46,8 +46,11 @@ if ($adminRequestMethod === 'POST' && $adminRequestedPage === 'season-management
         }
 
         if ($action === 'create') {
-            $seasons->create($name, $startSql, $endSql);
-            $logs->create((int) ($_SESSION['user_id'] ?? 0), 'season', 'Created season "' . $name . '".');
+            $createdSeasonId = $seasons->create($name, $startSql, $endSql);
+            if ($createdSeasonId <= 0) {
+                throw new RuntimeException('Season record could not be created.');
+            }
+            adminPanelLogActivitySafely($activityLogRepository ?? null, $adminUserId, 'season', 'Created season "' . $name . '".');
             $_SESSION['alert'] = [
                 'error' => false,
                 'content' => 'Season created successfully.',
@@ -61,8 +64,10 @@ if ($adminRequestMethod === 'POST' && $adminRequestedPage === 'season-management
                 throw new RuntimeException('Season record was not found.');
             }
 
-            $seasons->update($seasonId, $name, $startSql, $endSql);
-            $logs->create((int) ($_SESSION['user_id'] ?? 0), 'season', 'Updated season "' . $name . '".');
+            if (!$seasons->update($seasonId, $name, $startSql, $endSql)) {
+                throw new RuntimeException('Season record could not be updated.');
+            }
+            adminPanelLogActivitySafely($activityLogRepository ?? null, $adminUserId, 'season', 'Updated season "' . $name . '".');
             $_SESSION['alert'] = [
                 'error' => false,
                 'content' => 'Season updated successfully.',
@@ -80,8 +85,10 @@ if ($adminRequestMethod === 'POST' && $adminRequestedPage === 'season-management
                 throw new RuntimeException('This season already has attempts or progress records and cannot be deleted.');
             }
 
-            $seasons->delete($seasonId);
-            $logs->create((int) ($_SESSION['user_id'] ?? 0), 'season', 'Deleted season #' . $seasonId . '.');
+            if (!$seasons->delete($seasonId)) {
+                throw new RuntimeException('Season record could not be deleted.');
+            }
+            adminPanelLogActivitySafely($activityLogRepository ?? null, $adminUserId, 'season', 'Deleted season #' . $seasonId . '.');
             $_SESSION['alert'] = [
                 'error' => false,
                 'content' => 'Season deleted successfully.',

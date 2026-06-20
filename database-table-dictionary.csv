@@ -1,0 +1,107 @@
+﻿Table Name,Field Name,Description,Data Type,Field Size,Constraints,Example
+images,img_id,Unique image record identifier.,INT,,NOT NULL; AUTO_INCREMENT; PRIMARY KEY,1
+images,source,Path or URL where the image/file source is stored.,VARCHAR,255,NOT NULL,avatars/player-1.png
+images,date_added,Timestamp when the image record was created.,TIMESTAMP,,NOT NULL; DEFAULT CURRENT_TIMESTAMP,2026-06-13 09:00:00
+roles,role_id,Role identifier assigned to a user.,INT,,NOT NULL; AUTO_INCREMENT; PRIMARY KEY,3
+roles,role,Human-readable role name.,VARCHAR,50,NOT NULL; UNIQUE,student
+users,user_id,User account identifier.,INT,,NOT NULL; AUTO_INCREMENT; PRIMARY KEY,42
+users,role_id,Role identifier assigned to a user.,INT,,NOT NULL; INDEX; FK -> roles.role_id,3
+users,username,Unique username used for login and display.,VARCHAR,50,NOT NULL; UNIQUE,pixelrookie
+users,email,Unique account email address.,VARCHAR,255,NOT NULL; UNIQUE,player@example.com
+users,password,Password hash for manual accounts; empty for Google-created accounts.,VARCHAR,255,NOT NULL,$2y$10$...
+users,acc_type,"Account creation/sign-in type, such as manual or google.",VARCHAR,30,NOT NULL; DEFAULT 'manual',manual
+users,is_verified,"Email verification flag; 1 means verified, 0 means not verified.",INT,,NOT NULL; DEFAULT 0,1
+users,is_active,"Account review/active status; commonly 1 active, 0 pending, -1 rejected.",INT,,NOT NULL; DEFAULT 0,1
+users,last_seen_at,Most recent presence heartbeat timestamp.,TIMESTAMP,,NULL allowed; DEFAULT NULL,2026-06-13 09:15:00
+users,registration_date,Timestamp when the account was registered.,TIMESTAMP,,NOT NULL; DEFAULT CURRENT_TIMESTAMP,2026-06-13 09:00:00
+users,date_deleted,Soft-delete timestamp; null means active record.,TIMESTAMP,,NULL allowed; DEFAULT NULL,NULL
+verifications,ev_id,Verification record identifier.,INT,,NOT NULL; AUTO_INCREMENT; PRIMARY KEY,10
+verifications,user_id,User account identifier.,INT,,NOT NULL; INDEX; FK -> users.user_id,42
+verifications,type,Verification or notification target type/category.,VARCHAR,80,NOT NULL,account verification
+verifications,token,Stored verification token or hashed token.,VARCHAR,255,NOT NULL; INDEX,$2y$10$...
+verifications,request_timestamp,Timestamp when the verification token was requested.,TIMESTAMP,,NOT NULL; DEFAULT CURRENT_TIMESTAMP,2026-06-13 09:01:00
+verifications,status,"State value for the record, interpreted by the owning feature.",INT,,NOT NULL; DEFAULT 0,1
+user_details,ud_id,User details record identifier.,INT,,NOT NULL; AUTO_INCREMENT; PRIMARY KEY,12
+user_details,user_id,User account identifier.,INT,,NOT NULL; UNIQUE; FK -> users.user_id,42
+user_details,image_id,Avatar image reference.,INT,,NOT NULL; INDEX; FK -> images.img_id,5
+user_details,id_picture,Student ID image reference.,INT,,NULL allowed; DEFAULT NULL; INDEX; FK -> images.img_id,6
+user_details,firstname,User first name.,VARCHAR,100,NOT NULL,Juan
+user_details,lastname,User last name.,VARCHAR,100,NOT NULL,Dela Cruz
+user_details,student_number,Student number or school identifier.,VARCHAR,100,NULL allowed; DEFAULT NULL,2026-000123
+difficulties,difficulty_id,Challenge difficulty identifier.,INT,,NOT NULL; AUTO_INCREMENT; PRIMARY KEY,2
+difficulties,name,Name or title of the record.,VARCHAR,50,NOT NULL; UNIQUE,Season 01: Arcade Dawn
+difficulties,description,Description text for the record.,VARCHAR,255,NOT NULL,Requires layout and spacing accuracy.
+difficulties,points,Point value or point balance.,INT,,NOT NULL,40
+ranks,rank_id,Rank record identifier.,INT,,NOT NULL; AUTO_INCREMENT; PRIMARY KEY,1
+ranks,name,Name or title of the record.,VARCHAR,100,NOT NULL; UNIQUE,Season 01: Arcade Dawn
+ranks,points_requirements,Minimum points required for the rank.,INT,,NOT NULL; DEFAULT 0; UNIQUE,0
+seasons,season_id,Season identifier.,INT,,NOT NULL; AUTO_INCREMENT; PRIMARY KEY,1
+seasons,name,Name or title of the record.,VARCHAR,150,NOT NULL; UNIQUE,Season 01: Arcade Dawn
+seasons,start_date,Timestamp when the season starts.,TIMESTAMP,,NOT NULL; INDEX,2026-06-01 00:00:00
+seasons,end_date,Timestamp when the season ends.,TIMESTAMP,,NOT NULL; INDEX,2026-06-30 23:59:59
+challenges,challenge_id,Challenge identifier.,INT,,NOT NULL; AUTO_INCREMENT; PRIMARY KEY,8
+challenges,user_id,User account identifier.,INT,,NOT NULL; INDEX; FK -> users.user_id,42
+challenges,difficulty_id,Challenge difficulty identifier.,INT,,NOT NULL; INDEX; FK -> difficulties.difficulty_id,2
+challenges,name,Name or title of the record.,VARCHAR,150,NOT NULL,Season 01: Arcade Dawn
+challenges,instruction,Challenge instructions shown to players.,TEXT,variable/long text,NOT NULL,Match the target card layout.
+challenges,html_source,Path or URL to the challenge target HTML source.,VARCHAR,255,NOT NULL,challenge-sources/html/card.html
+challenges,css_source,Path or URL to the challenge target CSS source.,VARCHAR,255,NOT NULL,challenge-sources/css/card.css
+challenges,status,"State value for the record, interpreted by the owning feature.",INT,,NOT NULL; DEFAULT 0; INDEX,1
+challenges,date_created,Timestamp when the record was created.,TIMESTAMP,,NOT NULL; DEFAULT CURRENT_TIMESTAMP,2026-06-13 09:00:00
+challenges,date_deleted,Soft-delete timestamp; null means active record.,TIMESTAMP,,NULL allowed; DEFAULT NULL,NULL
+comments,comment_id,Comment record identifier.,INT,,NOT NULL; AUTO_INCREMENT; PRIMARY KEY,3
+comments,user_id,User account identifier.,INT,,NOT NULL; INDEX; FK -> users.user_id,42
+comments,challenge_id,Challenge identifier.,INT,,NOT NULL; INDEX; FK -> challenges.challenge_id,8
+comments,comment,Comment body text.,VARCHAR,1000,NOT NULL,This challenge was fun.
+comments,date_created,Timestamp when the record was created.,TIMESTAMP,,NOT NULL; DEFAULT CURRENT_TIMESTAMP; INDEX,2026-06-13 09:00:00
+notifications,notif_id,Notification record identifier.,INT,,NOT NULL; AUTO_INCREMENT; PRIMARY KEY,7
+notifications,user_id,User account identifier.,INT,,NOT NULL; INDEX; FK -> users.user_id,42
+notifications,text,Notification or announcement message body.,TEXT,variable/long text,NOT NULL,New season is now open.
+notifications,type,Verification or notification target type/category.,VARCHAR,80,NOT NULL; INDEX,account verification
+notifications,created_at,Timestamp when the record was created.,TIMESTAMP,,NOT NULL; DEFAULT CURRENT_TIMESTAMP; INDEX,2026-06-13 09:00:00
+rooms,room_id,Room identifier.,INT,,NOT NULL; AUTO_INCREMENT; PRIMARY KEY,4
+rooms,user_id,User account identifier.,INT,,NOT NULL; INDEX; FK -> users.user_id,42
+rooms,challenge_id,Challenge identifier.,INT,,NOT NULL; INDEX; FK -> challenges.challenge_id,8
+rooms,room_code,Join code used by players to enter a room.,VARCHAR,100,NOT NULL; INDEX,PXW-9K2M
+rooms,room_name,Display name of the room.,VARCHAR,150,NOT NULL,Morning CSS Battle
+rooms,room_description,Teacher-provided room description.,VARCHAR,255,NOT NULL,Warm-up room for flexbox practice.
+rooms,status,"State value for the record, interpreted by the owning feature.",INT,,NOT NULL; DEFAULT 1; INDEX,1
+rooms,timer_limit,Room time limit in minutes.,INT,,NOT NULL; DEFAULT 0,30
+rooms,strict_mode,"Strict mode flag; 1 enabled, 0 disabled.",INT,,NOT NULL; DEFAULT 0,1
+rooms,started_at,Timestamp when the run/session started.,TIMESTAMP,,NULL allowed; DEFAULT NULL,2026-06-13 09:05:00
+rooms,ended_at,Timestamp when the room ended.,TIMESTAMP,,NULL allowed; DEFAULT NULL,2026-06-13 09:35:00
+rooms,created_at,Timestamp when the record was created.,TIMESTAMP,,NOT NULL; DEFAULT CURRENT_TIMESTAMP,2026-06-13 09:00:00
+rooms,date_deleted,Soft-delete timestamp; null means active record.,TIMESTAMP,,NULL allowed; DEFAULT NULL,NULL
+room_players,rp_id,Room player record identifier.,INT,,NOT NULL; AUTO_INCREMENT; PRIMARY KEY,11
+room_players,user_id,User account identifier.,INT,,NOT NULL; INDEX; FK -> users.user_id,42
+room_players,room_id,Room identifier.,INT,,NOT NULL; INDEX; FK -> rooms.room_id,4
+room_players,status,"State value for the record, interpreted by the owning feature.",INT,,NOT NULL; DEFAULT 0; INDEX,1
+room_players,strict_mode_score,Final strict-mode matching percentage score.,INT,,NOT NULL; DEFAULT 0,86
+room_players,last_seen_at,Most recent presence heartbeat timestamp.,TIMESTAMP,,NOT NULL; DEFAULT CURRENT_TIMESTAMP,2026-06-13 09:15:00
+room_players,started_at,Timestamp when the run/session started.,TIMESTAMP,,NULL allowed; DEFAULT NULL,2026-06-13 09:05:00
+room_players,completed_at,Timestamp when the attempt/session was completed.,TIMESTAMP,,NULL allowed; DEFAULT NULL,2026-06-13 09:20:00
+pvp_matches,pvp_id,1v1 match identifier.,INT,,NOT NULL; AUTO_INCREMENT; PRIMARY KEY,13
+pvp_matches,user_id,User account identifier.,INT,,NOT NULL; INDEX; FK -> users.user_id,42
+pvp_matches,challenge_id,Challenge identifier.,INT,,NOT NULL; INDEX; FK -> challenges.challenge_id,8
+pvp_players,p_pvp_id,1v1 participant record identifier.,INT,,NOT NULL; AUTO_INCREMENT; PRIMARY KEY,22
+pvp_players,pvp_id,1v1 match identifier.,INT,,NOT NULL; INDEX; FK -> pvp_matches.pvp_id,13
+pvp_players,user_id,User account identifier.,INT,,NOT NULL; INDEX; FK -> users.user_id,42
+pvp_players,status,"State value for the record, interpreted by the owning feature.",INT,,NOT NULL; DEFAULT 0; INDEX,1
+pvp_players,created_at,Timestamp when the record was created.,TIMESTAMP,,NOT NULL; DEFAULT CURRENT_TIMESTAMP,2026-06-13 09:00:00
+user_challenge,uc_id,User challenge attempt record identifier.,INT,,NOT NULL; AUTO_INCREMENT; PRIMARY KEY,101
+user_challenge,challenge_id,Challenge identifier.,INT,,NOT NULL; INDEX; FK -> challenges.challenge_id,8
+user_challenge,user_id,User account identifier.,INT,,NOT NULL; INDEX; FK -> users.user_id,42
+user_challenge,room_id,Room identifier.,INT,,NULL allowed; DEFAULT NULL; INDEX; FK -> rooms.room_id,4
+user_challenge,pvp_id,1v1 match identifier.,INT,,NULL allowed; DEFAULT NULL; INDEX; FK -> pvp_matches.pvp_id,13
+user_challenge,season_id,Season identifier.,INT,,NULL allowed; DEFAULT NULL; INDEX; FK -> seasons.season_id,1
+user_challenge,started_at,Timestamp when the run/session started.,TIMESTAMP,,NOT NULL; DEFAULT CURRENT_TIMESTAMP,2026-06-13 09:05:00
+user_challenge,completed_at,Timestamp when the attempt/session was completed.,TIMESTAMP,,NULL allowed; DEFAULT NULL,2026-06-13 09:20:00
+activity_logs,al_id,Activity log record identifier.,INT,,NOT NULL; AUTO_INCREMENT; PRIMARY KEY,33
+activity_logs,user_id,User account identifier.,INT,,NOT NULL; INDEX; FK -> users.user_id,42
+activity_logs,category,Activity log category.,VARCHAR,50,NOT NULL; INDEX,auth
+activity_logs,log_text,Activity log message.,VARCHAR,255,NOT NULL,Logged in using Google.
+activity_logs,date_created,Timestamp when the record was created.,TIMESTAMP,,NOT NULL; DEFAULT CURRENT_TIMESTAMP,2026-06-13 09:00:00
+player_progress,pp_id,Player progress record identifier.,INT,,NOT NULL; AUTO_INCREMENT; PRIMARY KEY,17
+player_progress,user_id,User account identifier.,INT,,NOT NULL; UNIQUE; INDEX; FK -> users.user_id,42
+player_progress,season_id,Season identifier.,INT,,NULL allowed; DEFAULT NULL; UNIQUE; INDEX; FK -> seasons.season_id,1
+player_progress,points,Point value or point balance.,INT,,NOT NULL; DEFAULT 0,40
