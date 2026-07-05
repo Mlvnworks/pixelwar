@@ -6,7 +6,7 @@ body.pixelwar-dark-mode :where(.teacher-shell, .teacher-footer) {
     color: var(--pw-text) !important;
 }
 
-body.pixelwar-dark-mode :where(.teacher-header .container, .teacher-sidebar, .teacher-topbar, .teacher-hero, .teacher-panel, .teacher-page-card, .teacher-stat-card, .teacher-list-card, .teacher-activity-card, .teacher-log-card, .teacher-top-challenge, .teacher-student-card, .teacher-challenge-card, .teacher-settings-card, .teacher-sidebar__account, .teacher-profile__menu, .pixelwar-notifications__menu, .modal-content, .toast, .dropdown-menu) {
+body.pixelwar-dark-mode :where(.teacher-header .container, .teacher-sidebar, .teacher-hero, .teacher-panel, .teacher-page-card, .teacher-stat-card, .teacher-list-card, .teacher-activity-card, .teacher-log-card, .teacher-top-challenge, .teacher-student-card, .teacher-challenge-card, .teacher-settings-card, .teacher-sidebar__account, .teacher-profile__menu, .pixelwar-notifications__menu, .modal-content, .toast, .dropdown-menu) {
     border-color: var(--pw-border-soft) !important;
     background: var(--pw-surface) !important;
     color: var(--pw-text) !important;
@@ -49,4 +49,570 @@ body.pixelwar-dark-mode :where(table th, table td, .table th, .table td) {
 body.pixelwar-dark-mode :where(table thead, .table thead, .table-light) {
     background: var(--pw-surface-2) !important;
     color: var(--pw-text) !important;
+}
+
+/* Admin-aligned teacher theme layer. Loaded after page CSS so the shell stays consistent. */
+:root {
+    --teacher-admin-bg: #f3f4f6;
+    --teacher-admin-surface: #ffffff;
+    --teacher-admin-surface-muted: #f8fafc;
+    --teacher-admin-border: #d9dee7;
+    --teacher-admin-border-strong: #c8d0dc;
+    --teacher-admin-text: #111827;
+    --teacher-admin-text-muted: #6b7280;
+    --teacher-admin-accent: #f59e0b;
+    --teacher-admin-accent-hover: #fbbf24;
+    --teacher-admin-accent-soft: #fef3c7;
+    --teacher-admin-danger: #b42318;
+    --teacher-admin-danger-soft: #fff1ef;
+    --teacher-admin-success: #166534;
+    --teacher-admin-success-soft: #ecfdf3;
+}
+
+body {
+    background: var(--teacher-admin-bg) !important;
+    color: var(--teacher-admin-text) !important;
+}
+
+body:has(.teacher-topbar) {
+    background:
+        radial-gradient(circle at 8% 8rem, rgba(255, 209, 102, 0.34), transparent 18rem),
+        radial-gradient(circle at 92% 20rem, rgba(76, 201, 240, 0.24), transparent 20rem),
+        var(--teacher-admin-bg) !important;
+}
+
+body.pixelwar-dark-mode {
+    --teacher-admin-bg: var(--pw-bg);
+    --teacher-admin-surface: var(--pw-surface);
+    --teacher-admin-surface-muted: var(--pw-surface-2);
+    --teacher-admin-border: var(--pw-border-soft);
+    --teacher-admin-border-strong: var(--pw-border);
+    --teacher-admin-text: var(--pw-text);
+    --teacher-admin-text-muted: var(--pw-text-muted);
+    --teacher-admin-accent: var(--pw-yellow);
+    --teacher-admin-accent-hover: #ffd166;
+    --teacher-admin-accent-soft: rgba(255, 209, 102, 0.16);
+    --teacher-admin-danger: var(--pw-danger);
+    --teacher-admin-danger-soft: rgba(249, 115, 115, 0.14);
+    --teacher-admin-success: #8bd3a7;
+    --teacher-admin-success-soft: rgba(139, 211, 167, 0.14);
+}
+
+.teacher-bg,
+.teacher-bg::after {
+    display: none !important;
+}
+
+.teacher-shell {
+    position: relative;
+    min-height: calc(100vh - 4.75rem);
+    margin-left: 18rem !important;
+    overflow: hidden;
+    background: transparent !important;
+    color: var(--teacher-admin-text) !important;
+}
+
+.teacher-shell::before {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    content: "";
+    background-image:
+        linear-gradient(rgba(38, 25, 15, 0.045) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(38, 25, 15, 0.045) 1px, transparent 1px);
+    background-size: 30px 30px;
+    pointer-events: none;
+    mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.82), transparent 86%);
+}
+
+body.pixelwar-dark-mode .teacher-shell::before {
+    background-image:
+        linear-gradient(rgba(255, 247, 232, 0.055) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 247, 232, 0.055) 1px, transparent 1px);
+}
+
+.teacher-shell > .container {
+    position: relative;
+    z-index: 1;
+}
+
+.teacher-footer {
+    margin-left: 18rem !important;
+    border-top: 1px solid var(--teacher-admin-border) !important;
+    background: var(--teacher-admin-surface) !important;
+    color: var(--teacher-admin-text-muted) !important;
+}
+
+.teacher-shell > .container,
+.teacher-footer > .container {
+    width: min(100% - 2rem, 1200px) !important;
+    max-width: min(100% - 2rem, 1200px) !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+}
+
+.teacher-header {
+    position: relative;
+    z-index: 10;
+}
+
+.teacher-sidebar {
+    position: fixed !important;
+    inset: 0 auto 0 0 !important;
+    display: flex !important;
+    width: 18rem !important;
+    max-height: 100vh !important;
+    min-height: 100vh !important;
+    flex-direction: column;
+    gap: 1rem;
+    overflow-y: auto !important;
+    overscroll-behavior: contain;
+    border-right: 1px solid var(--teacher-admin-border) !important;
+    border-bottom: 0 !important;
+    background: var(--teacher-admin-surface) !important;
+    padding: 1.25rem !important;
+    scrollbar-gutter: stable;
+    box-shadow: none !important;
+}
+
+.teacher-sidebar__brand {
+    padding: 0 !important;
+}
+
+.teacher-sidebar__logo {
+    min-width: 0;
+    color: var(--teacher-admin-text) !important;
+}
+
+.teacher-sidebar__mark {
+    width: 2.4rem !important;
+    height: 2.4rem !important;
+    object-fit: contain !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    filter: none !important;
+}
+
+.teacher-sidebar__app {
+    color: var(--teacher-admin-text) !important;
+    font-family: inherit !important;
+    font-size: 1rem !important;
+    font-weight: 800 !important;
+    letter-spacing: 0 !important;
+    text-transform: none !important;
+}
+
+.teacher-sidebar__role {
+    margin-top: 0.15rem !important;
+    color: var(--teacher-admin-text-muted) !important;
+    font-size: 0.78rem !important;
+    font-weight: 600 !important;
+}
+
+.teacher-sidebar__account {
+    border: 1px solid var(--teacher-admin-border) !important;
+    border-radius: 0.95rem !important;
+    background: var(--teacher-admin-surface-muted) !important;
+    padding: 0.85rem !important;
+}
+
+.teacher-sidebar__avatar {
+    width: 2.75rem !important;
+    height: 2.75rem !important;
+    border: 1px solid var(--teacher-admin-border-strong) !important;
+    border-radius: 0.8rem !important;
+    background: var(--teacher-admin-accent-soft) !important;
+    color: var(--teacher-admin-text) !important;
+    font-family: inherit !important;
+    font-size: 0.8rem !important;
+    font-weight: 700 !important;
+    box-shadow: none !important;
+}
+
+.teacher-sidebar__name {
+    color: var(--teacher-admin-text) !important;
+    font-size: 0.94rem !important;
+    font-weight: 700 !important;
+}
+
+.teacher-sidebar__email {
+    color: var(--teacher-admin-text-muted) !important;
+    font-size: 0.78rem !important;
+    font-weight: 500 !important;
+}
+
+.teacher-nav {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 0.1rem !important;
+    overflow: visible !important;
+    padding: 0 !important;
+}
+
+.teacher-nav__link,
+.teacher-nav__summary {
+    justify-content: flex-start !important;
+    width: 100% !important;
+    min-height: auto !important;
+    border: 0 !important;
+    border-left: 2px solid transparent !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    padding: 0.72rem 0 0.72rem 0.85rem !important;
+    color: var(--teacher-admin-text-muted) !important;
+    font-size: 0.9rem !important;
+    font-weight: 500 !important;
+    box-shadow: none !important;
+    transform: none !important;
+}
+
+.teacher-nav__link:hover,
+.teacher-nav__link--active,
+.teacher-nav__summary:hover,
+.teacher-nav__summary--active {
+    border-left-color: var(--teacher-admin-accent) !important;
+    background: transparent !important;
+    color: var(--teacher-admin-text) !important;
+    box-shadow: none !important;
+    transform: none !important;
+}
+
+.teacher-nav__link i,
+.teacher-nav__summary i {
+    color: inherit !important;
+}
+
+.teacher-sidebar__controls {
+    margin-top: auto !important;
+    border-top: 1px solid var(--teacher-admin-border) !important;
+    padding-top: 1rem !important;
+}
+
+.teacher-sidebar__section-title,
+.teacher-topbar__eyebrow {
+    color: var(--teacher-admin-text-muted) !important;
+    font-family: inherit !important;
+    font-size: 0.72rem !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.04em !important;
+    text-transform: uppercase !important;
+}
+
+.teacher-profile__item,
+.teacher-sidebar__switch {
+    width: 100%;
+    border: 1px solid var(--teacher-admin-border) !important;
+    border-radius: 0.85rem !important;
+    background: var(--teacher-admin-surface) !important;
+    padding: 0.8rem 0.9rem !important;
+    color: var(--teacher-admin-text) !important;
+    font-size: 0.88rem !important;
+    font-weight: 600 !important;
+    text-align: left;
+    box-shadow: none !important;
+}
+
+.teacher-profile__item:hover,
+.teacher-sidebar__switch:hover {
+    border-color: var(--teacher-admin-border-strong) !important;
+    background: var(--teacher-admin-surface-muted) !important;
+    color: var(--teacher-admin-text) !important;
+    transform: none !important;
+}
+
+.teacher-profile__item--danger,
+.teacher-sidebar__switch--logout {
+    border-color: #efc6c2 !important;
+    background: var(--teacher-admin-danger-soft) !important;
+    color: var(--teacher-admin-danger) !important;
+}
+
+.pixelwar-toggle {
+    border: 1px solid var(--teacher-admin-border-strong) !important;
+    background: #d1d5db !important;
+    box-shadow: none !important;
+}
+
+.pixelwar-toggle::after {
+    background: #374151 !important;
+}
+
+.pixelwar-toggle:checked {
+    background: var(--teacher-admin-accent) !important;
+}
+
+.teacher-topbar {
+    position: sticky !important;
+    top: 0;
+    z-index: 20;
+    margin-left: 18rem !important;
+    border: 0 !important;
+    background: transparent !important;
+    padding: 0.9rem 1.5rem !important;
+    color: var(--teacher-admin-text) !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+}
+
+.teacher-topbar__title {
+    color: var(--teacher-admin-text) !important;
+    font-size: clamp(1.45rem, 2.1vw, 2.25rem) !important;
+    font-weight: 900 !important;
+    line-height: 1.08 !important;
+}
+
+.teacher-hero,
+.teacher-panel,
+.teacher-page-card,
+.teacher-log-card,
+.teacher-student-card,
+.teacher-settings-card,
+.teacher-challenge-card,
+.teacher-list-card,
+.teacher-activity-card,
+.teacher-top-challenge,
+.teacher-stat-card,
+.teacher-chart-shell,
+.teacher-filterbar,
+.teacher-detail-card,
+.teacher-room-card {
+    border: 1px solid var(--teacher-admin-border) !important;
+    border-radius: 1rem !important;
+    background: var(--teacher-admin-surface) !important;
+    color: var(--teacher-admin-text) !important;
+    box-shadow: none !important;
+}
+
+.teacher-muted,
+.text-muted,
+.form-text,
+small {
+    color: var(--teacher-admin-text-muted) !important;
+}
+
+.teacher-card-title,
+.teacher-panel-title,
+.teacher-stat-card strong,
+.teacher-shell h1,
+.teacher-shell h2,
+.teacher-shell h3,
+.teacher-shell h4,
+.teacher-shell h5,
+.teacher-shell h6 {
+    color: var(--teacher-admin-text) !important;
+}
+
+.teacher-button,
+.teacher-link-button,
+.teacher-small-button,
+.teacher-mini-link,
+.teacher-search button,
+.teacher-range-chip {
+    min-height: 2.5rem !important;
+    border: 1px solid var(--teacher-admin-border-strong) !important;
+    border-radius: 0.8rem !important;
+    background: var(--teacher-admin-surface) !important;
+    padding: 0.68rem 0.95rem !important;
+    color: var(--teacher-admin-text) !important;
+    font-family: inherit !important;
+    font-size: 0.88rem !important;
+    font-weight: 600 !important;
+    letter-spacing: 0 !important;
+    text-transform: none !important;
+    box-shadow: none !important;
+    transform: none !important;
+}
+
+.teacher-button:hover,
+.teacher-link-button:hover,
+.teacher-small-button:hover,
+.teacher-mini-link:hover,
+.teacher-search button:hover,
+.teacher-range-chip:hover {
+    border-color: var(--teacher-admin-border-strong) !important;
+    background: var(--teacher-admin-surface-muted) !important;
+    color: var(--teacher-admin-text) !important;
+    transform: none !important;
+}
+
+.teacher-button--primary,
+.teacher-link-button,
+.teacher-range-chip.is-active {
+    border-color: #e2a63d !important;
+    background: var(--teacher-admin-accent) !important;
+    color: #111827 !important;
+}
+
+.teacher-button--primary:hover,
+.teacher-link-button:hover,
+.teacher-range-chip.is-active:hover {
+    border-color: var(--teacher-admin-accent-hover) !important;
+    background: var(--teacher-admin-accent-hover) !important;
+    color: #111827 !important;
+}
+
+.teacher-pill,
+.badge {
+    border: 1px solid var(--teacher-admin-border) !important;
+    background: var(--teacher-admin-surface-muted) !important;
+    color: var(--teacher-admin-text-muted) !important;
+    box-shadow: none !important;
+}
+
+.bg-arcade-mint {
+    background: var(--teacher-admin-success-soft) !important;
+    color: var(--teacher-admin-success) !important;
+}
+
+.bg-arcade-coral\/30 {
+    background: var(--teacher-admin-danger-soft) !important;
+    color: var(--teacher-admin-danger) !important;
+}
+
+.bg-arcade-cyan,
+.bg-arcade-yellow\/30,
+.bg-arcade-panel,
+.bg-arcade-cream,
+.teacher-shell .bg-white,
+.teacher-shell .bg-white\/80,
+.teacher-shell .bg-white\/85,
+.teacher-shell .bg-arcade-panel,
+.teacher-shell .bg-arcade-cream,
+.teacher-shell .bg-arcade-cream\/72,
+.teacher-shell .bg-arcade-cream\/80 {
+    background: var(--teacher-admin-surface-muted) !important;
+    color: var(--teacher-admin-text) !important;
+}
+
+.teacher-shell .border-arcade-ink,
+.teacher-shell .border-arcade-ink\/10,
+.teacher-shell .border-arcade-ink\/12,
+.teacher-shell .border-arcade-ink\/14,
+.teacher-shell .border-arcade-ink\/16,
+.teacher-shell .border-arcade-ink\/18,
+.teacher-shell .border-arcade-ink\/20 {
+    border-color: var(--teacher-admin-border) !important;
+}
+
+.teacher-shell :where(.shadow-\[7px_7px_0_\#26190f\], .shadow-\[8px_8px_0_\#26190f\], .shadow-\[0_4px_0_rgba\(38\,25\,15\,0\.25\)\]) {
+    box-shadow: none !important;
+}
+
+.text-arcade-orange,
+.text-arcade-cyan,
+.text-arcade-ink,
+.text-arcade-ink\/45,
+.text-arcade-ink\/50,
+.text-arcade-ink\/58,
+.text-arcade-ink\/60,
+.text-arcade-ink\/62,
+.text-arcade-ink\/65,
+.text-arcade-ink\/70,
+.text-arcade-ink\/72 {
+    color: inherit !important;
+}
+
+.font-arcade {
+    font-family: inherit !important;
+}
+
+.teacher-shell :where(input, textarea, select, .form-control, .form-select, .teacher-search input, .teacher-filterbar input, .teacher-filterbar select) {
+    border: 1px solid var(--teacher-admin-border) !important;
+    border-radius: 0.85rem !important;
+    background: var(--teacher-admin-surface) !important;
+    color: var(--teacher-admin-text) !important;
+    box-shadow: none !important;
+}
+
+.teacher-shell :where(input, textarea, select, .form-control, .form-select, .teacher-search input, .teacher-filterbar input, .teacher-filterbar select):focus {
+    border-color: var(--teacher-admin-accent) !important;
+    box-shadow: 0 0 0 3px var(--teacher-admin-accent-soft) !important;
+}
+
+.teacher-shell :where(input::placeholder, textarea::placeholder) {
+    color: var(--teacher-admin-text-muted) !important;
+}
+
+.teacher-shell :where(table, .table) {
+    color: var(--teacher-admin-text) !important;
+}
+
+.teacher-shell :where(table th, table td, .table th, .table td) {
+    border-color: var(--teacher-admin-border) !important;
+}
+
+.teacher-shell :where(table thead, .table thead, .table-light) {
+    background: var(--teacher-admin-surface-muted) !important;
+    color: var(--teacher-admin-text) !important;
+}
+
+.teacher-shell :where(table tbody tr:hover) {
+    background: var(--teacher-admin-surface-muted) !important;
+}
+
+.pixelwar-notifications__summary {
+    border: 1px solid var(--teacher-admin-border-strong) !important;
+    background: var(--teacher-admin-surface) !important;
+    color: var(--teacher-admin-text) !important;
+    box-shadow: none !important;
+}
+
+.pixelwar-notifications__summary:hover {
+    background: var(--teacher-admin-surface-muted) !important;
+    color: var(--teacher-admin-text) !important;
+}
+
+.pixelwar-notifications__menu,
+.pixelwar-notification,
+.modal-content,
+.toast,
+.dropdown-menu {
+    border-color: var(--teacher-admin-border) !important;
+    background: var(--teacher-admin-surface) !important;
+    color: var(--teacher-admin-text) !important;
+    box-shadow: none !important;
+}
+
+.announcement-notification-modal__body {
+    border-color: var(--teacher-admin-border) !important;
+    background: var(--teacher-admin-surface-muted) !important;
+    color: var(--teacher-admin-text) !important;
+}
+
+.modal-backdrop {
+    background-color: rgba(15, 23, 42, 0.58) !important;
+}
+
+.teacher-footer .container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    color: var(--teacher-admin-text-muted) !important;
+}
+
+.teacher-footer a {
+    border: 1px solid var(--teacher-admin-border-strong) !important;
+    background: var(--teacher-admin-surface-muted) !important;
+    color: var(--teacher-admin-text) !important;
+    box-shadow: none !important;
+}
+
+.teacher-footer a:hover {
+    background: var(--teacher-admin-surface) !important;
+    transform: none !important;
+}
+
+.teacher-header,
+.teacher-topbar,
+body.pixelwar-dark-mode .teacher-header,
+body.pixelwar-dark-mode .teacher-topbar {
+    background: transparent !important;
+    background-color: transparent !important;
+    border-color: transparent !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
 }

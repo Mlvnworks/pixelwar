@@ -357,3 +357,269 @@
         padding-right: 0.75rem !important;
     }
 }
+
+/* Admin-aligned teacher responsive shell. */
+@media (max-width: 1024px) {
+    body.teacher-sidebar-open {
+        overflow: hidden;
+    }
+
+    .teacher-mobile-topbar {
+        border-bottom: 1px solid var(--teacher-admin-border) !important;
+        background: color-mix(in srgb, var(--teacher-admin-surface) 94%, transparent) !important;
+        color: var(--teacher-admin-text) !important;
+        box-shadow: none !important;
+    }
+
+    .teacher-mobile-menu-button,
+    .teacher-mobile-brand,
+    .teacher-sidebar-close {
+        border: 1px solid var(--teacher-admin-border-strong) !important;
+        border-radius: 0.9rem !important;
+        background: var(--teacher-admin-surface-muted) !important;
+        color: var(--teacher-admin-text) !important;
+        box-shadow: none !important;
+    }
+
+    .teacher-mobile-menu-button:hover,
+    .teacher-mobile-brand:hover,
+    .teacher-sidebar-close:hover {
+        border-color: var(--teacher-admin-accent) !important;
+        background: var(--teacher-admin-accent-soft) !important;
+        color: var(--teacher-admin-text) !important;
+    }
+
+    .teacher-mobile-brand {
+        border-color: transparent !important;
+        background: transparent !important;
+        padding-inline: 0 !important;
+    }
+
+    .teacher-sidebar-backdrop {
+        background: rgba(15, 23, 42, 0.42) !important;
+        backdrop-filter: blur(3px);
+    }
+
+    .teacher-sidebar[data-teacher-sidebar] {
+        position: fixed !important;
+        inset: 0 auto 0 0 !important;
+        z-index: 1050;
+        display: flex !important;
+        width: min(21rem, calc(100vw - 2.25rem)) !important;
+        max-width: calc(100vw - 2.25rem) !important;
+        max-height: 100dvh !important;
+        min-height: 100dvh !important;
+        overflow-y: auto !important;
+        overscroll-behavior: contain;
+        border-right: 1px solid var(--teacher-admin-border) !important;
+        border-bottom: 0 !important;
+        background: var(--teacher-admin-surface) !important;
+        padding: 1rem !important;
+        padding-top: max(1rem, env(safe-area-inset-top)) !important;
+        transform: translateX(calc(-100% - 1rem));
+        transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
+        box-shadow: 18px 0 45px rgba(15, 23, 42, 0.18) !important;
+    }
+
+    .teacher-sidebar[data-teacher-sidebar].is-open {
+        transform: translateX(0);
+    }
+
+    .teacher-sidebar[data-teacher-sidebar] .teacher-sidebar__brand {
+        position: relative;
+        padding-right: 3.25rem !important;
+    }
+
+    .teacher-sidebar[data-teacher-sidebar] .teacher-nav {
+        display: grid !important;
+        grid-template-columns: 1fr !important;
+        gap: 0.3rem !important;
+    }
+
+    .teacher-sidebar[data-teacher-sidebar] .teacher-nav__link,
+    .teacher-sidebar[data-teacher-sidebar] .teacher-nav__summary {
+        min-height: 2.85rem !important;
+        border: 1px solid var(--teacher-admin-border) !important;
+        border-radius: 0.85rem !important;
+        padding: 0.72rem 0.85rem !important;
+    }
+
+    .teacher-sidebar[data-teacher-sidebar] .teacher-nav__link:hover,
+    .teacher-sidebar[data-teacher-sidebar] .teacher-nav__link--active,
+    .teacher-sidebar[data-teacher-sidebar] .teacher-nav__summary:hover,
+    .teacher-sidebar[data-teacher-sidebar] .teacher-nav__summary--active {
+        border-color: var(--teacher-admin-border-strong) !important;
+        background: var(--teacher-admin-surface-muted) !important;
+    }
+
+    .teacher-topbar {
+        margin-left: 0 !important;
+        display: grid !important;
+        grid-template-columns: 1fr auto !important;
+        align-items: center !important;
+        gap: 0.75rem !important;
+        border: 0 !important;
+        border-radius: 1rem !important;
+        background: transparent !important;
+        padding: 0.95rem !important;
+    }
+
+    .teacher-shell,
+    .teacher-footer {
+        width: 100% !important;
+        max-width: 100vw !important;
+        margin-left: 0 !important;
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+        overflow-x: hidden !important;
+    }
+
+    .teacher-shell {
+        min-height: calc(100dvh - 4.25rem);
+        padding-top: 0 !important;
+    }
+
+    .teacher-shell > .container,
+    .teacher-footer > .container {
+        width: calc(100vw - 1rem) !important;
+        max-width: calc(100vw - 1rem) !important;
+        margin-left: auto !important;
+        margin-right: auto !important;
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+    }
+
+    .teacher-shell :where(.teacher-topbar, .teacher-hero, .teacher-panel, .teacher-page-card, .teacher-stat-card, .teacher-list-card, .teacher-activity-card, .teacher-log-card, .teacher-student-card, .teacher-challenge-card, .teacher-settings-card) {
+        max-width: 100% !important;
+        min-width: 0 !important;
+    }
+}
+
+@media (max-width: 1024px) {
+    .teacher-mobile-topbar,
+    body.pixelwar-dark-mode .teacher-mobile-topbar {
+        background: transparent !important;
+        background-color: transparent !important;
+        border-color: transparent !important;
+        box-shadow: none !important;
+        backdrop-filter: none !important;
+    }
+}
+
+@media (max-width: 640px) {
+    .teacher-sidebar[data-teacher-sidebar] {
+        width: min(20rem, calc(100vw - 1.25rem)) !important;
+        max-width: calc(100vw - 1.25rem) !important;
+    }
+
+    .teacher-shell > .container,
+    .teacher-footer > .container {
+        width: calc(100vw - 0.75rem) !important;
+        max-width: calc(100vw - 0.75rem) !important;
+    }
+
+    .teacher-topbar {
+        grid-template-columns: 1fr auto !important;
+        padding: 0.85rem 0.25rem !important;
+    }
+
+    .teacher-topbar__title {
+        font-size: clamp(1.3rem, 8vw, 1.8rem) !important;
+    }
+
+    .teacher-hero,
+    .teacher-panel,
+    .teacher-page-card,
+    .teacher-stat-card,
+    .teacher-list-card,
+    .teacher-activity-card,
+    .teacher-log-card,
+    .teacher-student-card,
+    .teacher-challenge-card,
+    .teacher-settings-card {
+        padding: 0.85rem !important;
+        border-radius: 0.95rem !important;
+    }
+
+    .teacher-footer .container {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}
+
+/* Teacher-wide data tables follow the admin panel: wide data scrolls inside cards. */
+.teacher-shell :where(.teacher-panel, .teacher-page-card, .teacher-log-card, .teacher-student-card, .teacher-list-card) {
+    overflow: hidden;
+}
+
+.teacher-shell :where(.teacher-panel, .teacher-page-card, .teacher-log-card, .teacher-student-card, .teacher-list-card) > :where(.overflow-auto, .overflow-x-auto, [class*="overflow-x-auto"], [class*="overflow-x-scroll"]),
+.teacher-shell :where(.teacher-panel, .teacher-page-card, .teacher-log-card, .teacher-student-card, .teacher-list-card) :where(.max-h-\[38rem\], .max-h-\[32rem\]) {
+    max-width: 100%;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-gutter: stable;
+}
+
+.teacher-shell table {
+    width: 100%;
+    min-width: 54rem;
+    table-layout: auto;
+}
+
+.teacher-shell table.min-w-full {
+    min-width: 56rem !important;
+}
+
+.teacher-shell table th,
+.teacher-shell table td {
+    padding: 0.78rem 1rem !important;
+    vertical-align: top;
+}
+
+.teacher-shell table th {
+    white-space: nowrap;
+}
+
+.teacher-shell table td {
+    overflow-wrap: anywhere;
+    word-break: normal;
+}
+
+.teacher-shell table td :where(.teacher-pill, .badge, [class*="pill"], [class*="badge"], a, button) {
+    white-space: nowrap;
+}
+
+@media (max-width: 640px) {
+    .teacher-shell :where(.teacher-panel, .teacher-page-card, .teacher-log-card, .teacher-student-card, .teacher-list-card):has(table) {
+        padding-inline: 0.65rem !important;
+    }
+
+    .teacher-shell :where(.teacher-panel, .teacher-page-card, .teacher-log-card, .teacher-student-card, .teacher-list-card):has(table) > div:not(.flex):not(.grid),
+    .teacher-shell :where(.overflow-auto, .overflow-x-auto, [class*="overflow-x-auto"], [class*="overflow-x-scroll"]) {
+        margin-inline: -0.35rem;
+        max-width: calc(100% + 0.7rem);
+        padding-inline: 0.35rem;
+        padding-bottom: 0.45rem;
+    }
+
+    .teacher-shell table,
+    .teacher-shell table.min-w-full {
+        min-width: 52rem !important;
+        font-size: 0.82rem;
+    }
+
+    .teacher-shell table th,
+    .teacher-shell table td {
+        padding: 0.65rem 0.75rem !important;
+    }
+}
+
+.teacher-topbar,
+body.pixelwar-dark-mode .teacher-topbar {
+    background: transparent !important;
+    background-color: transparent !important;
+    background-image: none !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+}

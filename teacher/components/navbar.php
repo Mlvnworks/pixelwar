@@ -126,7 +126,6 @@ $teacherLatestNotificationId = $teacherNotifications !== [] ? max(array_column($
 
     <div class="teacher-topbar">
         <div>
-            <p class="teacher-topbar__eyebrow">Workspace</p>
             <p class="teacher-topbar__title"><?= htmlspecialchars($teacherTopbarLabels[$teacherCurrentPage]['label'] ?? 'Teacher Panel', ENT_QUOTES, 'UTF-8') ?></p>
         </div>
 

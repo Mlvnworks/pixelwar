@@ -151,10 +151,10 @@
     align-items: center;
     justify-content: space-between;
     gap: 1rem;
-    border-bottom: 3px solid rgba(38, 25, 15, 0.12);
-    background: rgba(255, 253, 246, 0.92);
+    border-bottom: 0;
+    background: transparent;
     padding: 0.85rem 1rem;
-    backdrop-filter: blur(14px);
+    backdrop-filter: none;
 }
 
 .teacher-topbar__eyebrow {
@@ -895,7 +895,6 @@ body.pixelwar-dark-mode .teacher-bg {
 
 body.pixelwar-dark-mode .teacher-header .container,
 body.pixelwar-dark-mode .teacher-sidebar,
-body.pixelwar-dark-mode .teacher-topbar,
 body.pixelwar-dark-mode .teacher-hero,
 body.pixelwar-dark-mode .teacher-panel,
 body.pixelwar-dark-mode .teacher-page-card,
