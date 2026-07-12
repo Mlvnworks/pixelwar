@@ -60,9 +60,6 @@ $statusClasses = [
             <div>
                 <p class="text-sm font-semibold uppercase tracking-[0.08em] text-arcade-ink/60">Progression</p>
                 <h1 class="mt-1 text-3xl font-bold md:text-4xl">Season Management</h1>
-                <p class="mt-2 max-w-3xl text-sm font-medium leading-7 text-arcade-ink/62 md:text-base">
-                    Manage leaderboard seasons and keep submitted attempts tied to the active season window.
-                </p>
                 <div class="mt-3 inline-flex items-center gap-2 rounded-2xl border-2 border-arcade-ink bg-white/85 px-4 py-2 text-sm font-black shadow-[4px_4px_0_rgba(38,25,15,0.18)]">
                     <i data-lucide="sparkles" class="h-4 w-4 text-arcade-orange" aria-hidden="true"></i>
                     <span class="text-arcade-ink/55">Current Season:</span>

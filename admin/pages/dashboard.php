@@ -91,9 +91,6 @@ $roleLabels = [
         <section class="grid gap-2">
             <p class="text-sm font-semibold uppercase tracking-[0.08em] text-arcade-ink/60">Dashboard</p>
             <h1 class="text-3xl font-bold leading-tight md:text-4xl">Hello, <?= htmlspecialchars($adminName, ENT_QUOTES, 'UTF-8') ?></h1>
-            <p class="max-w-3xl text-sm font-medium leading-7 text-arcade-ink/65 md:text-base">
-                Monitor account growth and review the latest platform activity in one place.
-            </p>
         </section>
 
         <section class="teacher-panel p-5 md:p-6">

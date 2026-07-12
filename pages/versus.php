@@ -50,7 +50,6 @@ if ($userRepository instanceof UserRepository) {
                 <div>
                     <p class="font-arcade text-[10px] uppercase tracking-[0.28em] text-arcade-cyan">1v1 Arena</p>
                     <h1 class="mt-3 text-3xl font-bold leading-tight md:text-5xl">Find an online player.</h1>
-                    <p class="mt-3 max-w-2xl text-sm leading-7 text-arcade-ink/68">Search online students, check their cards, then send a duel invite when you are ready.</p>
                 </div>
             </div>
 

@@ -53,9 +53,6 @@ $formatSeasonDate = static function (?string $value): string {
                         <div>
                             <p class="font-arcade text-[10px] uppercase tracking-[0.28em] text-arcade-cyan">Season Leaderboard</p>
                             <h1 class="mt-3 text-4xl font-black leading-tight md:text-6xl"><?= htmlspecialchars($seasonName, ENT_QUOTES, 'UTF-8') ?></h1>
-                            <p class="mt-3 max-w-2xl text-sm font-bold leading-7 text-arcade-ink/68 md:text-base">
-                                Rankings are based on player progress points earned during this season.
-                            </p>
                         </div>
                         <article class="leaderboards-rank-card rounded-[24px] border-4 border-arcade-ink bg-white/85 p-4 shadow-[7px_7px_0_rgba(38,25,15,0.24)]">
                             <p class="text-xs font-black uppercase tracking-[0.16em] text-arcade-orange">Season Status</p>

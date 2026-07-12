@@ -100,6 +100,40 @@ final class UserChallengeRepository
         return $row ?: null;
     }
 
+    public function findLatestOngoingSolo(int $userId): ?array
+    {
+        if ($userId <= 0) {
+            return null;
+        }
+
+        $statement = $this->connection->prepare(
+            'SELECT
+                user_challenge.uc_id,
+                user_challenge.challenge_id,
+                user_challenge.user_id,
+                user_challenge.room_id,
+                user_challenge.pvp_id,
+                user_challenge.season_id,
+                user_challenge.started_at,
+                user_challenge.completed_at
+             FROM user_challenge
+             INNER JOIN challenges ON challenges.challenge_id = user_challenge.challenge_id
+             WHERE user_challenge.user_id = ?
+                AND user_challenge.room_id IS NULL
+                AND user_challenge.pvp_id IS NULL
+                AND user_challenge.completed_at IS NULL
+                AND challenges.status = 1
+             ORDER BY user_challenge.started_at DESC, user_challenge.uc_id DESC
+             LIMIT 1'
+        );
+        $statement->bind_param('i', $userId);
+        $statement->execute();
+        $row = $statement->get_result()->fetch_assoc();
+        $statement->close();
+
+        return $row ?: null;
+    }
+
     public function startOrFindOngoing(int $userId, int $challengeId, int $roomId = 0, int $pvpId = 0): array
     {
         $ongoing = $this->findOngoing($userId, $challengeId, $roomId, $pvpId);

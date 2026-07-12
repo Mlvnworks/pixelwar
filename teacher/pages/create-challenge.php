@@ -129,9 +129,6 @@ foreach ($difficultyRows as $difficultyRow) {
                 <div>
                     <p class="font-arcade text-[10px] uppercase tracking-[0.26em] text-arcade-orange"><?= htmlspecialchars($modeLabel, ENT_QUOTES, 'UTF-8') ?></p>
                     <h1 class="mt-3 text-3xl font-black md:text-5xl"><?= htmlspecialchars($heroTitle, ENT_QUOTES, 'UTF-8') ?></h1>
-                    <p class="mt-3 max-w-3xl text-sm font-bold leading-7 text-arcade-ink/65 md:text-base">
-                        <?= htmlspecialchars($heroCopy, ENT_QUOTES, 'UTF-8') ?>
-                    </p>
                     <?php if ($sourceLoadError !== '') : ?>
                         <p class="mt-3 rounded-2xl border-2 border-arcade-coral/45 bg-arcade-coral/12 px-4 py-3 text-sm font-black text-arcade-ink">
                             <?= htmlspecialchars($sourceLoadError, ENT_QUOTES, 'UTF-8') ?>

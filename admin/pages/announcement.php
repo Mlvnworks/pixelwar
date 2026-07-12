@@ -41,9 +41,6 @@ if (isset($connection) && $connection instanceof mysqli) {
             <div>
                 <p class="text-sm font-semibold uppercase tracking-[0.08em] text-arcade-ink/60">Broadcast</p>
                 <h1 class="mt-1 text-3xl font-bold md:text-4xl">Announcements</h1>
-                <p class="mt-2 max-w-3xl text-sm font-medium leading-7 text-arcade-ink/62 md:text-base">
-                    Create targeted announcements for students, teachers, or both audiences.
-                </p>
             </div>
             <button type="button" class="teacher-button teacher-button--primary gap-2" data-bs-toggle="modal" data-bs-target="#announcement-create-modal">
                 <i data-lucide="megaphone" class="h-4 w-4" aria-hidden="true"></i>

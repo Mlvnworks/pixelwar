@@ -12,6 +12,18 @@ $gameRoomStrictMode = false;
 $gamePusherEnabled = isset($pusherService) && $pusherService instanceof PusherService && $pusherService->isConfigured();
 $gameShouldPlayOpening = (string) ($_GET['intro'] ?? '') === '1' || $gameRoomId > 0 || $gamePvpId > 0;
 
+if (
+    $gameChallengeId <= 0
+    && $gameRoomId <= 0
+    && $gamePvpId <= 0
+    && $userChallengeRepository instanceof UserChallengeRepository
+) {
+    $latestSoloRun = $userChallengeRepository->findLatestOngoingSolo((int) ($_SESSION['user_id'] ?? 0));
+    if ($latestSoloRun !== null) {
+        $gameChallengeId = (int) ($latestSoloRun['challenge_id'] ?? 0);
+    }
+}
+
 if ($gameChallengeId > 0) {
     try {
         if (!$challengeRepository instanceof ChallengeRepository || !$userChallengeRepository instanceof UserChallengeRepository) {
@@ -599,11 +611,16 @@ ${css}
         if (!doc.getElementById('pixelwar-preview-link-guard')) {
             const style = doc.createElement('style');
             style.id = 'pixelwar-preview-link-guard';
-            style.textContent = 'a, area { cursor: default !important; }';
+            style.textContent = 'a, area, button, [role="button"], input, select, textarea { cursor: default !important; }';
             doc.head?.appendChild(style);
         }
 
         doc.querySelectorAll('a, area').forEach((link) => {
+            if (link.hasAttribute('href')) {
+                link.dataset.pixelwarDisabledHref = link.getAttribute('href') || '';
+                link.removeAttribute('href');
+            }
+            link.removeAttribute('target');
             link.setAttribute('tabindex', '-1');
             link.setAttribute('aria-disabled', 'true');
         });
@@ -613,13 +630,19 @@ ${css}
         }
 
         doc.defaultView.pixelwarPreviewLinksBlocked = true;
-        doc.addEventListener('click', (event) => {
-            if (event.target?.closest?.('a, area')) {
+        const blockPreviewActivation = (event) => {
+            if (event.target?.closest?.('a, area, form, button[type="submit"], input[type="submit"], input[type="image"]')) {
                 event.preventDefault();
             }
-        }, true);
+        };
+
+        doc.addEventListener('click', blockPreviewActivation, true);
+        doc.addEventListener('auxclick', blockPreviewActivation, true);
+        doc.addEventListener('pointerup', blockPreviewActivation, true);
+        doc.addEventListener('touchend', blockPreviewActivation, true);
+        doc.addEventListener('submit', blockPreviewActivation, true);
         doc.addEventListener('keydown', (event) => {
-            if ((event.key === 'Enter' || event.key === ' ') && event.target?.closest?.('a, area')) {
+            if ((event.key === 'Enter' || event.key === ' ') && event.target?.closest?.('a, area, button[type="submit"], input[type="submit"], input[type="image"]')) {
                 event.preventDefault();
                 event.stopPropagation();
             }
@@ -669,8 +692,11 @@ ${css}
         frame.style.height = `${naturalHeight}px`;
         frame.style.maxWidth = 'none';
         frame.style.maxHeight = 'none';
-        frame.style.transform = `scale(${scale})`;
-        frame.style.transformOrigin = 'top left';
+        frame.style.position = 'absolute';
+        frame.style.left = '50%';
+        frame.style.top = '50%';
+        frame.style.transform = `translate(-50%, -50%) scale(${scale})`;
+        frame.style.transformOrigin = 'center center';
     };
 
     const runOpeningEffect = () => {
@@ -1649,11 +1675,15 @@ ${css}
     };
 
     const resolveSelectorKeyFromTarget = (element) => {
-        if (!element || element.nodeType !== 1) {
+        if (!element) {
             return null;
         }
 
-        let currentElement = element;
+        let currentElement = element.nodeType === 1 ? element : element.parentElement;
+        if (!currentElement || currentElement.nodeType !== 1) {
+            return null;
+        }
+
         let depth = 0;
         let bestMatch = null;
 
@@ -1709,18 +1739,35 @@ ${css}
             node.setAttribute('aria-disabled', 'true');
         });
 
-        doc.body.addEventListener('click', (event) => {
-            event.preventDefault();
+        const resolveTargetFromPreviewEvent = (event) => {
+            const touch = event.changedTouches?.[0] || event.touches?.[0] || null;
+            if (touch && typeof doc.elementFromPoint === 'function') {
+                return doc.elementFromPoint(touch.clientX, touch.clientY) || event.target;
+            }
+
+            return event.target;
+        };
+
+        const selectTargetElement = (event) => {
+            if (event.cancelable) {
+                event.preventDefault();
+            }
             event.stopPropagation();
             event.stopImmediatePropagation?.();
-            const key = resolveSelectorKeyFromTarget(event.target);
+            const key = resolveSelectorKeyFromTarget(resolveTargetFromPreviewEvent(event));
             state.pinnedSelectorKey = key;
             highlightSelectorCard(key, true);
 
             if (previewModal?.classList.contains('show')) {
                 bootstrap.Modal.getOrCreateInstance(previewModal).hide();
             }
-        });
+        };
+
+        doc.addEventListener('touchstart', selectTargetElement, { capture: true, passive: false });
+        doc.addEventListener('pointerdown', selectTargetElement, { capture: true, passive: false });
+        doc.body.addEventListener('click', selectTargetElement);
+        doc.body.addEventListener('pointerup', selectTargetElement, { passive: false });
+        doc.body.addEventListener('touchend', selectTargetElement, { passive: false });
 
         const handleTargetMove = (event) => {
             if (state.pinnedSelectorKey !== null) {

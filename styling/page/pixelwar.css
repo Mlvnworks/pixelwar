@@ -1114,3 +1114,62 @@ body.pixelwar-dark-mode .gameplay-complete-card strong {
 .mobile-preview-frame iframe {
     touch-action: manipulation;
 }
+
+@media (max-width: 767px) {
+    .mobile-preview-modal .modal-dialog {
+        width: min(calc(100vw - 1rem), 42rem);
+        max-width: none;
+        margin: 0.5rem auto;
+    }
+
+    .mobile-preview-modal .modal-content {
+        max-height: calc(100dvh - 1rem);
+        overflow: hidden;
+    }
+
+    .mobile-preview-modal .modal-header {
+        flex: 0 0 auto;
+        gap: 0.75rem;
+        padding: 0.9rem 0.9rem 0.45rem !important;
+    }
+
+    .mobile-preview-modal .modal-title {
+        font-size: clamp(1rem, 5vw, 1.25rem);
+        line-height: 1.15;
+    }
+
+    .mobile-preview-modal .modal-body {
+        display: flex;
+        min-height: 0;
+        padding: 0.35rem 0.75rem 0.75rem !important;
+    }
+
+    .mobile-preview-frame {
+        flex: 1 1 auto;
+        width: 100%;
+        height: min(72dvh, 34rem) !important;
+        min-height: 22rem;
+        overflow: hidden;
+        position: relative;
+        border-radius: 1.15rem !important;
+        background: #f7efe1 !important;
+    }
+
+    .mobile-preview-frame .game-source-preview {
+        border-radius: 1rem;
+        min-width: 0;
+        min-height: 0;
+        will-change: transform;
+    }
+}
+
+@media (max-width: 420px) {
+    .mobile-preview-modal .modal-dialog {
+        width: min(calc(100vw - 0.75rem), 42rem);
+    }
+
+    .mobile-preview-frame {
+        height: min(74dvh, 32rem) !important;
+        min-height: 20rem;
+    }
+}

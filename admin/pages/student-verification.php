@@ -67,9 +67,6 @@ $reviewActionIntent = [
             <div>
                 <p class="text-sm font-semibold uppercase tracking-[0.08em] text-arcade-ink/60">Verification Queue</p>
                 <h1 class="mt-1 text-3xl font-bold md:text-4xl">Student verification</h1>
-                <p class="mt-2 max-w-3xl text-sm font-medium leading-7 text-arcade-ink/62 md:text-base">
-                    Search, filter, and review student submissions before access is unlocked.
-                </p>
             </div>
             <div class="grid gap-2 sm:grid-cols-3 lg:min-w-[26rem]">
                 <article class="teacher-panel px-4 py-3">
@@ -292,7 +289,7 @@ $reviewActionIntent = [
 <div class="modal fade" id="student-review-action-modal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content rounded-[24px] border-4 border-arcade-ink bg-arcade-panel text-arcade-ink shadow-[8px_8px_0_rgba(38,25,15,0.18)]">
-            <form method="post" action="./?c=student-verification">
+            <form method="post" action="./?c=student-verification" id="student-review-action-form">
                 <?= adminPanelCsrfField() ?>
                 <input type="hidden" name="action" id="student-review-action-input" value="">
                 <input type="hidden" name="student_id" id="student-review-student-id-input" value="">
@@ -302,7 +299,7 @@ $reviewActionIntent = [
                         <p class="text-xs font-semibold uppercase tracking-[0.08em] text-arcade-ink/55">Confirm action</p>
                         <h2 id="student-review-action-title" class="mt-1 text-lg font-bold">Review action</h2>
                     </div>
-                    <button type="button" class="grid h-10 w-10 place-items-center rounded-xl border-2 border-arcade-ink bg-white text-arcade-ink transition hover:bg-arcade-yellow/35" data-bs-dismiss="modal" aria-label="Close">
+                    <button type="button" class="grid h-10 w-10 place-items-center rounded-xl border-2 border-arcade-ink bg-white text-arcade-ink transition hover:bg-arcade-yellow/35" data-bs-dismiss="modal" data-review-modal-close aria-label="Close">
                         <i data-lucide="x" class="h-4 w-4" aria-hidden="true"></i>
                     </button>
                 </div>
@@ -330,10 +327,11 @@ $reviewActionIntent = [
                 </div>
 
                 <div class="flex flex-wrap items-center justify-end gap-2 border-t border-arcade-ink/10 px-4 py-3">
-                    <button type="button" class="teacher-link-button" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="teacher-link-button" data-bs-dismiss="modal" data-review-modal-cancel>Cancel</button>
                     <button type="submit" id="student-review-action-submit" class="teacher-button teacher-button--primary gap-2">
-                        <i data-lucide="badge-check" class="h-4 w-4" aria-hidden="true"></i>
-                        <span>Confirm</span>
+                        <span class="admin-review-submit-spinner" aria-hidden="true"></span>
+                        <i data-lucide="badge-check" class="h-4 w-4" aria-hidden="true" data-review-submit-icon></i>
+                        <span data-review-submit-label>Confirm</span>
                     </button>
                 </div>
             </form>
@@ -392,6 +390,20 @@ $reviewActionIntent = [
 .admin-lazy-image--hidden {
     opacity: 0;
     pointer-events: none;
+}
+
+.admin-review-submit-spinner {
+    display: none;
+    width: 1rem;
+    height: 1rem;
+    border: 2px solid rgba(38, 25, 15, 0.2);
+    border-top-color: #26190f;
+    border-radius: 999px;
+    animation: adminImageSpin 800ms linear infinite;
+}
+
+.admin-review-submit-spinner.is-visible {
+    display: inline-block;
 }
 
 @keyframes adminImageSpin {
@@ -510,9 +522,27 @@ window.addEventListener('load', () => {
     const studentIdField = document.getElementById('student-review-student-id-input');
     const passwordField = document.getElementById('student-review-admin-password');
     const submitButton = document.getElementById('student-review-action-submit');
+    const actionForm = document.getElementById('student-review-action-form');
+    const submitLabel = submitButton?.querySelector('[data-review-submit-label]');
+    const submitIcon = submitButton?.querySelector('[data-review-submit-icon]');
+    const submitSpinner = submitButton?.querySelector('.admin-review-submit-spinner');
+    const modalDismissControls = actionModal ? [...actionModal.querySelectorAll('[data-review-modal-close], [data-review-modal-cancel]')] : [];
     const actionIntent = <?= json_encode($reviewActionIntent, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?>;
 
-    if (actionModal && actionTitle && actionMessage && actionStudentName && actionField && studentIdField && passwordField && submitButton) {
+    if (actionModal && actionTitle && actionMessage && actionStudentName && actionField && studentIdField && passwordField && submitButton && submitLabel && submitIcon && submitSpinner) {
+        const setReviewSubmitting = (isSubmitting) => {
+            submitButton.disabled = isSubmitting;
+            passwordField.disabled = isSubmitting;
+            modalDismissControls.forEach((control) => {
+                control.disabled = isSubmitting;
+            });
+            submitSpinner.classList.toggle('is-visible', isSubmitting);
+            submitIcon.classList.toggle('hidden', isSubmitting);
+            submitLabel.textContent = isSubmitting
+                ? (actionField.value === 'reject' ? 'Rejecting...' : 'Approving...')
+                : (submitButton.dataset.defaultLabel || 'Confirm');
+        };
+
         actionModal.addEventListener('show.bs.modal', (event) => {
             const trigger = event.relatedTarget;
             if (!(trigger instanceof HTMLElement)) {
@@ -531,8 +561,15 @@ window.addEventListener('load', () => {
             studentIdField.value = studentId;
             passwordField.value = '';
             submitButton.className = intent.buttonClass || 'teacher-button teacher-button--primary gap-2';
-            submitButton.innerHTML = '<i data-lucide="' + (intent.icon || 'badge-check') + '" class="h-4 w-4" aria-hidden="true"></i><span>' + (intent.button || 'Confirm') + '</span>';
+            submitButton.dataset.defaultLabel = intent.button || 'Confirm';
+            submitIcon.setAttribute('data-lucide', intent.icon || 'badge-check');
+            submitLabel.textContent = submitButton.dataset.defaultLabel;
+            setReviewSubmitting(false);
             window.lucide?.createIcons();
+        });
+
+        actionForm?.addEventListener('submit', () => {
+            setReviewSubmitting(true);
         });
     }
 });

@@ -19,9 +19,6 @@ $difficultyAccents = ['easy' => 'mint', 'medium' => 'yellow', 'hard' => 'coral']
             <div>
                 <p class="text-sm font-semibold uppercase tracking-[0.08em] text-arcade-ink/60">Rewards</p>
                 <h1 class="mt-1 text-3xl font-bold md:text-4xl">Point Rates</h1>
-                <p class="mt-2 max-w-3xl text-sm font-medium leading-7 text-arcade-ink/62 md:text-base">
-                    Configure the reward points players earn for each challenge difficulty.
-                </p>
             </div>
         </section>
 

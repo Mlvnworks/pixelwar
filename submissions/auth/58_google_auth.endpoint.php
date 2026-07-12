@@ -81,26 +81,74 @@ if ($requestMethod === 'GET' && $requestedPage === 'google-auth') {
     };
 
     $buildGoogleUsername = static function (UserRepository $users, string $email, string $name): string {
-        $base = strtolower((string) preg_replace('/[^a-z0-9_]+/i', '_', strstr($email, '@', true) ?: $name));
-        $base = trim($base, '_');
-        if (strlen($base) < 3) {
-            $base = 'player_' . substr(bin2hex(random_bytes(3)), 0, 6);
-        }
-        $base = substr($base, 0, 24);
-        $username = $base;
-        $attempt = 0;
+        $rawBase = strstr($email, '@', true) ?: $name;
+        $base = strtolower((string) preg_replace('/[^a-z0-9_]+/i', '_', $rawBase));
+        $base = (string) preg_replace('/_+/', '_', trim($base, '_'));
 
-        while ($users->usernameExists($username)) {
-            $attempt++;
-            $suffix = '_' . substr(bin2hex(random_bytes(3)), 0, 6);
-            $username = substr($base, 0, 32 - strlen($suffix)) . $suffix;
-            if ($attempt > 12) {
-                $username = 'player_' . substr(bin2hex(random_bytes(8)), 0, 16);
-                break;
+        if (strlen($base) < 3) {
+            $fallbackName = strtolower((string) preg_replace('/[^a-z0-9_]+/i', '_', $name));
+            $base = (string) preg_replace('/_+/', '_', trim($fallbackName, '_'));
+        }
+
+        if (strlen($base) < 3) {
+            $base = 'player';
+        }
+
+        $base = substr($base, 0, 30);
+        if (!$users->usernameExists($base)) {
+            return $base;
+        }
+
+        for ($suffixNumber = 2; $suffixNumber <= 999; $suffixNumber++) {
+            $suffix = (string) $suffixNumber;
+            $candidate = substr($base, 0, 32 - strlen($suffix)) . $suffix;
+            if (!$users->usernameExists($candidate)) {
+                return $candidate;
             }
         }
 
-        return $username;
+        do {
+            $suffix = '_' . substr(bin2hex(random_bytes(4)), 0, 8);
+            $candidate = substr($base, 0, 32 - strlen($suffix)) . $suffix;
+        } while ($users->usernameExists($candidate));
+
+        return $candidate;
+    };
+
+    $createGoogleStudentWithUniqueUsername = static function (UserRepository $users, string $email, string $name) use ($buildGoogleUsername): array {
+        $lastError = null;
+
+        for ($attempt = 0; $attempt < 3; $attempt++) {
+            $username = $buildGoogleUsername($users, $email, $name);
+
+            try {
+                $userId = $users->createGoogleStudent($username, $email);
+
+                return [
+                    'user_id' => $userId,
+                    'username' => $username,
+                ];
+            } catch (mysqli_sql_exception $err) {
+                $lastError = $err;
+                if ((int) $err->getCode() !== 1062) {
+                    throw $err;
+                }
+
+                $existingUser = $users->findUserByEmail($email);
+                if (
+                    $existingUser !== null
+                    && (int) ($existingUser['role_id'] ?? 0) === pixelwarStudentRoleId()
+                    && strtolower((string) ($existingUser['acc_type'] ?? 'manual')) === 'google'
+                ) {
+                    return [
+                        'user_id' => (int) $existingUser['user_id'],
+                        'username' => (string) $existingUser['username'],
+                    ];
+                }
+            }
+        }
+
+        throw $lastError ?: new RuntimeException('Google account could not be created.');
     };
 
     try {
@@ -189,8 +237,9 @@ if ($requestMethod === 'GET' && $requestedPage === 'google-auth') {
                 $user = $users->findUserByEmail($email);
             }
         } else {
-            $username = $buildGoogleUsername($users, $email, $name !== '' ? $name : $email);
-            $userId = $users->createGoogleStudent($username, $email);
+            $createdGoogleUser = $createGoogleStudentWithUniqueUsername($users, $email, $name !== '' ? $name : $email);
+            $userId = (int) $createdGoogleUser['user_id'];
+            $username = (string) $createdGoogleUser['username'];
 
             if ($firstname === '' && $name !== '') {
                 $parts = preg_split('/\s+/', $name) ?: [];

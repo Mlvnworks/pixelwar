@@ -15,7 +15,6 @@ $createdChallenges = $challengeRepository instanceof ChallengeRepository
                 <div>
                     <p class="font-arcade text-[10px] uppercase tracking-[0.26em] text-arcade-orange">Challenges</p>
                     <h1 class="mt-3 text-3xl font-black md:text-4xl">Teacher Challenge Library</h1>
-                    <p class="mt-2 max-w-2xl text-sm font-bold leading-7 text-arcade-ink/62">Search, filter, and review your teacher-created Pixelwar challenges.</p>
                 </div>
                 <a href="./?c=create-challenge" class="teacher-button teacher-button--primary">New Challenge</a>
             </div>

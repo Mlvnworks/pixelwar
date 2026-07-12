@@ -58,9 +58,6 @@ $studentBuildQuery = static function (array $overrides = []) use ($studentSearch
             <div>
                 <p class="text-sm font-semibold uppercase tracking-[0.08em] text-arcade-ink/60">Management</p>
                 <h1 class="mt-1 text-3xl font-bold md:text-4xl">Students</h1>
-                <p class="mt-2 max-w-3xl text-sm font-medium leading-7 text-arcade-ink/62 md:text-base">
-                    Review student accounts, see who is online right now, and open individual progress details.
-                </p>
             </div>
             <div class="teacher-students-summary-grid grid gap-2 sm:grid-cols-2 xl:grid-cols-4 xl:min-w-[34rem]">
                 <article class="teacher-panel teacher-students-summary-card px-4 py-3">

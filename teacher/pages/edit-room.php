@@ -97,9 +97,6 @@ $strictModeValue = (int) ($roomOld['strict_mode'] ?? ($editingRoom['strict_mode'
                     <div>
                         <p class="font-arcade text-[10px] uppercase tracking-[0.26em] text-arcade-orange">Edit Room</p>
                         <h1 class="mt-3 text-3xl font-black md:text-5xl">Update this classroom room.</h1>
-                        <p class="mt-3 max-w-3xl text-sm font-bold leading-7 text-arcade-ink/65 md:text-base">
-                            Review the selected challenge, preview the target design, and update the room setup before saving.
-                        </p>
                     </div>
                     <div class="flex flex-wrap gap-2">
                         <a href="./?c=room-view&id=<?= (int) $editingRoom['room_id'] ?>" class="teacher-button teacher-button--light gap-2">

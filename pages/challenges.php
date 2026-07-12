@@ -49,7 +49,6 @@ $hasAvailableChallenges = $challenges !== [];
             <div class="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
                 <div>
                     <h1 class="text-4xl font-bold leading-tight md:text-6xl">Challenges</h1>
-                    <p class="mt-3 max-w-2xl text-sm leading-7 text-arcade-ink/70">Search and filter CSS design-matching challenges before starting a run.</p>
                 </div>
             </div>
 

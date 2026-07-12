@@ -165,9 +165,6 @@ $teacherActivityBuildQuery = static function (array $overrides = []) use ($teach
                         <div>
                             <p class="text-sm font-semibold uppercase tracking-[0.08em] text-arcade-ink/60">Teacher Activity</p>
                             <h1 class="mt-1 text-3xl font-bold leading-tight md:text-4xl"><?= htmlspecialchars($teacherActivityName, ENT_QUOTES, 'UTF-8') ?></h1>
-                            <p class="mt-2 max-w-3xl text-sm font-medium leading-7 text-arcade-ink/65 md:text-base">
-                                Review created challenges and room records for this teacher.
-                            </p>
                         </div>
                     </div>
                 </section>

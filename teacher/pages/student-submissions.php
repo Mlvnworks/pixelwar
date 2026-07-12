@@ -159,7 +159,6 @@ $studentSubmissionInitialStatusFilter = isset($_GET['status']) && in_array((stri
                     <div>
                         <p class="font-arcade text-[10px] uppercase tracking-[0.28em] text-arcade-orange">Student Submissions</p>
                         <h1 class="mt-3 text-3xl font-bold leading-tight md:text-5xl"><?= htmlspecialchars($studentSubmissionName, ENT_QUOTES, 'UTF-8') ?></h1>
-                        <p class="mt-2 max-w-2xl text-sm leading-7 text-arcade-ink/70">Review the student's attempt history, outcome type, and earned points.</p>
                     </div>
                     <div class="flex flex-wrap items-center gap-2">
                         <button type="button" class="inline-flex items-center justify-center gap-2 rounded-xl border-2 border-arcade-ink bg-arcade-yellow px-4 py-2 text-sm font-bold text-arcade-ink shadow-[0_3px_0_#26190f] transition hover:-translate-y-0.5 hover:bg-arcade-orange hover:text-white" data-bs-toggle="modal" data-bs-target="#student-submissions-export-modal">

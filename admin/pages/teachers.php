@@ -57,9 +57,6 @@ $teacherBuildQuery = static function (array $overrides = []) use ($teacherSearch
             <div>
                 <p class="text-sm font-semibold uppercase tracking-[0.08em] text-arcade-ink/60">Management</p>
                 <h1 class="mt-1 text-3xl font-bold md:text-4xl">Teachers</h1>
-                <p class="mt-2 max-w-3xl text-sm font-medium leading-7 text-arcade-ink/62 md:text-base">
-                    Create teacher accounts, review setup status, and manage access from one place.
-                </p>
             </div>
             <div class="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-stretch sm:justify-end xl:min-w-[22rem]">
                 <button type="button" class="teacher-button teacher-button--primary gap-2 self-start sm:self-auto" data-bs-toggle="modal" data-bs-target="#admin-create-teacher-modal">

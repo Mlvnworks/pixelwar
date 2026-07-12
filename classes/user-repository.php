@@ -208,7 +208,7 @@ class UserRepository
                 images.source AS avatar_url,
                 COALESCE(player_points.points, 0) AS points
              FROM users
-             INNER JOIN (
+             LEFT JOIN (
                 SELECT user_id, SUM(points) AS points
                 FROM player_progress
                 WHERE season_id = ?

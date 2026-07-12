@@ -132,9 +132,6 @@ $formatSubmissionOutcome = static function (string $attemptStatus): array {
                     <div>
                         <p class="text-sm font-semibold uppercase tracking-[0.08em] text-arcade-ink/60">Student Submissions</p>
                         <h1 class="mt-2 text-3xl font-bold leading-tight md:text-4xl"><?= htmlspecialchars($studentSubmissionName, ENT_QUOTES, 'UTF-8') ?></h1>
-                        <p class="mt-2 text-sm font-medium leading-7 text-arcade-ink/65">
-                            Review the student's challenge attempts, outcome type, and awarded points.
-                        </p>
                     </div>
                     <a href="./?c=student-view&id=<?= (int) $studentSubmissionId ?>" class="teacher-button teacher-button--light gap-2 no-underline">
                         <i data-lucide="arrow-left" class="h-4 w-4" aria-hidden="true"></i>

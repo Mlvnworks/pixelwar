@@ -65,9 +65,6 @@ $strictModeValue = (int) ($roomOld['strict_mode'] ?? $defaultStrictMode);
                 <div>
                     <p class="font-arcade text-[10px] uppercase tracking-[0.26em] text-arcade-orange">Create Room</p>
                     <h1 class="mt-3 text-3xl font-black md:text-5xl">Build a classroom room.</h1>
-                    <p class="mt-3 max-w-3xl text-sm font-bold leading-7 text-arcade-ink/65 md:text-base">
-                        Select one of your challenges, review its preview, and shape the room details before creating the lobby.
-                    </p>
                 </div>
                 <div class="flex flex-wrap gap-2">
                     <a href="./?c=rooms" class="teacher-button teacher-button--light gap-2">

@@ -44,9 +44,6 @@ $logBuildQuery = static function (string $category, int $page = 1): string {
             <div>
                 <p class="text-sm font-semibold uppercase tracking-[0.08em] text-arcade-ink/60">Logs</p>
                 <h1 class="text-3xl font-bold leading-tight md:text-4xl">Activity Logs</h1>
-                <p class="mt-2 max-w-3xl text-sm font-medium leading-7 text-arcade-ink/65 md:text-base">
-                    Latest platform actions from admins, teachers, and students.
-                </p>
             </div>
             <div class="flex flex-wrap gap-2">
                 <button type="button" class="teacher-button teacher-button--primary gap-2" data-bs-toggle="modal" data-bs-target="#admin-logs-export-modal">
