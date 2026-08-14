@@ -163,6 +163,13 @@ if (!$hasFullDatabaseConfig) {
     return;
 }
 
+if (!class_exists('mysqli')) {
+    error_log('Pixelwar database error: PHP mysqli extension is not installed or enabled.');
+    http_response_code(500);
+    require __DIR__ . '/components/500.php';
+    exit;
+}
+
 if (function_exists('mysqli_report') && defined('MYSQLI_REPORT_ERROR') && defined('MYSQLI_REPORT_STRICT')) {
     mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 }
