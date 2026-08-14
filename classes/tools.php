@@ -115,6 +115,24 @@ class Tools
     // --------------  SEND EMAIL ----------------//
     public function sendEmail($content, $to, $subject)
     {
+        $mailTransport = strtolower(trim((string) (defined('MAIL_TRANSPORT') ? MAIL_TRANSPORT : Env::get('MAIL_TRANSPORT', 'smtp'))));
+
+        if (in_array($mailTransport, ['resend', 'api', 'http'], true)) {
+            return $this->sendEmailViaResend($content, $to, $subject);
+        }
+
+        if ($mailTransport !== 'smtp') {
+            return [
+                'success' => false,
+                'err' => new RuntimeException('Unsupported MAIL_TRANSPORT value. Use smtp or resend.')
+            ];
+        }
+
+        return $this->sendEmailViaSmtp($content, $to, $subject);
+    }
+
+    private function sendEmailViaSmtp($content, $to, $subject): array
+    {
         if (!class_exists(PHPMailer::class)) {
             return [
                 'success' => false,
@@ -130,6 +148,8 @@ class Tools
         $mailPassword = Env::get('MAIL_PASSWORD');
         $mailFromAddress = Env::get('MAIL_FROM_ADDRESS', $mailUsername);
         $mailFromName = Env::get('MAIL_FROM_NAME', Env::get('APP_NAME', 'Pixelwar'));
+        $mailTimeout = max(1, min(20, defined('MAIL_TIMEOUT') ? (int) MAIL_TIMEOUT : (Env::getInt('MAIL_TIMEOUT', 8) ?? 8)));
+        $mailDebug = defined('MAIL_DEBUG') ? (bool) MAIL_DEBUG : Env::getBool('MAIL_DEBUG', false);
 
         if ($mailHost === null || $mailUsername === null || $mailPassword === null || $mailFromAddress === null) {
             return [
@@ -145,10 +165,28 @@ class Tools
             $mail->SMTPAuth = true;
             $mail->Username = $mailUsername;
             $mail->Password = $mailPassword;
-            $mail->SMTPSecure = $mailEncryption === 'ssl'
-                ? PHPMailer::ENCRYPTION_SMTPS
-                : PHPMailer::ENCRYPTION_STARTTLS;
             $mail->Port = $mailPort;
+            $mail->Timeout = $mailTimeout;
+            $mail->Timelimit = $mailTimeout;
+            $mail->CharSet = 'UTF-8';
+
+            if ($mailDebug) {
+                $mail->SMTPDebug = 2;
+                $mail->Debugoutput = static function (string $message, int $level): void {
+                    error_log('Pixelwar SMTP debug [' . $level . ']: ' . trim($message));
+                };
+            }
+
+            if ($mailEncryption === 'ssl' || $mailEncryption === 'smtps') {
+                $mail->SMTPSecure = PHPMailer::ENCRYPTION_SMTPS;
+            } elseif ($mailEncryption === 'tls' || $mailEncryption === 'starttls') {
+                $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+            } elseif ($mailEncryption === 'none' || $mailEncryption === '') {
+                $mail->SMTPSecure = '';
+                $mail->SMTPAutoTLS = false;
+            } else {
+                throw new RuntimeException('Unsupported MAIL_ENCRYPTION value. Use tls, ssl, or none.');
+            }
 
             // Recipients
             $mail->setFrom($mailFromAddress, $mailFromName);
@@ -170,6 +208,123 @@ class Tools
                 'err' => $e
             ];
         }
+    }
+
+    private function sendEmailViaResend($content, $to, $subject): array
+    {
+        $apiKey = trim((string) (defined('RESEND_API_KEY') ? RESEND_API_KEY : Env::get('RESEND_API_KEY', Env::get('MAIL_API_KEY', ''))));
+        $mailFromAddress = Env::get('MAIL_FROM_ADDRESS', Env::get('MAIL_USERNAME'));
+        $mailFromName = Env::get('MAIL_FROM_NAME', Env::get('APP_NAME', 'Pixelwar'));
+        $mailTimeout = max(1, min(20, defined('MAIL_TIMEOUT') ? (int) MAIL_TIMEOUT : (Env::getInt('MAIL_TIMEOUT', 8) ?? 8)));
+
+        if ($apiKey === '' || $mailFromAddress === null) {
+            return [
+                'success' => false,
+                'err' => new RuntimeException('Resend mail configuration is incomplete. Set RESEND_API_KEY and MAIL_FROM_ADDRESS.')
+            ];
+        }
+
+        $from = trim((string) $mailFromName) !== ''
+            ? trim((string) $mailFromName) . ' <' . $mailFromAddress . '>'
+            : $mailFromAddress;
+
+        $payload = [
+            'from' => $from,
+            'to' => [$to],
+            'subject' => $subject,
+            'html' => $content,
+        ];
+
+        try {
+            $response = $this->postJson(
+                'https://api.resend.com/emails',
+                $payload,
+                [
+                    'Authorization: Bearer ' . $apiKey,
+                    'Content-Type: application/json',
+                    'Accept: application/json',
+                ],
+                $mailTimeout
+            );
+
+            if ($response['status'] < 200 || $response['status'] >= 300) {
+                throw new RuntimeException('Resend API failed with HTTP ' . $response['status'] . ': ' . $response['body']);
+            }
+
+            return [
+                'success' => true,
+                'err' => null
+            ];
+        } catch (Throwable $e) {
+            return [
+                'success' => false,
+                'err' => $e
+            ];
+        }
+    }
+
+    private function postJson(string $url, array $payload, array $headers, int $timeout): array
+    {
+        $body = json_encode($payload);
+        if ($body === false) {
+            throw new RuntimeException('Unable to encode mail payload.');
+        }
+
+        if (function_exists('curl_init')) {
+            $curl = curl_init($url);
+            curl_setopt_array($curl, [
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_POST => true,
+                CURLOPT_HTTPHEADER => $headers,
+                CURLOPT_POSTFIELDS => $body,
+                CURLOPT_CONNECTTIMEOUT => $timeout,
+                CURLOPT_TIMEOUT => $timeout,
+            ]);
+
+            $responseBody = curl_exec($curl);
+            $statusCode = (int) curl_getinfo($curl, CURLINFO_HTTP_CODE);
+            $error = curl_error($curl);
+            curl_close($curl);
+
+            if ($responseBody === false) {
+                throw new RuntimeException('Mail API request failed: ' . ($error ?: 'Unknown cURL error'));
+            }
+
+            return [
+                'status' => $statusCode,
+                'body' => (string) $responseBody,
+            ];
+        }
+
+        $context = stream_context_create([
+            'http' => [
+                'method' => 'POST',
+                'header' => implode("\r\n", $headers),
+                'content' => $body,
+                'timeout' => $timeout,
+                'ignore_errors' => true,
+            ],
+        ]);
+
+        $responseBody = file_get_contents($url, false, $context);
+        if ($responseBody === false) {
+            throw new RuntimeException('Mail API request failed.');
+        }
+
+        $statusCode = 0;
+        if (isset($http_response_header) && is_array($http_response_header)) {
+            foreach ($http_response_header as $headerLine) {
+                if (preg_match('/^HTTP\/\S+\s+(\d+)/', $headerLine, $matches)) {
+                    $statusCode = (int) $matches[1];
+                    break;
+                }
+            }
+        }
+
+        return [
+            'status' => $statusCode,
+            'body' => (string) $responseBody,
+        ];
     }
 
 

@@ -86,6 +86,22 @@ if (!defined('MAIL_FROM_NAME')) {
     define('MAIL_FROM_NAME', Env::get('MAIL_FROM_NAME', APP_NAME));
 }
 
+if (!defined('MAIL_TRANSPORT')) {
+    define('MAIL_TRANSPORT', Env::get('MAIL_TRANSPORT', 'smtp'));
+}
+
+if (!defined('MAIL_TIMEOUT')) {
+    define('MAIL_TIMEOUT', Env::getInt('MAIL_TIMEOUT', 8) ?? 8);
+}
+
+if (!defined('MAIL_DEBUG')) {
+    define('MAIL_DEBUG', Env::getBool('MAIL_DEBUG', false));
+}
+
+if (!defined('RESEND_API_KEY')) {
+    define('RESEND_API_KEY', Env::get('RESEND_API_KEY', Env::get('MAIL_API_KEY', '')));
+}
+
 if (!defined('SUPABASE_URL')) {
     define('SUPABASE_URL', Env::get('SUPABASE_URL'));
 }
