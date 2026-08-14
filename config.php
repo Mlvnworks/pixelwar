@@ -163,7 +163,9 @@ if (!$hasFullDatabaseConfig) {
     return;
 }
 
-mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
+if (function_exists('mysqli_report') && defined('MYSQLI_REPORT_ERROR') && defined('MYSQLI_REPORT_STRICT')) {
+    mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
+}
 
 try {
     $databaseInitializer = new DatabaseInitializer(DB_HOST, DB_USER, DB_PASS, DB_NAME, DB_PORT);
