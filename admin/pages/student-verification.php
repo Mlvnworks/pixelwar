@@ -532,7 +532,7 @@ window.addEventListener('load', () => {
     if (actionModal && actionTitle && actionMessage && actionStudentName && actionField && studentIdField && passwordField && submitButton && submitLabel && submitIcon && submitSpinner) {
         const setReviewSubmitting = (isSubmitting) => {
             submitButton.disabled = isSubmitting;
-            passwordField.disabled = isSubmitting;
+            passwordField.readOnly = isSubmitting;
             modalDismissControls.forEach((control) => {
                 control.disabled = isSubmitting;
             });
