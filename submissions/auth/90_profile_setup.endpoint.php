@@ -204,10 +204,12 @@ if ($requestMethod === 'POST' && $requestedPage === 'profile-setup') {
         }
 
         unset($_SESSION['profile_setup_old'], $_SESSION['profile_setup_errors']);
-        $sessionUser['firstname'] = $firstname;
-        $sessionUser['lastname'] = $lastname;
-        $sessionUser['avatar_url'] = $profileImage;
-        pixelwarRefreshSessionUser($sessionUser);
+        $savedSessionUser = $users->findSessionUser($userId) ?: array_merge($sessionUser, [
+            'firstname' => $firstname,
+            'lastname' => $lastname,
+            'avatar_url' => $profileImage,
+        ]);
+        pixelwarRefreshSessionUser($savedSessionUser);
         $_SESSION['alert'] = [
             'error' => false,
             'content' => $successMessage

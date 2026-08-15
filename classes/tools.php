@@ -149,7 +149,6 @@ class Tools
             $mail->Password = $mailPassword;
             $mail->Port = $mailPort;
             $mail->Timeout = $mailTimeout;
-            $mail->Timelimit = $mailTimeout;
             $mail->CharSet = 'UTF-8';
 
             if ($mailDebug) {

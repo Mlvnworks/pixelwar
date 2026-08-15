@@ -876,7 +876,10 @@ unset($_SESSION['profile_setup_errors'], $_SESSION['profile_setup_old']);
             setLoading(false);
             setProgress(0, 'Upload stopped');
             progress.classList.add('hidden');
-            const responseMessage = response && response.message ? response.message : 'Profile setup failed. Please try again.';
+            const rawResponse = String(request.responseText || '').trim();
+            const responseMessage = response && response.message
+                ? response.message
+                : (rawResponse !== '' ? rawResponse.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim() : 'Profile setup failed. Please try again.');
 
             if (responseMessage.includes('Enter a valid student number.')) {
                 setStudentNumberError('Enter a valid student number.');
