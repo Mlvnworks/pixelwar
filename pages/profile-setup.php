@@ -839,16 +839,20 @@ unset($_SESSION['profile_setup_errors'], $_SESSION['profile_setup_old']);
         }
 
         setError('');
-        setLoading(true);
-        setProgress(0, 'Preparing uploads');
+        const uploadLabel = requiresAdminEmailCheck ? 'Preparing setup' : 'Preparing uploads';
+        const submitLoadingLabel = requiresAdminEmailCheck ? 'Saving & sending code...' : 'Uploading avatar';
+        const processingLabel = requiresAdminEmailCheck ? 'Sending verification code' : 'Finalizing profile';
+
+        setLoading(true, submitLoadingLabel);
+        setProgress(0, uploadLabel);
 
         request.upload.addEventListener('progress', (event) => {
             if (!event.lengthComputable) {
-                setProgress(12, 'Uploading files');
+                setProgress(12, requiresAdminEmailCheck ? 'Uploading profile image' : 'Uploading files');
                 return;
             }
 
-            setProgress((event.loaded / event.total) * 90, 'Uploading files');
+            setProgress((event.loaded / event.total) * 90, requiresAdminEmailCheck ? 'Uploading profile image' : 'Uploading files');
         });
 
         request.addEventListener('load', () => {
@@ -861,8 +865,10 @@ unset($_SESSION['profile_setup_errors'], $_SESSION['profile_setup_old']);
             }
 
             if (request.status >= 200 && request.status < 300 && response && response.success) {
-                setProgress(100, 'Upload complete');
-                submitLabel.textContent = response.redirect && response.redirect.includes('teacher/') ? 'Opening teacher panel...' : 'Entering Pixelwar...';
+                setProgress(100, processingLabel);
+                submitLabel.textContent = response.redirect && response.redirect.includes('email-verification')
+                    ? 'Opening email verification...'
+                    : (response.redirect && response.redirect.includes('teacher/') ? 'Opening teacher panel...' : 'Entering Pixelwar...');
                 window.location.href = response.redirect || './?c=home';
                 return;
             }
