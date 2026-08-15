@@ -521,7 +521,7 @@ function pixelwarSendPasswordResetLink(Tools $tools, string $email, string $user
     return true;
 }
 
-function pixelwarPrepareAccountVerification(VerificationRepository $verificationRepository, Tools $tools, int $userId, string $email, string $username): void
+function pixelwarPrepareAccountVerification(VerificationRepository $verificationRepository, Tools $tools, int $userId, string $email, string $username, bool $sendEmail = true): void
 {
     $verificationType = 'account verification';
     $verification = $verificationRepository->findLatest($userId, $verificationType);
@@ -548,7 +548,9 @@ function pixelwarPrepareAccountVerification(VerificationRepository $verification
 
     $_SESSION['pending_verification_user_id'] = $userId;
     $_SESSION['pending_verification_email'] = $email;
-    $_SESSION['pending_verification_mail_sent'] = pixelwarSendVerificationToken($tools, $email, $username, $token);
+    $_SESSION['pending_verification_mail_sent'] = $sendEmail
+        ? pixelwarSendVerificationToken($tools, $email, $username, $token)
+        : false;
     if (!empty($_SESSION['pending_verification_mail_sent'])) {
         pixelwarSetVerificationResendCooldown(60);
     }

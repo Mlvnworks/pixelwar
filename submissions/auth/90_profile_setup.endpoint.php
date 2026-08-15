@@ -184,10 +184,12 @@ if ($requestMethod === 'POST' && $requestedPage === 'profile-setup') {
                 $tools,
                 $userId,
                 $email,
-                $username
+                $username,
+                false
             );
             pixelwarLogActivity($activityLogRepository ?? null, $userId, 'account', 'Completed admin account setup and requested email verification.');
-            $successMessage = 'Admin setup saved. Verify your email to continue to the admin panel.';
+            $_SESSION['verification_errors'] = ['Admin setup saved. Send a verification code to continue to the admin panel.'];
+            $successMessage = 'Admin setup saved. Send a verification code to continue to the admin panel.';
             $redirect = './?c=email-verification';
         } else {
             $accounts->createProfileDetails($userId, $profileImage, $firstname, $lastname, $idPictureImage, $studentNumber);

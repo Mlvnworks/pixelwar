@@ -16,7 +16,7 @@ unset($_SESSION['verification_errors'], $_SESSION['verification_notices']);
     <div class="auth-token auth-token--three">@</div>
 
     <section class="container relative flex min-h-[calc(100vh-7.25rem)] items-center justify-center">
-        <form class="auth-card w-full max-w-[23rem] rounded-[24px] border-4 border-arcade-ink bg-arcade-panel p-4 shadow-[8px_8px_0_#26190f] md:p-5" action="./?c=email-verification" method="post" novalidate>
+        <form class="auth-card w-full max-w-[23rem] rounded-[24px] border-4 border-arcade-ink bg-arcade-panel p-4 shadow-[8px_8px_0_#26190f] md:p-5" action="./?c=email-verification" method="post" novalidate data-verification-confirm-form>
             <?= pixelwarCsrfField() ?>
             <p class="font-arcade text-[10px] uppercase tracking-[0.28em] text-arcade-orange">Verify Email</p>
             <h1 class="mt-2 text-[1.35rem] font-bold leading-tight">Enter your code.</h1>
@@ -49,8 +49,9 @@ unset($_SESSION['verification_errors'], $_SESSION['verification_notices']);
             <label class="mt-4 block text-sm font-bold" for="verification-token">Verification Code</label>
             <input id="verification-token" name="token" type="text" inputmode="numeric" autocomplete="one-time-code" required minlength="6" maxlength="6" pattern="[0-9]{6}" class="mt-1 w-full rounded-xl border-2 border-arcade-ink/15 bg-white px-3 py-3 text-center font-arcade text-base tracking-[0.35em] outline-none transition focus:border-arcade-orange" placeholder="000000">
 
-            <button type="submit" class="mt-4 w-full rounded-xl border-2 border-arcade-ink bg-arcade-yellow px-6 py-2.5 text-sm font-bold shadow-[0_4px_0_#26190f] transition hover:-translate-y-0.5 hover:bg-arcade-orange hover:text-white">
-                Confirm Email
+            <button type="submit" class="verification-confirm-submit mt-4 flex w-full items-center justify-center gap-2 rounded-xl border-2 border-arcade-ink bg-arcade-yellow px-6 py-2.5 text-sm font-bold shadow-[0_4px_0_#26190f] transition hover:-translate-y-0.5 hover:bg-arcade-orange hover:text-white disabled:cursor-wait disabled:opacity-75" data-verification-confirm-submit>
+                <span class="verification-email-submit__spinner" aria-hidden="true"></span>
+                <span data-verification-confirm-submit-label>Confirm Email</span>
             </button>
 
             <p class="mt-3 text-center text-sm text-arcade-ink/68">
@@ -67,8 +68,9 @@ unset($_SESSION['verification_errors'], $_SESSION['verification_notices']);
                         <label class="block text-sm font-bold" for="verification-new-email">New Email</label>
                         <input id="verification-new-email" name="new_email" form="verification-email-change-form" type="email" autocomplete="email" required class="mt-1 w-full rounded-xl border-2 border-arcade-ink/15 bg-white px-3 py-2 text-sm outline-none transition focus:border-arcade-orange" placeholder="player@example.com">
                         <small id="verification-new-email-message" class="verification-field-message" aria-live="polite"></small>
-                        <button type="submit" form="verification-email-change-form" name="change_verification_email" value="1" class="mt-3 w-full rounded-xl border-2 border-arcade-ink bg-arcade-cyan px-4 py-2 text-sm font-bold text-arcade-ink shadow-[0_4px_0_#26190f] transition hover:-translate-y-0.5 hover:bg-arcade-orange hover:text-white">
-                            Update Email & Send Code
+                        <button type="submit" form="verification-email-change-form" name="change_verification_email" value="1" class="verification-email-submit mt-3 flex w-full items-center justify-center gap-2 rounded-xl border-2 border-arcade-ink bg-arcade-cyan px-4 py-2 text-sm font-bold text-arcade-ink shadow-[0_4px_0_#26190f] transition hover:-translate-y-0.5 hover:bg-arcade-orange hover:text-white disabled:cursor-wait disabled:opacity-75" data-verification-email-submit>
+                            <span class="verification-email-submit__spinner" aria-hidden="true"></span>
+                            <span data-verification-email-submit-label>Update Email & Send Code</span>
                         </button>
                     </div>
                 </details>
@@ -147,6 +149,27 @@ unset($_SESSION['verification_errors'], $_SESSION['verification_notices']);
 .verification-email-change input.is-valid {
     border-color: #8bd3c7;
     background: rgba(139, 211, 199, 0.14);
+}
+
+.verification-email-submit__spinner {
+    display: none;
+    width: 1rem;
+    height: 1rem;
+    border: 2px solid rgba(38, 25, 15, 0.28);
+    border-top-color: #26190f;
+    border-radius: 999px;
+    animation: verificationEmailSpin 700ms linear infinite;
+}
+
+.verification-email-submit.is-loading .verification-email-submit__spinner,
+.verification-confirm-submit.is-loading .verification-email-submit__spinner {
+    display: inline-block;
+}
+
+@keyframes verificationEmailSpin {
+    to {
+        transform: rotate(360deg);
+    }
 }
 
 .auth-token {
@@ -275,14 +298,59 @@ unset($_SESSION['verification_errors'], $_SESSION['verification_notices']);
 
 <script>
 (() => {
+    const form = document.querySelector('[data-verification-confirm-form]');
+    const tokenInput = document.querySelector('#verification-token');
+    const submitButton = document.querySelector('[data-verification-confirm-submit]');
+    const submitLabel = document.querySelector('[data-verification-confirm-submit-label]');
+
+    if (!form || !(submitButton instanceof HTMLButtonElement)) {
+        return;
+    }
+
+    const setConfirmSubmitting = (isSubmitting) => {
+        submitButton.disabled = isSubmitting;
+        submitButton.classList.toggle('is-loading', isSubmitting);
+
+        if (submitLabel) {
+            submitLabel.textContent = isSubmitting ? 'Confirming...' : 'Confirm Email';
+        }
+
+        if (tokenInput instanceof HTMLInputElement) {
+            tokenInput.readOnly = isSubmitting;
+        }
+    };
+
+    form.addEventListener('submit', () => {
+        setConfirmSubmitting(true);
+    });
+
+    form.addEventListener('invalid', () => setConfirmSubmitting(false), true);
+})();
+
+(() => {
     const form = document.querySelector('#verification-email-change-form');
     const input = document.querySelector('#verification-new-email');
     const message = document.querySelector('#verification-new-email-message');
+    const submitButton = document.querySelector('[data-verification-email-submit]');
+    const submitLabel = document.querySelector('[data-verification-email-submit-label]');
     let emailIsAvailable = false;
 
     if (!form || !input || !message) {
         return;
     }
+
+    const setSubmitting = (isSubmitting) => {
+        if (submitButton instanceof HTMLButtonElement) {
+            submitButton.disabled = isSubmitting;
+            submitButton.classList.toggle('is-loading', isSubmitting);
+        }
+
+        if (submitLabel) {
+            submitLabel.textContent = isSubmitting ? 'Sending code...' : 'Update Email & Send Code';
+        }
+
+        input.readOnly = isSubmitting;
+    };
 
     const setState = (text, isValid = false) => {
         message.textContent = text;
@@ -341,6 +409,7 @@ unset($_SESSION['verification_errors'], $_SESSION['verification_notices']);
 
     form.addEventListener('submit', async (event) => {
         event.preventDefault();
+        setSubmitting(false);
 
         const canUseEmail = await checkEmail();
 
@@ -349,6 +418,7 @@ unset($_SESSION['verification_errors'], $_SESSION['verification_notices']);
             return;
         }
 
+        setSubmitting(true);
         form.submit();
     });
 })();
