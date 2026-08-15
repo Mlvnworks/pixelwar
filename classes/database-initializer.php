@@ -23,6 +23,7 @@ final class DatabaseInitializer
 
         $connection = new mysqli($this->connectionHost(), $this->user, $this->password, '', $this->port);
         $connection->set_charset('utf8mb4');
+        $this->setConnectionTimezone($connection);
         $connection->query(sprintf(
             'CREATE DATABASE IF NOT EXISTS `%s` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci',
             $this->database
@@ -44,6 +45,11 @@ final class DatabaseInitializer
         foreach ($this->schemaStatements() as $statement) {
             $connection->query($statement);
         }
+    }
+
+    private function setConnectionTimezone(mysqli $connection): void
+    {
+        $connection->query("SET time_zone = '+08:00'");
     }
 
     /**
