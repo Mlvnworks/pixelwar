@@ -458,13 +458,22 @@ HTML;
         if (!doc.getElementById('pixelwar-preview-link-guard')) {
             const style = doc.createElement('style');
             style.id = 'pixelwar-preview-link-guard';
-            style.textContent = 'a, area { cursor: default !important; }';
+            style.textContent = 'a, area, button, [role="button"], input, select, textarea { cursor: default !important; }';
             doc.head?.appendChild(style);
         }
 
         doc.querySelectorAll('a, area').forEach((link) => {
+            if (link.hasAttribute('href')) {
+                link.dataset.pixelwarDisabledHref = link.getAttribute('href') || '';
+                link.removeAttribute('href');
+            }
+            link.removeAttribute('target');
             link.setAttribute('tabindex', '-1');
             link.setAttribute('aria-disabled', 'true');
+        });
+
+        doc.querySelectorAll('form').forEach((form) => {
+            form.setAttribute('data-pixelwar-preview-disabled', 'true');
         });
 
         if (doc.defaultView?.pixelwarPreviewLinksBlocked) {
@@ -472,14 +481,20 @@ HTML;
         }
 
         doc.defaultView.pixelwarPreviewLinksBlocked = true;
-        doc.addEventListener('click', (event) => {
-            if (event.target?.closest?.('a, area')) {
+        const blockPreviewActivation = (event) => {
+            if (event.target?.closest?.('a, area, form, button[type="submit"], input[type="submit"], input[type="image"]')) {
                 event.preventDefault();
                 event.stopPropagation();
             }
-        }, true);
+        };
+
+        doc.addEventListener('click', blockPreviewActivation, true);
+        doc.addEventListener('auxclick', blockPreviewActivation, true);
+        doc.addEventListener('pointerup', blockPreviewActivation, true);
+        doc.addEventListener('touchend', blockPreviewActivation, true);
+        doc.addEventListener('submit', blockPreviewActivation, true);
         doc.addEventListener('keydown', (event) => {
-            if ((event.key === 'Enter' || event.key === ' ') && event.target?.closest?.('a, area')) {
+            if ((event.key === 'Enter' || event.key === ' ') && event.target?.closest?.('a, area, button[type="submit"], input[type="submit"], input[type="image"]')) {
                 event.preventDefault();
                 event.stopPropagation();
             }
@@ -550,7 +565,7 @@ HTML;
 * { box-sizing: border-box; }
 html, body { width: 100%; min-height: 100%; margin: 0; }
 body { display: grid; min-height: 100vh; place-items: center; background: #f7efe1; font-family: Arial, sans-serif; padding: 24px; }
-a, area { cursor: default !important; }
+a, area, button, [role="button"], input, select, textarea { cursor: default !important; }
 ${css}
 </style>
 </head>

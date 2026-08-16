@@ -666,11 +666,24 @@ ${css}
             return;
         }
 
+        frame.style.width = '100%';
+        frame.style.height = '100%';
+        frame.style.maxWidth = 'none';
+        frame.style.maxHeight = 'none';
+        frame.style.position = 'absolute';
+        frame.style.left = '0';
+        frame.style.top = '0';
+        frame.style.transform = 'none';
+        frame.style.transformOrigin = 'top left';
+
+        const viewportWidth = Math.max(frame.clientWidth, shell.clientWidth, 1);
+        const viewportHeight = Math.max(frame.clientHeight, shell.clientHeight, 1);
         const naturalWidth = Math.max(
             body.scrollWidth,
             body.offsetWidth,
             html.scrollWidth,
             html.offsetWidth,
+            viewportWidth,
             1
         );
         const naturalHeight = Math.max(
@@ -678,6 +691,7 @@ ${css}
             body.offsetHeight,
             html.scrollHeight,
             html.offsetHeight,
+            viewportHeight,
             1
         );
 
@@ -693,10 +707,10 @@ ${css}
         frame.style.maxWidth = 'none';
         frame.style.maxHeight = 'none';
         frame.style.position = 'absolute';
-        frame.style.left = '50%';
-        frame.style.top = '50%';
-        frame.style.transform = `translate(-50%, -50%) scale(${scale})`;
-        frame.style.transformOrigin = 'center center';
+        frame.style.left = '0';
+        frame.style.top = '0';
+        frame.style.transform = `scale(${scale})`;
+        frame.style.transformOrigin = 'top left';
     };
 
     const runOpeningEffect = () => {

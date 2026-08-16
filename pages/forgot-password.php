@@ -18,7 +18,6 @@ unset($_SESSION['forgot_password_errors'], $_SESSION['forgot_password_notices'],
             <?= pixelwarCsrfField() ?>
             <p class="font-arcade text-[10px] uppercase tracking-[0.28em] text-arcade-orange">Find Account</p>
             <h1 class="mt-2 text-[1.45rem] font-bold leading-tight">Recover your account.</h1>
-            <p class="mt-2 text-sm leading-6 text-arcade-ink/68">Enter your username or email. If it matches a Pixelwar account, we will send a secure password reset link to the registered email.</p>
 
             <?php if ($forgotErrors !== []) : ?>
                 <div class="mt-3 rounded-2xl border-2 border-arcade-coral bg-arcade-coral/10 px-3 py-2 text-sm font-bold leading-5 text-arcade-ink" role="alert">
