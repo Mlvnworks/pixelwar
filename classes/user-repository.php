@@ -271,7 +271,14 @@ class UserRepository
     public function findLoginUser(string $identity): ?array
     {
         $statement = $this->connection->prepare(
-            'SELECT user_id, role_id, username, email, password, acc_type, is_verified, is_active FROM users WHERE date_deleted IS NULL AND (username = ? OR email = ?) LIMIT 1'
+            'SELECT user_id, role_id, username, email, password, acc_type, is_verified, is_active
+             FROM users
+             WHERE date_deleted IS NULL
+                AND (
+                    LOWER(TRIM(username)) = LOWER(TRIM(?))
+                    OR LOWER(TRIM(email)) = LOWER(TRIM(?))
+                )
+             LIMIT 1'
         );
         $statement->bind_param('ss', $identity, $identity);
         $statement->execute();
@@ -307,9 +314,19 @@ class UserRepository
                     username LIKE CONCAT(\'deleted::\', ?, \'::%\')
                     OR email LIKE CONCAT(\'deleted::\', ?, \'::%\')
                 )
+                AND NOT EXISTS (
+                    SELECT 1
+                    FROM users AS active_users
+                    WHERE active_users.date_deleted IS NULL
+                        AND (
+                            LOWER(TRIM(active_users.username)) = LOWER(TRIM(?))
+                            OR LOWER(TRIM(active_users.email)) = LOWER(TRIM(?))
+                        )
+                    LIMIT 1
+                )
              LIMIT 1'
         );
-        $statement->bind_param('ss', $identity, $identity);
+        $statement->bind_param('ssss', $identity, $identity, $identity, $identity);
         $statement->execute();
         $user = $statement->get_result()->fetch_assoc();
         $statement->close();
