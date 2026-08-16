@@ -24,6 +24,10 @@ function pixelwarOptimizedImageUrl(string $url, int $width = 96, ?int $height = 
         return pixelwarOptimizedProviderImageUrl($url, $width);
     }
 
+    if (!defined('SUPABASE_IMAGE_TRANSFORM_ENABLED') || SUPABASE_IMAGE_TRANSFORM_ENABLED !== true) {
+        return $url;
+    }
+
     $renderPath = str_replace($publicPrefix, '/storage/v1/render/image/public/', $path);
     $query = http_build_query([
         'width' => $width,

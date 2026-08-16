@@ -123,6 +123,9 @@ if (!defined('SUPABASE_STORAGE_CHALLENGE_CSS_FOLDER')) {
     define('SUPABASE_STORAGE_CHALLENGE_CSS_FOLDER', Env::get('SUPABASE_STORAGE_CHALLENGE_CSS_FOLDER', 'challenge-sources/css'));
 }
 
+if (!defined('SUPABASE_IMAGE_TRANSFORM_ENABLED')) {
+    define('SUPABASE_IMAGE_TRANSFORM_ENABLED', Env::getBool('SUPABASE_IMAGE_TRANSFORM_ENABLED', false));
+}
 
 if (!defined('GOOGLE_CLIENT_ID')) {
     define('GOOGLE_CLIENT_ID', Env::get('GOOGLE_CLIENT_ID', ''));
