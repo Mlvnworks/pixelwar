@@ -2,7 +2,7 @@
 $profileName = trim((string) ($_SESSION['username'] ?? 'Pixel Rookie'));
 $profileEmail = trim((string) ($_SESSION['email'] ?? 'player@example.com'));
 $profileAvatarInitials = strtoupper(substr(preg_replace('/[^a-z0-9]+/i', '', (string) ($_SESSION['avatar_initials'] ?? $profileName)) ?: 'PR', 0, 2));
-$profileAvatarUrl = trim((string) ($_SESSION['avatar_url'] ?? ''));
+$profileAvatarUrl = function_exists('pixelwarAvatarUrl') ? pixelwarAvatarUrl(trim((string) ($_SESSION['avatar_url'] ?? '')), 160) : trim((string) ($_SESSION['avatar_url'] ?? ''));
 $profileFirstname = trim((string) ($_SESSION['firstname'] ?? ''));
 $profileLastname = trim((string) ($_SESSION['lastname'] ?? ''));
 $profileStudentNumber = '';
@@ -35,7 +35,7 @@ if (isset($connection) && $connection instanceof mysqli && isset($_SESSION['user
         $profileName = $settingsFullName !== '' ? $settingsFullName : trim((string) $settingsProfileRow['username']);
         $profileEmail = trim((string) $settingsProfileRow['email']);
         $profileStudentNumber = trim((string) ($settingsProfileRow['student_number'] ?? ''));
-        $profileAvatarUrl = trim((string) ($settingsProfileRow['avatar_url'] ?? ''));
+        $profileAvatarUrl = function_exists('pixelwarAvatarUrl') ? pixelwarAvatarUrl(trim((string) ($settingsProfileRow['avatar_url'] ?? '')), 160) : trim((string) ($settingsProfileRow['avatar_url'] ?? ''));
         $profileAvatarInitials = strtoupper(substr($settingsFirstname, 0, 1) . substr($settingsLastname, 0, 1)) ?: $profileAvatarInitials;
     }
 }

@@ -48,6 +48,7 @@ if ($isDatabaseChallenge) {
     $lastname = trim((string) ($dbChallenge['lastname'] ?? ''));
     $author = trim($firstname . ' ' . $lastname) ?: (string) ($dbChallenge['author'] ?? 'Teacher');
     $authorAvatarUrl = trim((string) ($dbChallenge['author_avatar_url'] ?? ''));
+    $authorAvatarUrl = function_exists('pixelwarAvatarUrl') ? pixelwarAvatarUrl($authorAvatarUrl, 96) : $authorAvatarUrl;
     $authorInitials = strtoupper(substr(preg_replace('/[^a-z0-9]+/i', '', $author) ?: 'TR', 0, 2));
     $challenge = [
         'id' => (int) $dbChallenge['challenge_id'],

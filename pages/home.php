@@ -146,7 +146,7 @@ $startChallengeHref = $firstRecommendedChallenge['href'] ?? './?c=challenges';
 $latestSubmissions = $latestSubmissionRows;
 $joinRoomAvatarInitials = strtoupper(substr(preg_replace('/[^a-z0-9]+/i', '', (string) ($_SESSION['avatar_initials'] ?? $username)) ?: 'PR', 0, 2));
 $joinRoomAvatarColor = (string) ($_SESSION['avatar_color'] ?? 'yellow');
-$joinRoomAvatarUrl = trim((string) ($_SESSION['avatar_url'] ?? ''));
+$joinRoomAvatarUrl = function_exists('pixelwarAvatarUrl') ? pixelwarAvatarUrl(trim((string) ($_SESSION['avatar_url'] ?? '')), 96) : trim((string) ($_SESSION['avatar_url'] ?? ''));
 $roomNotice = trim((string) ($_GET['room_notice'] ?? ''));
 $pvpNotice = trim((string) ($_GET['pvp_notice'] ?? ''));
 $pvpDurationSeconds = max(0, (int) ($_GET['pvp_duration'] ?? 0));

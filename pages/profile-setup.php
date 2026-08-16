@@ -17,6 +17,7 @@ $existingDetails = $userRepository instanceof UserRepository && $setupUserId > 0
 $existingFirstname = trim((string) ($existingSessionUser['firstname'] ?? ''));
 $existingLastname = trim((string) ($existingSessionUser['lastname'] ?? ''));
 $existingAvatarUrl = trim((string) ($existingDetails['avatar_url'] ?? ($existingSessionUser['avatar_url'] ?? '')));
+$existingAvatarUrl = function_exists('pixelwarAvatarUrl') ? pixelwarAvatarUrl($existingAvatarUrl, 160) : $existingAvatarUrl;
 $existingStudentNumber = trim((string) ($existingDetails['student_number'] ?? ''));
 $existingIdPictureUrl = trim((string) ($existingDetails['id_picture_url'] ?? ''));
 $profileFirstnameValue = (string) ($profileSetupOld['firstname'] ?? $existingFirstname);

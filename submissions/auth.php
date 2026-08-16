@@ -217,7 +217,7 @@ function pixelwarRefreshSessionUser(array $user): void
     }
 
     if ($avatarUrl !== '') {
-        $_SESSION['avatar_url'] = $avatarUrl;
+        $_SESSION['avatar_url'] = function_exists('pixelwarAvatarUrl') ? pixelwarAvatarUrl($avatarUrl, 128) : $avatarUrl;
     }
 }
 

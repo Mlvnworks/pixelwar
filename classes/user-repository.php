@@ -188,7 +188,7 @@ class UserRepository
         $players = $statement->get_result()->fetch_all(MYSQLI_ASSOC);
         $statement->close();
 
-        return $players;
+        return $this->withOptimizedAvatarRows($players);
     }
 
     /**
@@ -229,7 +229,7 @@ class UserRepository
         $players = $statement->get_result()->fetch_all(MYSQLI_ASSOC);
         $statement->close();
 
-        return $players;
+        return $this->withOptimizedAvatarRows($players);
     }
 
     public function leaderboardRankForUser(int $userId): ?int
@@ -382,7 +382,7 @@ class UserRepository
         $users = $statement->get_result()->fetch_all(MYSQLI_ASSOC);
         $statement->close();
 
-        return $users;
+        return $this->withOptimizedAvatarRows($users);
     }
 
     public function countUsersByRole(int $roleId): int
@@ -602,7 +602,7 @@ class UserRepository
         $users = $statement->get_result()->fetch_all(MYSQLI_ASSOC);
         $statement->close();
 
-        return $users;
+        return $this->withOptimizedAvatarRows($users);
     }
 
     public function countOnlineUsersByRoleFiltered(int $roleId, string $search = '', ?int $activeStatus = null, int $thresholdSeconds = 90): int
@@ -709,7 +709,7 @@ class UserRepository
         $users = $statement->get_result()->fetch_all(MYSQLI_ASSOC);
         $statement->close();
 
-        return $users;
+        return $this->withOptimizedAvatarRows($users);
     }
 
     /**
@@ -770,7 +770,7 @@ class UserRepository
         $users = $statement->get_result()->fetch_all(MYSQLI_ASSOC);
         $statement->close();
 
-        return $users;
+        return $this->withOptimizedAvatarRows($users);
     }
 
     public function updateStudentAccount(int $userId, string $username, string $email, string $firstname, string $lastname, ?string $studentNumber = null): void
@@ -890,7 +890,7 @@ class UserRepository
         $rows = $statement->get_result()->fetch_all(MYSQLI_ASSOC);
         $statement->close();
 
-        return $rows;
+        return $this->withOptimizedAvatarRows($rows);
     }
 
     /**
@@ -964,7 +964,7 @@ class UserRepository
         $user = $statement->get_result()->fetch_assoc();
         $statement->close();
 
-        return $user ?: null;
+        return $this->withOptimizedAvatarRow($user ?: null);
     }
 
     public function touchLastSeen(int $userId): bool
@@ -1043,7 +1043,7 @@ class UserRepository
         $rows = $statement->get_result()->fetch_all(MYSQLI_ASSOC);
         $statement->close();
 
-        return $rows;
+        return $this->withOptimizedAvatarRows($rows);
     }
 
     public function findOnlineStudentForVersus(int $targetUserId, int $excludeUserId = 0, int $thresholdSeconds = 90): ?array
@@ -1088,7 +1088,7 @@ class UserRepository
         $player = $statement->get_result()->fetch_assoc();
         $statement->close();
 
-        return $player ?: null;
+        return $this->withOptimizedAvatarRow($player ?: null);
     }
 
     public function usernameExistsForOtherUser(string $username, int $userId): bool
@@ -1233,6 +1233,36 @@ class UserRepository
         $statement->bind_param('si', $passwordHash, $userId);
         $statement->execute();
         $statement->close();
+    }
+
+    /**
+     * @param array<string, mixed>|null $row
+     * @return array<string, mixed>|null
+     */
+    private function withOptimizedAvatarRow(?array $row, int $size = 128): ?array
+    {
+        if ($row === null || trim((string) ($row['avatar_url'] ?? '')) === '') {
+            return $row;
+        }
+
+        $row['avatar_url'] = function_exists('pixelwarAvatarUrl')
+            ? pixelwarAvatarUrl((string) $row['avatar_url'], $size)
+            : (string) $row['avatar_url'];
+
+        return $row;
+    }
+
+    /**
+     * @param array<int, array<string, mixed>> $rows
+     * @return array<int, array<string, mixed>>
+     */
+    private function withOptimizedAvatarRows(array $rows, int $size = 128): array
+    {
+        foreach ($rows as $index => $row) {
+            $rows[$index] = $this->withOptimizedAvatarRow($row, $size) ?? $row;
+        }
+
+        return $rows;
     }
 
     private function releaseDeletedCredentialConflicts(?string $username, ?string $email, ?int $excludeUserId = null): void
@@ -1404,7 +1434,7 @@ class UserRepository
         $details = $statement->get_result()->fetch_assoc();
         $statement->close();
 
-        return $details ?: null;
+        return $this->withOptimizedAvatarRow($details ?: null);
     }
 
     public function insertImage(string $source): int

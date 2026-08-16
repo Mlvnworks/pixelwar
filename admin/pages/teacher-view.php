@@ -56,6 +56,7 @@ $teacherFirstname = trim((string) ($teacherViewProfile['firstname'] ?? ''));
 $teacherLastname = trim((string) ($teacherViewProfile['lastname'] ?? ''));
 $teacherDisplayName = trim($teacherFirstname . ' ' . $teacherLastname) ?: trim((string) ($teacherViewProfile['username'] ?? 'Teacher'));
 $teacherAvatarUrl = trim((string) ($teacherViewProfile['avatar_url'] ?? ($teacherViewDetails['avatar_url'] ?? '')));
+$teacherAvatarUrl = function_exists('pixelwarAvatarUrl') ? pixelwarAvatarUrl($teacherAvatarUrl, 160) : $teacherAvatarUrl;
 $teacherInitials = strtoupper(substr(preg_replace('/[^a-z0-9]+/i', '', $teacherDisplayName) ?: 'TR', 0, 2));
 $teacherEmail = trim((string) ($teacherViewProfile['email'] ?? ''));
 $teacherUsername = trim((string) ($teacherViewProfile['username'] ?? ''));

@@ -452,7 +452,7 @@ final class UserChallengeRepository
         $rows = $statement->get_result()->fetch_all(MYSQLI_ASSOC);
         $statement->close();
 
-        return $rows;
+        return $this->withOptimizedAvatarRows($rows);
     }
 
     /**
@@ -526,7 +526,7 @@ final class UserChallengeRepository
         $rows = $statement->get_result()->fetch_all(MYSQLI_ASSOC);
         $statement->close();
 
-        return $rows;
+        return $this->withOptimizedAvatarRows($rows);
     }
 
     public function countCompletedForUser(int $userId): int
@@ -776,7 +776,7 @@ final class UserChallengeRepository
         $rows = $statement->get_result()->fetch_all(MYSQLI_ASSOC);
         $statement->close();
 
-        return $rows;
+        return $this->withOptimizedAvatarRows($rows);
     }
 
     /**
@@ -842,7 +842,7 @@ final class UserChallengeRepository
         $rows = $statement->get_result()->fetch_all(MYSQLI_ASSOC);
         $statement->close();
 
-        return $rows;
+        return $this->withOptimizedAvatarRows($rows);
     }
 
     /**
@@ -915,7 +915,7 @@ final class UserChallengeRepository
         $rows = $statement->get_result()->fetch_all(MYSQLI_ASSOC);
         $statement->close();
 
-        return $rows;
+        return $this->withOptimizedAvatarRows($rows);
     }
 
     /**
@@ -992,7 +992,7 @@ final class UserChallengeRepository
         $rows = $statement->get_result()->fetch_all(MYSQLI_ASSOC);
         $statement->close();
 
-        return $rows;
+        return $this->withOptimizedAvatarRows($rows);
     }
 
     /**
@@ -1039,7 +1039,7 @@ final class UserChallengeRepository
         $rows = $statement->get_result()->fetch_all(MYSQLI_ASSOC);
         $statement->close();
 
-        return $rows;
+        return $this->withOptimizedAvatarRows($rows);
     }
 
     public function deleteOngoingForUser(int $userChallengeId, int $userId): bool
@@ -1107,5 +1107,22 @@ final class UserChallengeRepository
         $statement->close();
 
         return $exists;
+    }
+
+    /**
+     * @param array<int, array<string, mixed>> $rows
+     * @return array<int, array<string, mixed>>
+     */
+    private function withOptimizedAvatarRows(array $rows): array
+    {
+        foreach ($rows as $index => $row) {
+            if (trim((string) ($row['avatar_url'] ?? '')) !== '' && function_exists('pixelwarAvatarUrl')) {
+                $row['avatar_url'] = pixelwarAvatarUrl((string) $row['avatar_url'], 128);
+            }
+
+            $rows[$index] = $row;
+        }
+
+        return $rows;
     }
 }

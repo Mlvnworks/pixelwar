@@ -68,6 +68,7 @@ $studentFirstname = trim((string) ($studentViewProfile['firstname'] ?? ''));
 $studentLastname = trim((string) ($studentViewProfile['lastname'] ?? ''));
 $studentDisplayName = trim($studentFirstname . ' ' . $studentLastname) ?: trim((string) ($studentViewProfile['username'] ?? 'Student'));
 $studentAvatarUrl = trim((string) ($studentViewProfile['avatar_url'] ?? ($studentViewDetails['avatar_url'] ?? '')));
+$studentAvatarUrl = function_exists('pixelwarAvatarUrl') ? pixelwarAvatarUrl($studentAvatarUrl, 160) : $studentAvatarUrl;
 $studentInitials = strtoupper(substr(preg_replace('/[^a-z0-9]+/i', '', $studentDisplayName) ?: 'ST', 0, 2));
 $studentEmail = trim((string) ($studentViewProfile['email'] ?? ''));
 $studentUsername = trim((string) ($studentViewProfile['username'] ?? ''));

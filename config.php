@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/classes/env.php';
+require_once __DIR__ . '/classes/image-url.php';
 require_once __DIR__ . '/classes/database-initializer.php';
 require_once __DIR__ . '/classes/pusher-service.php';
 require_once __DIR__ . '/classes/supabase-storage.php';

@@ -120,7 +120,7 @@ if ($requestMethod === 'POST' && $requestedPage === 'settings') {
     $_SESSION['firstname'] = $firstname;
     $_SESSION['lastname'] = $lastname;
     $_SESSION['avatar_initials'] = strtoupper(substr($firstname, 0, 1) . substr($lastname, 0, 1));
-    $_SESSION['avatar_url'] = $avatarUrl;
+    $_SESSION['avatar_url'] = function_exists('pixelwarAvatarUrl') ? pixelwarAvatarUrl($avatarUrl, 128) : $avatarUrl;
 
     if ($emailChanged) {
         pixelwarLogActivity($activityLogRepository ?? null, $userId, 'settings', 'Updated account settings and changed email address.');

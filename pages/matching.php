@@ -2,11 +2,11 @@
 $matchingCurrentUser = trim((string) ($_SESSION['firstname'] ?? '') . ' ' . (string) ($_SESSION['lastname'] ?? ''));
 $matchingCurrentUser = $matchingCurrentUser !== '' ? $matchingCurrentUser : (string) ($_SESSION['username'] ?? 'Player One');
 $matchingCurrentUsername = trim((string) ($_SESSION['username'] ?? 'player_one'));
-$matchingCurrentAvatarUrl = trim((string) ($_SESSION['avatar_url'] ?? ''));
+$matchingCurrentAvatarUrl = function_exists('pixelwarAvatarUrl') ? pixelwarAvatarUrl(trim((string) ($_SESSION['avatar_url'] ?? '')), 192) : trim((string) ($_SESSION['avatar_url'] ?? ''));
 $matchingOpponent = trim((string) ($_GET['opponent'] ?? 'Arcade Rival'));
 $matchingOpponent = $matchingOpponent !== '' ? $matchingOpponent : 'Arcade Rival';
 $matchingOpponentUsername = trim((string) ($_GET['opponent_username'] ?? 'arcade_rival'));
-$matchingOpponentAvatarUrl = trim((string) ($_GET['opponent_avatar_url'] ?? ''));
+$matchingOpponentAvatarUrl = function_exists('pixelwarAvatarUrl') ? pixelwarAvatarUrl(trim((string) ($_GET['opponent_avatar_url'] ?? '')), 192) : trim((string) ($_GET['opponent_avatar_url'] ?? ''));
 $matchingUserInitials = strtoupper(substr(preg_replace('/[^a-z0-9]+/i', '', $matchingCurrentUser) ?: 'P1', 0, 2));
 $matchingOpponentInitials = strtoupper(substr(preg_replace('/[^a-z0-9]+/i', '', $matchingOpponent) ?: 'P2', 0, 2));
 $matchingPvpId = max(0, (int) ($_GET['pvp_id'] ?? 0));

@@ -6,7 +6,7 @@ $adminLastname = trim((string) ($_SESSION['lastname'] ?? ''));
 $adminFullName = trim($adminFirstname . ' ' . $adminLastname);
 $adminDisplayName = $adminFullName !== '' ? $adminFullName : $adminDisplayName;
 $adminInitials = strtoupper(substr(preg_replace('/[^a-z0-9]+/i', '', (string) ($_SESSION['avatar_initials'] ?? $adminDisplayName)) ?: 'AD', 0, 2));
-$adminAvatarUrl = trim((string) ($_SESSION['avatar_url'] ?? ''));
+$adminAvatarUrl = function_exists('pixelwarAvatarUrl') ? pixelwarAvatarUrl(trim((string) ($_SESSION['avatar_url'] ?? '')), 160) : trim((string) ($_SESSION['avatar_url'] ?? ''));
 $adminPasswordResetAvailableAt = (int) ($_SESSION['admin_password_reset_available_at'] ?? 0);
 $adminPasswordResetSecondsLeft = max(0, $adminPasswordResetAvailableAt - time());
 ?>

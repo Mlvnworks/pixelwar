@@ -129,7 +129,7 @@ if ($teacherRequestMethod === 'POST' && $teacherRequestedPage === 'settings' && 
     $_SESSION['firstname'] = $firstname;
     $_SESSION['lastname'] = $lastname;
     $_SESSION['avatar_initials'] = strtoupper(substr($firstname, 0, 1) . substr($lastname, 0, 1));
-    $_SESSION['avatar_url'] = $avatarUrl;
+    $_SESSION['avatar_url'] = function_exists('pixelwarAvatarUrl') ? pixelwarAvatarUrl($avatarUrl, 128) : $avatarUrl;
     $_SESSION['is_verified'] = $emailChanged ? 0 : (int) ($currentUser['is_verified'] ?? 1);
 
     if ($emailChanged) {
