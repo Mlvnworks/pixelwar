@@ -180,9 +180,6 @@ foreach ($difficultyRows as $difficultyRow) {
                 <article class="teacher-panel rounded-[26px] border-4 border-arcade-ink bg-arcade-panel p-4 shadow-[7px_7px_0_#26190f] md:p-5">
                     <p class="font-arcade text-[10px] uppercase tracking-[0.22em] text-arcade-orange">First Step</p>
                     <h2 class="mt-2 text-2xl font-black">Challenge Details</h2>
-                    <p class="mt-2 text-sm font-bold leading-7 text-arcade-ink/65">
-                        Fill the basic information first. These details will stay visible while creating the source code, so the target design stays aligned with the challenge goal.
-                    </p>
 
                     <div class="mt-5 grid gap-4">
                         <label class="create-field">
@@ -308,7 +305,7 @@ foreach ($difficultyRows as $difficultyRow) {
                         <p class="font-arcade text-[9px] uppercase tracking-[0.2em] text-arcade-cyan">Rules</p>
                         <ul class="mt-3 grid gap-2 text-sm font-bold leading-6 text-arcade-ink/65">
                             <li>HTML must not include <code>&lt;style&gt;</code>, stylesheet links, or inline <code>style=""</code>.</li>
-                            <li>CSS must only contain stylesheet code. HTML tags and scripts are blocked.</li>
+                            <li>CSS must only contain simple stylesheet rules. At-rules and advanced functions are blocked.</li>
                             <li>Uploads replace the matching editor and update preview instantly.</li>
                         </ul>
                     </div>
@@ -561,6 +558,12 @@ foreach ($difficultyRows as $difficultyRow) {
         if (/<script\b|<style\b/i.test(code)) {
             errors.push('Only plain CSS rules are allowed.');
         }
+        if (/@[a-z-]+\b/i.test(code)) {
+            errors.push('CSS at-rules are not allowed. Remove @media, @import, @supports, @keyframes, and similar rules.');
+        }
+        if (/\b(?:url|var|calc|clamp|min|max|env|attr|image-set|cross-fade|paint|element|counter|counters|toggle)\s*\(/i.test(code)) {
+            errors.push('Advanced CSS functions are not allowed. Use direct property values only.');
+        }
         return errors;
     };
 
@@ -590,13 +593,22 @@ foreach ($difficultyRows as $difficultyRow) {
         if (!doc.getElementById('pixelwar-preview-link-guard')) {
             const style = doc.createElement('style');
             style.id = 'pixelwar-preview-link-guard';
-            style.textContent = 'a, area { cursor: default !important; }';
+            style.textContent = 'a, area, button, [role="button"], input, select, textarea { cursor: default !important; }';
             doc.head?.appendChild(style);
         }
 
         doc.querySelectorAll('a, area').forEach((link) => {
+            if (link.hasAttribute('href')) {
+                link.dataset.pixelwarDisabledHref = link.getAttribute('href') || '';
+                link.removeAttribute('href');
+            }
+            link.removeAttribute('target');
             link.setAttribute('tabindex', '-1');
             link.setAttribute('aria-disabled', 'true');
+        });
+
+        doc.querySelectorAll('form').forEach((form) => {
+            form.setAttribute('data-pixelwar-preview-disabled', 'true');
         });
 
         if (doc.defaultView?.pixelwarPreviewLinksBlocked) {
@@ -604,14 +616,20 @@ foreach ($difficultyRows as $difficultyRow) {
         }
 
         doc.defaultView.pixelwarPreviewLinksBlocked = true;
-        doc.addEventListener('click', (event) => {
-            if (event.target?.closest?.('a, area')) {
+        const blockPreviewActivation = (event) => {
+            if (event.target?.closest?.('a, area, form, button[type="submit"], input[type="submit"], input[type="image"]')) {
                 event.preventDefault();
                 event.stopPropagation();
             }
-        }, true);
+        };
+
+        doc.addEventListener('click', blockPreviewActivation, true);
+        doc.addEventListener('auxclick', blockPreviewActivation, true);
+        doc.addEventListener('pointerup', blockPreviewActivation, true);
+        doc.addEventListener('touchend', blockPreviewActivation, true);
+        doc.addEventListener('submit', blockPreviewActivation, true);
         doc.addEventListener('keydown', (event) => {
-            if ((event.key === 'Enter' || event.key === ' ') && event.target?.closest?.('a, area')) {
+            if ((event.key === 'Enter' || event.key === ' ') && event.target?.closest?.('a, area, button[type="submit"], input[type="submit"], input[type="image"]')) {
                 event.preventDefault();
                 event.stopPropagation();
             }
@@ -630,7 +648,7 @@ foreach ($difficultyRows as $difficultyRow) {
 * { box-sizing: border-box; }
 html, body { margin: 0; min-height: 100%; }
 body { display: grid; min-height: 100vh; place-items: center; background: #fff7e8; font-family: Arial, sans-serif; padding: 24px; }
-a, area { cursor: default !important; }
+a, area, button, [role="button"], input, select, textarea { cursor: default !important; }
 ${css}
 </style>
 </head>

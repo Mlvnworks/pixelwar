@@ -222,6 +222,14 @@ final class ChallengeCreationService
             $errors[] = 'CSS contains unsafe or invalid source.';
         }
 
+        if (preg_match('/@[a-z-]+\b/i', $css) === 1) {
+            $errors[] = 'CSS at-rules are not allowed. Remove @media, @import, @supports, @keyframes, and similar rules.';
+        }
+
+        if (preg_match('/\b(?:url|var|calc|clamp|min|max|env|attr|image-set|cross-fade|paint|element|counter|counters|toggle)\s*\(/i', $css) === 1) {
+            $errors[] = 'Advanced CSS functions are not allowed. Use direct property values only.';
+        }
+
         if ($errors !== []) {
             throw new InvalidArgumentException(implode(' ', $errors));
         }

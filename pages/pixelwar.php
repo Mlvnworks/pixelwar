@@ -666,18 +666,26 @@ ${css}
             return;
         }
 
-        frame.style.width = '100%';
-        frame.style.height = '100%';
+        const shellStyle = window.getComputedStyle(shell);
+        const paddingLeft = parseFloat(shellStyle.paddingLeft) || 0;
+        const paddingRight = parseFloat(shellStyle.paddingRight) || 0;
+        const paddingTop = parseFloat(shellStyle.paddingTop) || 0;
+        const paddingBottom = parseFloat(shellStyle.paddingBottom) || 0;
+        const shellWidth = Math.max(1, shell.clientWidth - paddingLeft - paddingRight);
+        const shellHeight = Math.max(1, shell.clientHeight - paddingTop - paddingBottom);
+
+        frame.style.width = `${shellWidth}px`;
+        frame.style.height = `${shellHeight}px`;
         frame.style.maxWidth = 'none';
         frame.style.maxHeight = 'none';
         frame.style.position = 'absolute';
-        frame.style.left = '0';
-        frame.style.top = '0';
+        frame.style.left = `${paddingLeft}px`;
+        frame.style.top = `${paddingTop}px`;
         frame.style.transform = 'none';
         frame.style.transformOrigin = 'top left';
 
-        const viewportWidth = Math.max(frame.clientWidth, shell.clientWidth, 1);
-        const viewportHeight = Math.max(frame.clientHeight, shell.clientHeight, 1);
+        const viewportWidth = Math.max(frame.clientWidth, shellWidth, 1);
+        const viewportHeight = Math.max(frame.clientHeight, shellHeight, 1);
         const naturalWidth = Math.max(
             body.scrollWidth,
             body.offsetWidth,
@@ -695,20 +703,18 @@ ${css}
             1
         );
 
-        const shellWidth = shell.clientWidth;
-        const shellHeight = shell.clientHeight;
         if (shellWidth <= 0 || shellHeight <= 0) {
             return;
         }
 
-        const scale = Math.min(1, shellWidth / naturalWidth, shellHeight / naturalHeight);
+        const scale = Math.min(shellWidth / naturalWidth, shellHeight / naturalHeight);
         frame.style.width = `${naturalWidth}px`;
         frame.style.height = `${naturalHeight}px`;
         frame.style.maxWidth = 'none';
         frame.style.maxHeight = 'none';
         frame.style.position = 'absolute';
-        frame.style.left = '0';
-        frame.style.top = '0';
+        frame.style.left = `${paddingLeft}px`;
+        frame.style.top = `${paddingTop}px`;
         frame.style.transform = `scale(${scale})`;
         frame.style.transformOrigin = 'top left';
     };
@@ -1487,6 +1493,13 @@ ${css}
             livePreview.srcdoc = buildPreviewDocument(state.html, currentPlayerCss());
         }
     };
+
+    if (livePreview instanceof HTMLIFrameElement) {
+        livePreview.addEventListener('load', () => {
+            disablePreviewLinks(livePreview);
+            fitPreviewFrame(livePreview);
+        }, { once: false });
+    }
 
     const selectorState = (selectorKey) => {
         const requiredMap = state.requiredBySelector[selectorKey] || {};
