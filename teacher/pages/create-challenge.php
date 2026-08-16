@@ -636,8 +636,91 @@ foreach ($difficultyRows as $difficultyRow) {
         }, true);
     };
 
-    preview.addEventListener('load', () => disablePreviewLinks(preview), { once: false });
-    confirmPreview.addEventListener('load', () => disablePreviewLinks(confirmPreview), { once: false });
+    const fitPreviewFrame = (frame) => {
+        if (!(frame instanceof HTMLIFrameElement)) {
+            return;
+        }
+
+        const doc = frame.contentDocument;
+        const body = doc?.body;
+        const html = doc?.documentElement;
+        if (!doc || !body || !html) {
+            return;
+        }
+
+        const shell = frame.parentElement;
+        if (!(shell instanceof HTMLElement)) {
+            return;
+        }
+
+        const shellStyle = window.getComputedStyle(shell);
+        const paddingLeft = parseFloat(shellStyle.paddingLeft) || 0;
+        const paddingRight = parseFloat(shellStyle.paddingRight) || 0;
+        const paddingTop = parseFloat(shellStyle.paddingTop) || 0;
+        const paddingBottom = parseFloat(shellStyle.paddingBottom) || 0;
+        const shellWidth = Math.max(1, shell.clientWidth - paddingLeft - paddingRight);
+        const shellHeight = Math.max(1, shell.clientHeight - paddingTop - paddingBottom);
+
+        frame.style.width = `${shellWidth}px`;
+        frame.style.height = `${shellHeight}px`;
+        frame.style.maxWidth = 'none';
+        frame.style.maxHeight = 'none';
+        frame.style.position = 'absolute';
+        frame.style.left = `${paddingLeft}px`;
+        frame.style.top = `${paddingTop}px`;
+        frame.style.transform = 'none';
+        frame.style.transformOrigin = 'top left';
+
+        const viewportWidth = Math.max(frame.clientWidth, shellWidth, 1);
+        const viewportHeight = Math.max(frame.clientHeight, shellHeight, 1);
+        const naturalWidth = Math.max(
+            body.scrollWidth,
+            body.offsetWidth,
+            html.scrollWidth,
+            html.offsetWidth,
+            viewportWidth,
+            1
+        );
+        const naturalHeight = Math.max(
+            body.scrollHeight,
+            body.offsetHeight,
+            html.scrollHeight,
+            html.offsetHeight,
+            viewportHeight,
+            1
+        );
+
+        if (shellWidth <= 0 || shellHeight <= 0) {
+            return;
+        }
+
+        const scale = Math.min(shellWidth / naturalWidth, shellHeight / naturalHeight);
+        const scaledWidth = naturalWidth * scale;
+        const scaledHeight = naturalHeight * scale;
+        const centeredLeft = paddingLeft + Math.max(0, (shellWidth - scaledWidth) / 2);
+        const centeredTop = paddingTop + Math.max(0, (shellHeight - scaledHeight) / 2);
+
+        frame.style.width = `${naturalWidth}px`;
+        frame.style.height = `${naturalHeight}px`;
+        frame.style.maxWidth = 'none';
+        frame.style.maxHeight = 'none';
+        frame.style.position = 'absolute';
+        frame.style.left = `${centeredLeft}px`;
+        frame.style.top = `${centeredTop}px`;
+        frame.style.transform = `scale(${scale})`;
+        frame.style.transformOrigin = 'top left';
+    };
+
+    const refreshPreviewFrame = (frame) => {
+        disablePreviewLinks(frame);
+        fitPreviewFrame(frame);
+    };
+
+    [preview, confirmPreview].forEach((frame) => {
+        if (frame instanceof HTMLIFrameElement) {
+            frame.addEventListener('load', () => refreshPreviewFrame(frame), { once: false });
+        }
+    });
 
     const buildPreviewDocument = (html, css) => `<!doctype html>
 <html lang="en">
@@ -646,8 +729,8 @@ foreach ($difficultyRows as $difficultyRow) {
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
 * { box-sizing: border-box; }
-html, body { margin: 0; min-height: 100%; }
-body { display: grid; min-height: 100vh; place-items: center; background: #fff7e8; font-family: Arial, sans-serif; padding: 24px; }
+html, body { width: 100%; min-height: 100%; margin: 0; }
+body { display: grid; min-height: 100vh; place-items: center; background: #fff7e8; font-family: Arial, sans-serif; padding: 24px; overflow: auto; }
 a, area, button, [role="button"], input, select, textarea { cursor: default !important; }
 ${css}
 </style>
@@ -761,6 +844,15 @@ ${html}
 
     htmlFile.addEventListener('change', () => readFileIntoEditor(htmlFile, htmlEditor, ['.html', '.htm']));
     cssFile.addEventListener('change', () => readFileIntoEditor(cssFile, cssEditor, ['.css']));
+    window.addEventListener('resize', () => [preview, confirmPreview].forEach((frame) => fitPreviewFrame(frame)));
+    if ('ResizeObserver' in window) {
+        const previewObserver = new ResizeObserver(() => [preview, confirmPreview].forEach((frame) => fitPreviewFrame(frame)));
+        [preview, confirmPreview].forEach((frame) => {
+            if (frame instanceof HTMLIFrameElement && frame.parentElement) {
+                previewObserver.observe(frame.parentElement);
+            }
+        });
+    }
     backButton.addEventListener('click', () => showStep(Math.max(1, currentStep - 1)));
     nextButton.addEventListener('click', () => {
         if (currentStep < 3) {
