@@ -11,14 +11,11 @@ class UserRepository
         $statement = $this->connection->prepare(
             'SELECT username, email
              FROM users
-             WHERE
-                username = ?
-                OR email = ?
-                OR username LIKE CONCAT(\'deleted::\', ?, \'::%\')
-                OR email LIKE CONCAT(\'deleted::\', ?, \'::%\')
+             WHERE date_deleted IS NULL
+                AND (username = ? OR email = ?)
              LIMIT 1'
         );
-        $statement->bind_param('ssss', $username, $email, $username, $email);
+        $statement->bind_param('ss', $username, $email);
         $statement->execute();
         $user = $statement->get_result()->fetch_assoc();
         $statement->close();
@@ -31,10 +28,11 @@ class UserRepository
         $statement = $this->connection->prepare(
             'SELECT user_id
              FROM users
-             WHERE username = ? OR username LIKE CONCAT(\'deleted::\', ?, \'::%\')
+             WHERE date_deleted IS NULL
+                AND username = ?
              LIMIT 1'
         );
-        $statement->bind_param('ss', $username, $username);
+        $statement->bind_param('s', $username);
         $statement->execute();
         $exists = $statement->get_result()->fetch_assoc() !== null;
         $statement->close();
@@ -47,10 +45,11 @@ class UserRepository
         $statement = $this->connection->prepare(
             'SELECT user_id
              FROM users
-             WHERE email = ? OR email LIKE CONCAT(\'deleted::\', ?, \'::%\')
+             WHERE date_deleted IS NULL
+                AND email = ?
              LIMIT 1'
         );
-        $statement->bind_param('ss', $email, $email);
+        $statement->bind_param('s', $email);
         $statement->execute();
         $exists = $statement->get_result()->fetch_assoc() !== null;
         $statement->close();
@@ -64,10 +63,11 @@ class UserRepository
             'SELECT user_id
              FROM users
              WHERE user_id <> ?
-                AND (email = ? OR email LIKE CONCAT(\'deleted::\', ?, \'::%\'))
+                AND date_deleted IS NULL
+                AND email = ?
              LIMIT 1'
         );
-        $statement->bind_param('iss', $userId, $email, $email);
+        $statement->bind_param('is', $userId, $email);
         $statement->execute();
         $exists = $statement->get_result()->fetch_assoc() !== null;
         $statement->close();
@@ -775,6 +775,8 @@ class UserRepository
 
     public function updateStudentAccount(int $userId, string $username, string $email, string $firstname, string $lastname, ?string $studentNumber = null): void
     {
+        $this->releaseDeletedCredentialConflicts($username, $email, $userId);
+
         $statement = $this->connection->prepare(
             'UPDATE users
              SET username = ?, email = ?
@@ -1095,10 +1097,11 @@ class UserRepository
             'SELECT user_id
              FROM users
              WHERE user_id <> ?
-                AND (username = ? OR username LIKE CONCAT(\'deleted::\', ?, \'::%\'))
+                AND date_deleted IS NULL
+                AND username = ?
              LIMIT 1'
         );
-        $statement->bind_param('iss', $userId, $username, $username);
+        $statement->bind_param('is', $userId, $username);
         $statement->execute();
         $exists = $statement->get_result()->fetch_assoc() !== null;
         $statement->close();
@@ -1141,6 +1144,8 @@ class UserRepository
 
     public function createStudent(string $username, string $email, string $passwordHash): int
     {
+        $this->releaseDeletedCredentialConflicts($username, $email);
+
         $roleId = 3;
         $isVerified = 0;
         $statement = $this->connection->prepare(
@@ -1156,6 +1161,8 @@ class UserRepository
 
     public function createGoogleStudent(string $username, string $email): int
     {
+        $this->releaseDeletedCredentialConflicts($username, $email);
+
         $roleId = 3;
         $isVerified = 1;
         $isActive = 0;
@@ -1174,6 +1181,8 @@ class UserRepository
 
     public function createTeacher(string $username, string $email, string $passwordHash): int
     {
+        $this->releaseDeletedCredentialConflicts($username, $email);
+
         $roleId = 2;
         $isVerified = 0;
         $statement = $this->connection->prepare(
@@ -1189,6 +1198,8 @@ class UserRepository
 
     public function updateEmailVerificationState(int $userId, string $email, int $isVerified): void
     {
+        $this->releaseDeletedCredentialConflicts(null, $email, $userId);
+
         $statement = $this->connection->prepare('UPDATE users SET email = ?, is_verified = ? WHERE user_id = ?');
         $statement->bind_param('sii', $email, $isVerified, $userId);
         $statement->execute();
@@ -1224,6 +1235,74 @@ class UserRepository
         $statement->close();
     }
 
+    private function releaseDeletedCredentialConflicts(?string $username, ?string $email, ?int $excludeUserId = null): void
+    {
+        $username = $username !== null ? trim($username) : '';
+        $email = $email !== null ? trim($email) : '';
+
+        if ($username === '' && $email === '') {
+            return;
+        }
+
+        $conditions = [];
+        $types = '';
+        $params = [];
+
+        if ($username !== '') {
+            $conditions[] = 'username = ?';
+            $types .= 's';
+            $params[] = $username;
+        }
+
+        if ($email !== '') {
+            $conditions[] = 'email = ?';
+            $types .= 's';
+            $params[] = $email;
+        }
+
+        $sql = 'SELECT user_id, username, email
+                FROM users
+                WHERE date_deleted IS NOT NULL
+                    AND (' . implode(' OR ', $conditions) . ')';
+
+        if ($excludeUserId !== null && $excludeUserId > 0) {
+            $sql .= ' AND user_id <> ?';
+            $types .= 'i';
+            $params[] = $excludeUserId;
+        }
+
+        $statement = $this->connection->prepare($sql);
+        $statement->bind_param($types, ...$params);
+        $statement->execute();
+        $deletedUsers = $statement->get_result()->fetch_all(MYSQLI_ASSOC);
+        $statement->close();
+
+        foreach ($deletedUsers as $deletedUser) {
+            $deletedUserId = (int) ($deletedUser['user_id'] ?? 0);
+            if ($deletedUserId <= 0) {
+                continue;
+            }
+
+            $currentUsername = (string) ($deletedUser['username'] ?? '');
+            $currentEmail = (string) ($deletedUser['email'] ?? '');
+            $releasedUsername = $username !== '' && strcasecmp($currentUsername, $username) === 0
+                ? 'deleted::' . $currentUsername . '::' . $deletedUserId
+                : $currentUsername;
+            $releasedEmail = $email !== '' && strcasecmp($currentEmail, $email) === 0
+                ? 'deleted::' . $currentEmail . '::' . $deletedUserId
+                : $currentEmail;
+
+            $update = $this->connection->prepare(
+                'UPDATE users
+                 SET username = ?, email = ?
+                 WHERE user_id = ? AND date_deleted IS NOT NULL'
+            );
+            $update->bind_param('ssi', $releasedUsername, $releasedEmail, $deletedUserId);
+            $update->execute();
+            $update->close();
+        }
+    }
+
     private function presenceThreshold(int $thresholdSeconds): string
     {
         $safeSeconds = max(15, min(600, $thresholdSeconds));
@@ -1232,6 +1311,8 @@ class UserRepository
 
     public function updateTeacherSetupCredentials(int $userId, string $username, string $passwordHash, int $isVerified): void
     {
+        $this->releaseDeletedCredentialConflicts($username, null, $userId);
+
         $statement = $this->connection->prepare(
             'UPDATE users
              SET username = ?, password = ?, is_verified = ?
@@ -1244,6 +1325,8 @@ class UserRepository
 
     public function updateAdminSetupCredentials(int $userId, string $username, string $email, string $passwordHash, int $isVerified): void
     {
+        $this->releaseDeletedCredentialConflicts($username, $email, $userId);
+
         $statement = $this->connection->prepare(
             'UPDATE users
              SET username = ?, email = ?, password = ?, is_verified = ?
@@ -1268,6 +1351,8 @@ class UserRepository
 
     public function updateTeacherAccount(int $userId, string $username, string $email, string $firstname, string $lastname): void
     {
+        $this->releaseDeletedCredentialConflicts($username, $email, $userId);
+
         $statement = $this->connection->prepare(
             'UPDATE users
              SET username = ?, email = ?

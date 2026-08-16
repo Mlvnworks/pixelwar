@@ -217,11 +217,6 @@ if ($requestMethod === 'GET' && $requestedPage === 'google-auth') {
         }
 
         $users = pixelwarRequireUserRepository($userRepository);
-        $deletedUser = $users->findDeletedLoginUser($email);
-        if ($deletedUser !== null) {
-            $googleFail('You no longer have access to this account. If you think this is a mistake, please contact your admin or instructor.');
-        }
-
         $user = $users->findUserByEmail($email);
         if ($user !== null) {
             if ((int) ($user['role_id'] ?? 0) !== pixelwarStudentRoleId()) {
