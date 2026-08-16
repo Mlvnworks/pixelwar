@@ -708,13 +708,18 @@ ${css}
         }
 
         const scale = Math.min(shellWidth / naturalWidth, shellHeight / naturalHeight);
+        const scaledWidth = naturalWidth * scale;
+        const scaledHeight = naturalHeight * scale;
+        const centeredLeft = paddingLeft + Math.max(0, (shellWidth - scaledWidth) / 2);
+        const centeredTop = paddingTop + Math.max(0, (shellHeight - scaledHeight) / 2);
+
         frame.style.width = `${naturalWidth}px`;
         frame.style.height = `${naturalHeight}px`;
         frame.style.maxWidth = 'none';
         frame.style.maxHeight = 'none';
         frame.style.position = 'absolute';
-        frame.style.left = `${paddingLeft}px`;
-        frame.style.top = `${paddingTop}px`;
+        frame.style.left = `${centeredLeft}px`;
+        frame.style.top = `${centeredTop}px`;
         frame.style.transform = `scale(${scale})`;
         frame.style.transformOrigin = 'top left';
     };
