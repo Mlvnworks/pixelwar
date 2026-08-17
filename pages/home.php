@@ -113,15 +113,42 @@ foreach ($attemptHistoryRows as $attemptRow) {
     ];
 }
 
-$createdChallengeRows = $challengeRepository instanceof ChallengeRepository
-    ? $challengeRepository->listLatestPublicCreated(6)
-    : [];
 $ongoingChallengeLookup = $userChallengeRepository instanceof UserChallengeRepository
     ? $userChallengeRepository->ongoingChallengeIdLookup($currentStudentId)
     : [];
 $completedChallengeLookup = $userChallengeRepository instanceof UserChallengeRepository
     ? $userChallengeRepository->completedChallengeIdLookup($currentStudentId)
     : [];
+$createdChallengeRows = $challengeRepository instanceof ChallengeRepository
+    ? $challengeRepository->listLatestPublicCreated(100)
+    : [];
+
+$rankDifficultyOrder = ['easy' => 0, 'medium' => 1, 'hard' => 2];
+if ($isMaxRank) {
+    $rankDifficultyOrder = ['hard' => 0, 'medium' => 1, 'easy' => 2];
+} elseif ($rankProgressPercent >= 75) {
+    $rankDifficultyOrder = ['hard' => 0, 'medium' => 1, 'easy' => 2];
+} elseif ($rankProgressPercent >= 35) {
+    $rankDifficultyOrder = ['medium' => 0, 'easy' => 1, 'hard' => 2];
+}
+
+usort($createdChallengeRows, static function (array $left, array $right) use ($rankDifficultyOrder, $ongoingChallengeLookup, $completedChallengeLookup): int {
+    $leftId = (int) ($left['challenge_id'] ?? 0);
+    $rightId = (int) ($right['challenge_id'] ?? 0);
+    $leftDifficulty = strtolower((string) ($left['difficulty_name'] ?? 'easy'));
+    $rightDifficulty = strtolower((string) ($right['difficulty_name'] ?? 'easy'));
+    $leftOngoingScore = isset($ongoingChallengeLookup[$leftId]) ? 0 : 1;
+    $rightOngoingScore = isset($ongoingChallengeLookup[$rightId]) ? 0 : 1;
+    $leftCompletedScore = isset($completedChallengeLookup[$leftId]) ? 1 : 0;
+    $rightCompletedScore = isset($completedChallengeLookup[$rightId]) ? 1 : 0;
+    $leftDifficultyScore = $rankDifficultyOrder[$leftDifficulty] ?? 3;
+    $rightDifficultyScore = $rankDifficultyOrder[$rightDifficulty] ?? 3;
+
+    return [$leftOngoingScore, $leftCompletedScore, $leftDifficultyScore, (string) ($right['date_created'] ?? '')]
+        <=> [$rightOngoingScore, $rightCompletedScore, $rightDifficultyScore, (string) ($left['date_created'] ?? '')];
+});
+
+$createdChallengeRows = array_slice($createdChallengeRows, 0, 6);
 $recommendedChallenges = [];
 
 foreach ($createdChallengeRows as $challengeRow) {

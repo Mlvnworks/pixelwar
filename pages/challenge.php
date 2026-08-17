@@ -518,11 +518,32 @@ HTML;
             return;
         }
 
+        const shellStyle = window.getComputedStyle(shell);
+        const paddingLeft = parseFloat(shellStyle.paddingLeft) || 0;
+        const paddingRight = parseFloat(shellStyle.paddingRight) || 0;
+        const paddingTop = parseFloat(shellStyle.paddingTop) || 0;
+        const paddingBottom = parseFloat(shellStyle.paddingBottom) || 0;
+        const shellWidth = Math.max(1, shell.clientWidth - paddingLeft - paddingRight);
+        const shellHeight = Math.max(1, shell.clientHeight - paddingTop - paddingBottom);
+
+        frame.style.width = `${shellWidth}px`;
+        frame.style.height = `${shellHeight}px`;
+        frame.style.maxWidth = 'none';
+        frame.style.maxHeight = 'none';
+        frame.style.position = 'absolute';
+        frame.style.left = `${paddingLeft}px`;
+        frame.style.top = `${paddingTop}px`;
+        frame.style.transform = 'none';
+        frame.style.transformOrigin = 'top left';
+
+        const viewportWidth = Math.max(frame.clientWidth, shellWidth, 1);
+        const viewportHeight = Math.max(frame.clientHeight, shellHeight, 1);
         const naturalWidth = Math.max(
             body.scrollWidth,
             body.offsetWidth,
             html.scrollWidth,
             html.offsetWidth,
+            viewportWidth,
             1
         );
         const naturalHeight = Math.max(
@@ -530,20 +551,27 @@ HTML;
             body.offsetHeight,
             html.scrollHeight,
             html.offsetHeight,
+            viewportHeight,
             1
         );
 
-        const shellWidth = shell.clientWidth;
-        const shellHeight = shell.clientHeight;
         if (shellWidth <= 0 || shellHeight <= 0) {
             return;
         }
 
-        const scale = Math.min(1, shellWidth / naturalWidth, shellHeight / naturalHeight);
+        const scale = Math.min(shellWidth / naturalWidth, shellHeight / naturalHeight);
+        const scaledWidth = naturalWidth * scale;
+        const scaledHeight = naturalHeight * scale;
+        const centeredLeft = paddingLeft + Math.max(0, (shellWidth - scaledWidth) / 2);
+        const centeredTop = paddingTop + Math.max(0, (shellHeight - scaledHeight) / 2);
+
         frame.style.width = `${naturalWidth}px`;
         frame.style.height = `${naturalHeight}px`;
         frame.style.maxWidth = 'none';
         frame.style.maxHeight = 'none';
+        frame.style.position = 'absolute';
+        frame.style.left = `${centeredLeft}px`;
+        frame.style.top = `${centeredTop}px`;
         frame.style.transform = `scale(${scale})`;
         frame.style.transformOrigin = 'top left';
     };
@@ -564,7 +592,7 @@ HTML;
 <style>
 * { box-sizing: border-box; }
 html, body { width: 100%; min-height: 100%; margin: 0; }
-body { display: grid; min-height: 100vh; place-items: center; background: #f7efe1; font-family: Arial, sans-serif; padding: 24px; }
+body { display: grid; min-height: 100vh; place-items: center; background: #f7efe1; font-family: Arial, sans-serif; padding: 24px; overflow: auto; }
 a, area, button, [role="button"], input, select, textarea { cursor: default !important; }
 ${css}
 </style>
