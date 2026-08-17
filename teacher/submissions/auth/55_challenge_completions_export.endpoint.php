@@ -112,7 +112,7 @@ if (
             throw new RuntimeException('Could not create the export file.');
         }
 
-        fputcsv($output, ['Player', 'Username', 'Email', 'Type', 'Outcome', 'Started At', 'Completed At', 'Duration']);
+        fputcsv($output, ['Player', 'Username', 'Email', 'Type', 'Outcome', 'Started At', 'Completed At', 'Duration'], ',', '"', '\\');
 
         foreach ($rows as $row) {
             $firstname = trim((string) ($row['firstname'] ?? ''));
@@ -137,7 +137,7 @@ if (
                 (string) ($row['started_at'] ?? ''),
                 (string) ($row['completed_at'] ?? ''),
                 $formatDuration((string) ($row['started_at'] ?? ''), (string) ($row['completed_at'] ?? '')),
-            ]);
+            ], ',', '"', '\\');
         }
 
         fclose($output);

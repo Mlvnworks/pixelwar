@@ -110,7 +110,7 @@ if (
             throw new RuntimeException('Could not create the export file.');
         }
 
-        fputcsv($output, ['Type', 'Name', 'Details', 'Created At']);
+        fputcsv($output, ['Type', 'Name', 'Details', 'Created At'], ',', '"', '\\');
 
         foreach ($exportRows as $exportRow) {
             fputcsv($output, [
@@ -118,7 +118,7 @@ if (
                 (string) ($exportRow['name'] ?? ''),
                 (string) ($exportRow['details'] ?? ''),
                 (string) ($exportRow['created_at'] ?? ''),
-            ]);
+            ], ',', '"', '\\');
         }
 
         fclose($output);

@@ -90,7 +90,7 @@ if (
             throw new RuntimeException('Could not create the export file.');
         }
 
-        fputcsv($output, ['Challenge', 'Status', 'Difficulty', 'Started At', 'Completed At', 'Duration', 'Awarded Points']);
+        fputcsv($output, ['Challenge', 'Status', 'Difficulty', 'Started At', 'Completed At', 'Duration', 'Awarded Points'], ',', '"', '\\');
 
         foreach ($exportRows as $exportRow) {
             $startedAt = new DateTimeImmutable((string) $exportRow['started_at']);
@@ -113,7 +113,7 @@ if (
                 $completedAt instanceof DateTimeImmutable ? $completedAt->format('Y-m-d H:i:s') : '',
                 $duration,
                 (int) ($exportRow['awarded_points'] ?? 0),
-            ]);
+            ], ',', '"', '\\');
         }
 
         fclose($output);

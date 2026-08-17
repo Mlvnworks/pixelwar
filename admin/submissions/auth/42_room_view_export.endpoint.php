@@ -81,7 +81,7 @@ if (
             throw new RuntimeException('Could not create the export file.');
         }
 
-        fputcsv($output, ['Record ID', 'Player', 'Username', 'Email', 'Student ID', 'Status', 'Started At', 'Completed At']);
+        fputcsv($output, ['Record ID', 'Player', 'Username', 'Email', 'Student ID', 'Status', 'Started At', 'Completed At'], ',', '"', '\\');
 
         foreach ($rows as $row) {
             $fullName = trim((string) ($row['firstname'] ?? '') . ' ' . (string) ($row['lastname'] ?? ''));
@@ -96,7 +96,7 @@ if (
                 adminPanelRoomPlayerStatusLabel($row, $roomEnded),
                 (string) ($row['started_at'] ?? ''),
                 (string) ($row['completed_at'] ?? ''),
-            ]);
+            ], ',', '"', '\\');
         }
 
         fclose($output);

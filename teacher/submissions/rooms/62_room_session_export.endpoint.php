@@ -82,7 +82,7 @@ if (
             'Status',
             'Started At',
             'Completed At',
-        ]);
+        ], ',', '"', '\\');
 
         foreach ($rows as $row) {
             $firstname = trim((string) ($row['firstname'] ?? ''));
@@ -100,7 +100,7 @@ if (
                 $statusLabel($row),
                 (string) ($row['started_at'] ?? ''),
                 (string) ($row['completed_at'] ?? ''),
-            ]);
+            ], ',', '"', '\\');
         }
 
         fclose($output);

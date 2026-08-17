@@ -444,12 +444,14 @@ $gameUserChallengeId = $gameUserChallenge !== null ? (int) $gameUserChallenge['u
 <script>
 (() => {
     if (window.history?.replaceState) {
-        const sanitizedUrl = new URL(window.location.href);
-        if (sanitizedUrl.searchParams.has('challenge_id')) {
-            sanitizedUrl.searchParams.delete('challenge_id');
-            const sanitizedQuery = sanitizedUrl.searchParams.toString();
-            const nextUrl = `${sanitizedUrl.pathname}${sanitizedQuery !== '' ? `?${sanitizedQuery}` : ''}${sanitizedUrl.hash}`;
-            window.history.replaceState({}, '', nextUrl);
+        try {
+            const sanitizedUrl = new URL(window.location.href);
+            if (sanitizedUrl.searchParams.has('challenge_id')) {
+                sanitizedUrl.searchParams.delete('challenge_id');
+                window.history.replaceState({}, '', sanitizedUrl.href);
+            }
+        } catch (error) {
+            console.warn('Unable to sanitize gameplay URL.', error);
         }
     }
 

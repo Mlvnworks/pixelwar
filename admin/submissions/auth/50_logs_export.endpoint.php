@@ -62,7 +62,7 @@ if (
             throw new RuntimeException('Could not create the export file.');
         }
 
-        fputcsv($output, ['Date', 'User', 'Email', 'Role', 'Category', 'Log']);
+        fputcsv($output, ['Date', 'User', 'Email', 'Role', 'Category', 'Log'], ',', '"', '\\');
 
         foreach ($exportRows as $exportRow) {
             $fullname = trim(((string) ($exportRow['firstname'] ?? '')) . ' ' . ((string) ($exportRow['lastname'] ?? '')));
@@ -78,7 +78,7 @@ if (
                 $roleText,
                 ucfirst((string) ($exportRow['category'] ?? 'general')),
                 (string) ($exportRow['log_text'] ?? ''),
-            ]);
+            ], ',', '"', '\\');
         }
 
         fclose($output);

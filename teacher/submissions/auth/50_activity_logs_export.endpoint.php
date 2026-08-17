@@ -60,14 +60,14 @@ if (
             throw new RuntimeException('Could not create the export file.');
         }
 
-        fputcsv($output, ['Category', 'Activity', 'Created At']);
+        fputcsv($output, ['Category', 'Activity', 'Created At'], ',', '"', '\\');
 
         foreach ($exportRows as $exportRow) {
             fputcsv($output, [
                 ucfirst(strtolower((string) ($exportRow['category'] ?? 'general'))),
                 (string) ($exportRow['log_text'] ?? ''),
                 (string) ($exportRow['date_created'] ?? ''),
-            ]);
+            ], ',', '"', '\\');
         }
 
         fclose($output);

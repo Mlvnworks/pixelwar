@@ -352,47 +352,62 @@ $strictModeValue = (int) ($roomOld['strict_mode'] ?? $defaultStrictMode);
                 };
 
                 const disablePreviewLinks = (frame) => {
-        if (!(frame instanceof HTMLIFrameElement)) {
-            return;
-        }
+                    if (!(frame instanceof HTMLIFrameElement)) {
+                        return;
+                    }
 
-        const doc = frame.contentDocument;
-        if (!doc) {
-            return;
-        }
+                    const doc = frame.contentDocument;
+                    if (!doc) {
+                        return;
+                    }
 
-        if (!doc.getElementById('pixelwar-preview-link-guard')) {
-            const style = doc.createElement('style');
-            style.id = 'pixelwar-preview-link-guard';
-            style.textContent = 'a, area { cursor: default !important; }';
-            doc.head?.appendChild(style);
-        }
+                    if (!doc.getElementById('pixelwar-preview-link-guard')) {
+                        const style = doc.createElement('style');
+                        style.id = 'pixelwar-preview-link-guard';
+                        style.textContent = 'a, area, button, [role="button"], input, select, textarea { cursor: default !important; }';
+                        doc.head?.appendChild(style);
+                    }
 
-        doc.querySelectorAll('a, area').forEach((link) => {
-            link.setAttribute('tabindex', '-1');
-            link.setAttribute('aria-disabled', 'true');
-        });
+                    doc.querySelectorAll('a, area').forEach((link) => {
+                        if (link.hasAttribute('href')) {
+                            link.dataset.pixelwarDisabledHref = link.getAttribute('href') || '';
+                            link.removeAttribute('href');
+                        }
+                        link.removeAttribute('target');
+                        link.setAttribute('tabindex', '-1');
+                        link.setAttribute('aria-disabled', 'true');
+                    });
 
-        if (doc.defaultView?.pixelwarPreviewLinksBlocked) {
-            return;
-        }
+                    doc.querySelectorAll('form').forEach((form) => {
+                        form.setAttribute('data-pixelwar-preview-disabled', 'true');
+                    });
 
-        doc.defaultView.pixelwarPreviewLinksBlocked = true;
-        doc.addEventListener('click', (event) => {
-            if (event.target?.closest?.('a, area')) {
-                event.preventDefault();
-                event.stopPropagation();
-            }
-        }, true);
-        doc.addEventListener('keydown', (event) => {
-            if ((event.key === 'Enter' || event.key === ' ') && event.target?.closest?.('a, area')) {
-                event.preventDefault();
-                event.stopPropagation();
-            }
-        }, true);
-    };
+                    if (doc.defaultView?.pixelwarPreviewLinksBlocked) {
+                        return;
+                    }
 
-    const fitPreviewFrame = (frame) => {
+                    doc.defaultView.pixelwarPreviewLinksBlocked = true;
+                    const blockPreviewActivation = (event) => {
+                        if (event.target?.closest?.('a, area, form, button[type="submit"], input[type="submit"], input[type="image"]')) {
+                            event.preventDefault();
+                            event.stopPropagation();
+                        }
+                    };
+
+                    doc.addEventListener('click', blockPreviewActivation, true);
+                    doc.addEventListener('auxclick', blockPreviewActivation, true);
+                    doc.addEventListener('pointerup', blockPreviewActivation, true);
+                    doc.addEventListener('touchend', blockPreviewActivation, true);
+                    doc.addEventListener('submit', blockPreviewActivation, true);
+                    doc.addEventListener('keydown', (event) => {
+                        if ((event.key === 'Enter' || event.key === ' ') && event.target?.closest?.('a, area, button[type="submit"], input[type="submit"], input[type="image"]')) {
+                            event.preventDefault();
+                            event.stopPropagation();
+                        }
+                    }, true);
+                };
+
+                const fitPreviewFrame = (frame) => {
                     if (!(frame instanceof HTMLIFrameElement)) {
                         return;
                     }
@@ -400,37 +415,69 @@ $strictModeValue = (int) ($roomOld['strict_mode'] ?? $defaultStrictMode);
                     const doc = frame.contentDocument;
                     const body = doc?.body;
                     const html = doc?.documentElement;
-                    const stage = frame.parentElement;
-                    if (!doc || !body || !html || !(stage instanceof HTMLElement)) {
+                    if (!doc || !body || !html) {
                         return;
                     }
 
-                    const shell = stage.parentElement;
+                    const shell = frame.closest('.create-room-preview-frame');
                     if (!(shell instanceof HTMLElement)) {
                         return;
                     }
 
-                    const naturalWidth = Math.max(body.scrollWidth, body.offsetWidth, html.scrollWidth, html.offsetWidth, 1);
-                    const naturalHeight = Math.max(body.scrollHeight, body.offsetHeight, html.scrollHeight, html.offsetHeight, 1);
-                    const shellWidth = shell.clientWidth;
-                    const shellHeight = shell.clientHeight;
+                    const shellStyle = window.getComputedStyle(shell);
+                    const paddingLeft = parseFloat(shellStyle.paddingLeft) || 0;
+                    const paddingRight = parseFloat(shellStyle.paddingRight) || 0;
+                    const paddingTop = parseFloat(shellStyle.paddingTop) || 0;
+                    const paddingBottom = parseFloat(shellStyle.paddingBottom) || 0;
+                    const shellWidth = Math.max(1, shell.clientWidth - paddingLeft - paddingRight);
+                    const shellHeight = Math.max(1, shell.clientHeight - paddingTop - paddingBottom);
+
+                    frame.style.width = `${shellWidth}px`;
+                    frame.style.height = `${shellHeight}px`;
+                    frame.style.maxWidth = 'none';
+                    frame.style.maxHeight = 'none';
+                    frame.style.position = 'absolute';
+                    frame.style.left = `${paddingLeft}px`;
+                    frame.style.top = `${paddingTop}px`;
+                    frame.style.transform = 'none';
+                    frame.style.transformOrigin = 'top left';
+
+                    const viewportWidth = Math.max(frame.clientWidth, shellWidth, 1);
+                    const viewportHeight = Math.max(frame.clientHeight, shellHeight, 1);
+                    const naturalWidth = Math.max(
+                        body.scrollWidth,
+                        body.offsetWidth,
+                        html.scrollWidth,
+                        html.offsetWidth,
+                        viewportWidth,
+                        1
+                    );
+                    const naturalHeight = Math.max(
+                        body.scrollHeight,
+                        body.offsetHeight,
+                        html.scrollHeight,
+                        html.offsetHeight,
+                        viewportHeight,
+                        1
+                    );
+
                     if (shellWidth <= 0 || shellHeight <= 0) {
                         return;
                     }
 
-                    const scale = Math.min(1, shellWidth / naturalWidth, shellHeight / naturalHeight);
+                    const scale = Math.min(shellWidth / naturalWidth, shellHeight / naturalHeight);
                     const scaledWidth = naturalWidth * scale;
                     const scaledHeight = naturalHeight * scale;
-                    stage.style.width = `${Math.ceil(scaledWidth)}px`;
-                    stage.style.height = `${Math.ceil(scaledHeight)}px`;
-                    stage.style.left = `${Math.max(0, (shellWidth - scaledWidth) / 2)}px`;
-                    stage.style.top = `${Math.max(0, (shellHeight - scaledHeight) / 2)}px`;
+                    const centeredLeft = paddingLeft + Math.max(0, (shellWidth - scaledWidth) / 2);
+                    const centeredTop = paddingTop + Math.max(0, (shellHeight - scaledHeight) / 2);
+
                     frame.style.width = `${naturalWidth}px`;
                     frame.style.height = `${naturalHeight}px`;
                     frame.style.maxWidth = 'none';
                     frame.style.maxHeight = 'none';
-                    frame.style.left = '0';
-                    frame.style.top = '0';
+                    frame.style.position = 'absolute';
+                    frame.style.left = `${centeredLeft}px`;
+                    frame.style.top = `${centeredTop}px`;
                     frame.style.transform = `scale(${scale})`;
                     frame.style.transformOrigin = 'top left';
                 };
@@ -470,17 +517,14 @@ $strictModeValue = (int) ($roomOld['strict_mode'] ?? $defaultStrictMode);
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
-*{box-sizing:border-box}
-html,body{margin:0;padding:0;background:#fff7e8;width:max-content;height:max-content}
-body{display:inline-block;font-family:Arial,sans-serif}
-a,area{cursor:default!important}
-.preview-canvas{display:inline-block;padding:24px}
+* { box-sizing: border-box; }
+html, body { width: 100%; min-height: 100%; margin: 0; }
+body { display: grid; min-height: 100vh; place-items: center; background: #fff7e8; font-family: Arial, sans-serif; padding: 24px; overflow: auto; }
+a, area, button, [role="button"], input, select, textarea { cursor: default !important; }
 ${cssText}
 </style>
 </head>
-<body>
-<div class="preview-canvas">${htmlText}</div>
-</body>
+<body>${htmlText}</body>
 </html>`;
                         previewFrames.forEach((frame) => {
                             frame.onload = () => {
