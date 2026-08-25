@@ -4,8 +4,11 @@ $teacherId = (int) ($_SESSION['user_id'] ?? 0);
 $analyticsTrackedDays = 30;
 $analyticsEndDate = new DateTimeImmutable('today');
 $analyticsStartDate = $analyticsEndDate->modify('-' . ($analyticsTrackedDays - 1) . ' days');
-$activityCounts = $activityLogRepository instanceof ActivityLogRepository && $teacherId > 0
-    ? $activityLogRepository->countByDayAndCategory($teacherId, (int) $analyticsEndDate->format('Y'))
+$challengeCountsByDate = $challengeRepository instanceof ChallengeRepository && $teacherId > 0
+    ? $challengeRepository->countCreatedByDayForOwner($teacherId, $analyticsStartDate, $analyticsEndDate)
+    : [];
+$roomCountsByDate = $roomRepository instanceof RoomRepository && $teacherId > 0
+    ? $roomRepository->countCreatedByDayForOwner($teacherId, $analyticsStartDate, $analyticsEndDate)
     : [];
 $teacherActivityDays = [];
 $teacherChartLabels = [];
@@ -15,9 +18,8 @@ $teacherRoomValues = [];
 for ($dayIndex = 0; $dayIndex < $analyticsTrackedDays; $dayIndex++) {
     $date = $analyticsStartDate->modify('+' . $dayIndex . ' days');
     $dateKey = $date->format('Y-m-d');
-    $dailyCounts = $activityCounts[$dateKey] ?? [];
-    $challengeCreated = (int) ($dailyCounts['challenge'] ?? 0);
-    $roomCreated = (int) ($dailyCounts['room'] ?? 0);
+    $challengeCreated = (int) ($challengeCountsByDate[$dateKey] ?? 0);
+    $roomCreated = (int) ($roomCountsByDate[$dateKey] ?? 0);
     $totalActivity = $challengeCreated + $roomCreated;
 
     $teacherActivityDays[] = [

@@ -7,8 +7,8 @@ $teacherCountToday = $userRepository instanceof UserRepository ? $userRepository
 $pendingStudentVerificationCount = $userRepository instanceof UserRepository
     ? $userRepository->countPendingStudentReviews()
     : 0;
-$roomCount = 0;
-$roomCountToday = 0;
+$roomCount = $roomRepository instanceof RoomRepository ? $roomRepository->countCreated() : 0;
+$roomCountToday = $roomRepository instanceof RoomRepository ? $roomRepository->countCreatedToday() : 0;
 $challengeCount = $challengeRepository instanceof ChallengeRepository ? $challengeRepository->countCreated() : 0;
 $challengeCountToday = $challengeRepository instanceof ChallengeRepository ? $challengeRepository->countCreatedToday() : 0;
 $summaryCards = [
@@ -52,6 +52,9 @@ $teacherCountsByDate = $userRepository instanceof UserRepository
 $challengeCountsByDate = $challengeRepository instanceof ChallengeRepository
     ? $challengeRepository->countCreatedByDay($chartStartDate, $chartEndDate)
     : [];
+$roomCountsByDate = $roomRepository instanceof RoomRepository
+    ? $roomRepository->countCreatedByDay($chartStartDate, $chartEndDate)
+    : [];
 $chartLabels = [];
 $studentChartValues = [];
 $teacherChartValues = [];
@@ -64,7 +67,7 @@ for ($offset = 0; $offset < 30; $offset++) {
     $dateKey = $date->format('Y-m-d');
     $studentTotal = (int) ($studentCountsByDate[$dateKey] ?? 0);
     $teacherTotal = (int) ($teacherCountsByDate[$dateKey] ?? 0);
-    $roomTotal = 0;
+    $roomTotal = (int) ($roomCountsByDate[$dateKey] ?? 0);
     $challengeTotal = (int) ($challengeCountsByDate[$dateKey] ?? 0);
     $chartLabels[] = $date->format('M j');
     $studentChartValues[] = $studentTotal;

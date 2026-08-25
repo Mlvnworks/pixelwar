@@ -104,6 +104,22 @@ final class ChallengeRepository
         return (int) ($row['total'] ?? 0);
     }
 
+    public function countForOwner(int $userId): int
+    {
+        $statement = $this->connection->prepare(
+            'SELECT COUNT(*) AS total
+             FROM challenges
+             WHERE user_id = ?
+                AND date_deleted IS NULL'
+        );
+        $statement->bind_param('i', $userId);
+        $statement->execute();
+        $row = $statement->get_result()->fetch_assoc();
+        $statement->close();
+
+        return (int) ($row['total'] ?? 0);
+    }
+
     /**
      * @return array<string, int>
      */
@@ -121,6 +137,36 @@ final class ChallengeRepository
              ORDER BY created_day ASC'
         );
         $statement->bind_param('ss', $start, $end);
+        $statement->execute();
+        $rows = $statement->get_result()->fetch_all(MYSQLI_ASSOC);
+        $statement->close();
+
+        $counts = [];
+        foreach ($rows as $row) {
+            $counts[(string) $row['created_day']] = (int) ($row['total'] ?? 0);
+        }
+
+        return $counts;
+    }
+
+    /**
+     * @return array<string, int>
+     */
+    public function countCreatedByDayForOwner(int $userId, DateTimeInterface $startDate, DateTimeInterface $endDate): array
+    {
+        $start = $startDate->format('Y-m-d 00:00:00');
+        $end = $endDate->format('Y-m-d 23:59:59');
+        $statement = $this->connection->prepare(
+            'SELECT DATE(date_created) AS created_day, COUNT(*) AS total
+             FROM challenges
+             WHERE user_id = ?
+                AND date_deleted IS NULL
+                AND date_created >= ?
+                AND date_created <= ?
+             GROUP BY DATE(date_created)
+             ORDER BY created_day ASC'
+        );
+        $statement->bind_param('iss', $userId, $start, $end);
         $statement->execute();
         $rows = $statement->get_result()->fetch_all(MYSQLI_ASSOC);
         $statement->close();

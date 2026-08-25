@@ -16,29 +16,31 @@ $teacherLogPages = max(1, (int) ceil($teacherLogTotal / $teacherLogsPerPage));
 $teacherLogPage = min($teacherLogPage, $teacherLogPages);
 $teacherLogOffset = ($teacherLogPage - 1) * $teacherLogsPerPage;
 $teacherLogRows = array_slice($teacherLogs, $teacherLogOffset, $teacherLogsPerPage);
-$currentYear = (int) date('Y');
-$yearStart = new DateTimeImmutable($currentYear . '-01-01');
-$yearEnd = new DateTimeImmutable($currentYear . '-12-31');
-$activityCounts = $activityLogRepository instanceof ActivityLogRepository && $teacherViewId > 0
-    ? $activityLogRepository->countByDayAndCategory($teacherViewId, $currentYear)
+$analyticsTrackedDays = 30;
+$analyticsEndDate = new DateTimeImmutable('today');
+$analyticsStartDate = $analyticsEndDate->modify('-' . ($analyticsTrackedDays - 1) . ' days');
+$challengeCountsByDate = $challengeRepository instanceof ChallengeRepository && $teacherViewId > 0
+    ? $challengeRepository->countCreatedByDayForOwner($teacherViewId, $analyticsStartDate, $analyticsEndDate)
     : [];
-$teacherChallengeCreatedCount = $activityLogRepository instanceof ActivityLogRepository && $teacherViewId > 0
-    ? $activityLogRepository->countForUserByCategory($teacherViewId, 'challenge', 'Created challenge')
+$roomCountsByDate = $roomRepository instanceof RoomRepository && $teacherViewId > 0
+    ? $roomRepository->countCreatedByDayForOwner($teacherViewId, $analyticsStartDate, $analyticsEndDate)
+    : [];
+$teacherChallengeCreatedCount = $challengeRepository instanceof ChallengeRepository && $teacherViewId > 0
+    ? $challengeRepository->countForOwner($teacherViewId)
     : 0;
-$teacherRoomCreatedCount = $activityLogRepository instanceof ActivityLogRepository && $teacherViewId > 0
-    ? $activityLogRepository->countForUserByCategory($teacherViewId, 'room')
+$teacherRoomCreatedCount = $roomRepository instanceof RoomRepository && $teacherViewId > 0
+    ? $roomRepository->countForOwner($teacherViewId)
     : 0;
 $teacherActivityDays = [];
 $teacherChartLabels = [];
 $teacherChallengeValues = [];
 $teacherRoomValues = [];
 
-for ($dayIndex = 0, $totalDays = (int) $yearStart->diff($yearEnd)->days + 1; $dayIndex < $totalDays; $dayIndex++) {
-    $date = $yearStart->modify('+' . $dayIndex . ' days');
+for ($dayIndex = 0; $dayIndex < $analyticsTrackedDays; $dayIndex++) {
+    $date = $analyticsStartDate->modify('+' . $dayIndex . ' days');
     $dateKey = $date->format('Y-m-d');
-    $dailyCounts = $activityCounts[$dateKey] ?? [];
-    $challengeCreated = (int) ($dailyCounts['challenge'] ?? 0);
-    $roomCreated = (int) ($dailyCounts['room'] ?? 0);
+    $challengeCreated = (int) ($challengeCountsByDate[$dateKey] ?? 0);
+    $roomCreated = (int) ($roomCountsByDate[$dateKey] ?? 0);
     $totalActivity = $challengeCreated + $roomCreated;
 
     $teacherActivityDays[] = [
@@ -179,7 +181,7 @@ $teacherViewBuildQuery = static function (array $overrides = []) use ($teacherVi
                                 <h2 class="mt-1 text-2xl font-bold">Teacher Creation Activity</h2>
                             </div>
                             <div class="flex flex-wrap items-center gap-2">
-                                <p class="text-sm font-medium text-arcade-ink/58"><?= (int) $currentYear ?> Activity</p>
+                                <p class="text-sm font-medium text-arcade-ink/58">Last <?= (int) $analyticsTrackedDays ?> Days</p>
                                 <a href="./?c=teacher-activity&id=<?= (int) $teacherViewId ?>" class="teacher-button teacher-button--light gap-2 no-underline">
                                     <i data-lucide="activity" class="h-4 w-4" aria-hidden="true"></i>
                                     <span>View Records</span>
@@ -187,9 +189,9 @@ $teacherViewBuildQuery = static function (array $overrides = []) use ($teacherVi
                             </div>
                         </div>
 
-                        <div class="admin-teacher-chart-shell mt-4" aria-label="<?= (int) $currentYear ?> teacher activity chart">
+                        <div class="admin-teacher-chart-shell mt-4" aria-label="Teacher activity chart for the last <?= (int) $analyticsTrackedDays ?> days">
                             <div class="admin-teacher-chart-stage">
-                                <canvas id="admin-teacher-activity-chart" aria-label="<?= (int) $currentYear ?> teacher creation chart"></canvas>
+                                <canvas id="admin-teacher-activity-chart" aria-label="Teacher creation chart for the last <?= (int) $analyticsTrackedDays ?> days"></canvas>
                             </div>
                         </div>
                     </article>

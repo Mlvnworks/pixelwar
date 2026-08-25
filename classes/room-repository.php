@@ -213,6 +213,90 @@ final class RoomRepository
         return (int) ($row['total'] ?? 0);
     }
 
+    public function countCreated(): int
+    {
+        $result = $this->connection->query(
+            'SELECT COUNT(*) AS total
+             FROM rooms
+             WHERE date_deleted IS NULL'
+        );
+        $row = $result instanceof mysqli_result ? $result->fetch_assoc() : null;
+
+        return (int) ($row['total'] ?? 0);
+    }
+
+    public function countCreatedToday(): int
+    {
+        $result = $this->connection->query(
+            'SELECT COUNT(*) AS total
+             FROM rooms
+             WHERE date_deleted IS NULL
+                AND DATE(created_at) = CURRENT_DATE'
+        );
+        $row = $result instanceof mysqli_result ? $result->fetch_assoc() : null;
+
+        return (int) ($row['total'] ?? 0);
+    }
+
+    /**
+     * @return array<string, int>
+     */
+    public function countCreatedByDay(DateTimeInterface $startDate, DateTimeInterface $endDate): array
+    {
+        $start = $startDate->format('Y-m-d 00:00:00');
+        $end = $endDate->format('Y-m-d 23:59:59');
+        $statement = $this->connection->prepare(
+            'SELECT DATE(created_at) AS created_day, COUNT(*) AS total
+             FROM rooms
+             WHERE date_deleted IS NULL
+                AND created_at >= ?
+                AND created_at <= ?
+             GROUP BY DATE(created_at)
+             ORDER BY created_day ASC'
+        );
+        $statement->bind_param('ss', $start, $end);
+        $statement->execute();
+        $rows = $statement->get_result()->fetch_all(MYSQLI_ASSOC);
+        $statement->close();
+
+        $counts = [];
+        foreach ($rows as $row) {
+            $counts[(string) $row['created_day']] = (int) ($row['total'] ?? 0);
+        }
+
+        return $counts;
+    }
+
+    /**
+     * @return array<string, int>
+     */
+    public function countCreatedByDayForOwner(int $userId, DateTimeInterface $startDate, DateTimeInterface $endDate): array
+    {
+        $start = $startDate->format('Y-m-d 00:00:00');
+        $end = $endDate->format('Y-m-d 23:59:59');
+        $statement = $this->connection->prepare(
+            'SELECT DATE(created_at) AS created_day, COUNT(*) AS total
+             FROM rooms
+             WHERE user_id = ?
+                AND date_deleted IS NULL
+                AND created_at >= ?
+                AND created_at <= ?
+             GROUP BY DATE(created_at)
+             ORDER BY created_day ASC'
+        );
+        $statement->bind_param('iss', $userId, $start, $end);
+        $statement->execute();
+        $rows = $statement->get_result()->fetch_all(MYSQLI_ASSOC);
+        $statement->close();
+
+        $counts = [];
+        foreach ($rows as $row) {
+            $counts[(string) $row['created_day']] = (int) ($row['total'] ?? 0);
+        }
+
+        return $counts;
+    }
+
     /**
      * @return array<int, array<string, mixed>>
      */
