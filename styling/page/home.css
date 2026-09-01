@@ -145,6 +145,48 @@
     box-shadow: 0 0 0 4px rgba(255, 140, 66, 0.16);
 }
 
+.join-room-help {
+    display: flex;
+    gap: 0.8rem;
+    align-items: flex-start;
+    border: 2px solid rgba(76, 201, 240, 0.36);
+    border-radius: 1.25rem;
+    background: linear-gradient(135deg, rgba(76, 201, 240, 0.14), rgba(255, 209, 102, 0.16));
+    padding: 0.95rem;
+    color: #26190f;
+}
+
+.join-room-help-icon {
+    display: grid;
+    width: 2.2rem;
+    height: 2.2rem;
+    flex: 0 0 auto;
+    place-items: center;
+    border: 2px solid #26190f;
+    border-radius: 0.9rem;
+    background: #4cc9f0;
+    color: #26190f;
+    box-shadow: 3px 3px 0 rgba(38, 25, 15, 0.16);
+}
+
+.join-room-help p {
+    margin: 0;
+    font-size: 0.7rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: #b45309;
+}
+
+.join-room-help span:not(.join-room-help-icon) {
+    display: block;
+    margin-top: 0.25rem;
+    font-size: 0.88rem;
+    font-weight: 700;
+    line-height: 1.55;
+    color: rgba(38, 25, 15, 0.72);
+}
+
 .join-room-avatar--yellow {
     background: #ffd166;
 }
@@ -209,6 +251,25 @@ body.pixelwar-dark-mode .join-room-edit-icon {
     border-color: rgba(255, 247, 232, 0.22);
     background: #ff8c42;
     color: #fff7e8;
+}
+
+body.pixelwar-dark-mode .join-room-help {
+    border-color: rgba(76, 201, 240, 0.3);
+    background: linear-gradient(135deg, rgba(76, 201, 240, 0.14), rgba(255, 140, 66, 0.12));
+    color: #fff7e8;
+}
+
+body.pixelwar-dark-mode .join-room-help-icon {
+    border-color: rgba(255, 247, 232, 0.82);
+    box-shadow: 3px 3px 0 rgba(255, 140, 66, 0.24);
+}
+
+body.pixelwar-dark-mode .join-room-help p {
+    color: #ffd166;
+}
+
+body.pixelwar-dark-mode .join-room-help span:not(.join-room-help-icon) {
+    color: rgba(255, 247, 232, 0.76);
 }
 
 body.pixelwar-dark-mode .home-chart-shell {

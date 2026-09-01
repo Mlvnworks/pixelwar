@@ -522,7 +522,12 @@ class UserRepository
                 LEFT JOIN images AS id_images ON id_images.img_id = user_details.id_picture
                 WHERE users.role_id = 3
                     AND users.date_deleted IS NULL
-                    AND users.is_verified = 1';
+                    AND users.is_verified = 1
+                    AND TRIM(COALESCE(user_details.firstname, \'\')) <> \'\'
+                    AND TRIM(COALESCE(user_details.lastname, \'\')) <> \'\'
+                    AND TRIM(COALESCE(user_details.student_number, \'\')) <> \'\'
+                    AND user_details.image_id IS NOT NULL
+                    AND user_details.id_picture IS NOT NULL';
         $types = '';
         $params = [];
 
@@ -871,7 +876,12 @@ class UserRepository
                 LEFT JOIN images AS id_images ON id_images.img_id = user_details.id_picture
                 WHERE users.role_id = 3
                     AND users.date_deleted IS NULL
-                    AND users.is_verified = 1';
+                    AND users.is_verified = 1
+                    AND TRIM(COALESCE(user_details.firstname, \'\')) <> \'\'
+                    AND TRIM(COALESCE(user_details.lastname, \'\')) <> \'\'
+                    AND TRIM(COALESCE(user_details.student_number, \'\')) <> \'\'
+                    AND user_details.image_id IS NOT NULL
+                    AND user_details.id_picture IS NOT NULL';
         $types = '';
         $params = [];
 
