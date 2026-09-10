@@ -101,7 +101,7 @@ if ($requestMethod === 'POST' && $requestedPage === 'pixelwar' && (string) ($_PO
                 throw new RuntimeException('Challenge run context is missing.');
             }
 
-            $deleted = $userChallengeRepository->deleteOngoingForUser($userChallengeId, $userId);
+            $deleted = $userChallengeRepository->deleteOngoingSoloForChallenge($userId, $challengeId);
         }
 
         if ($deleted || $preservedRoomRun) {

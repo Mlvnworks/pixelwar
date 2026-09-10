@@ -1058,6 +1058,28 @@ final class UserChallengeRepository
         return $deleted;
     }
 
+    public function deleteOngoingSoloForChallenge(int $userId, int $challengeId): bool
+    {
+        if ($userId <= 0 || $challengeId <= 0) {
+            return false;
+        }
+
+        $statement = $this->connection->prepare(
+            'DELETE FROM user_challenge
+             WHERE user_id = ?
+                AND challenge_id = ?
+                AND room_id IS NULL
+                AND pvp_id IS NULL
+                AND completed_at IS NULL'
+        );
+        $statement->bind_param('ii', $userId, $challengeId);
+        $statement->execute();
+        $deleted = $statement->affected_rows > 0;
+        $statement->close();
+
+        return $deleted;
+    }
+
     public function pvpDurationSeconds(int $pvpId): int
     {
         if ($pvpId <= 0) {

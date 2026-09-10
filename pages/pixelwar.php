@@ -196,6 +196,8 @@ $gameUserChallengeId = $gameUserChallenge !== null ? (int) $gameUserChallenge['u
         </div>
 
         <div id="completion-confetti" class="completion-confetti" aria-hidden="true"></div>
+        <div id="gameplay-streak-pop" class="gameplay-streak-pop" aria-live="polite"></div>
+        <div id="identifier-complete-pop" class="identifier-complete-pop" aria-live="polite"></div>
 
         <div class="challenge-shell border-4 border-arcade-ink/10 bg-arcade-panel/80 p-2">
             <aside class="floating-hud" aria-live="polite">
@@ -227,9 +229,19 @@ $gameUserChallengeId = $gameUserChallenge !== null ? (int) $gameUserChallenge['u
                     <section class="panel-card panel-card--preview rounded-[20px] border-2 border-arcade-ink/10 bg-white p-4">
                         <div class="preview-card-header mb-3">
                             <h2 class="font-arcade text-[10px] uppercase tracking-[0.22em] text-arcade-orange">1. Live Preview</h2>
-                            <button type="button" class="mobile-preview-toggle rounded-xl border-2 border-arcade-ink bg-arcade-cyan px-3 py-1.5 text-[11px] font-bold text-arcade-ink shadow-[0_3px_0_#26190f] transition hover:-translate-y-0.5 hover:bg-arcade-yellow" data-bs-toggle="modal" data-bs-target="#mobile-preview-modal">
-                                View Target
-                            </button>
+                            <div class="preview-card-actions">
+                                <button type="button" class="preview-expand-button" aria-label="Expand live preview" title="Expand live preview">
+                                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                        <path d="M15 3h6v6" />
+                                        <path d="m21 3-7 7" />
+                                        <path d="M9 21H3v-6" />
+                                        <path d="m3 21 7-7" />
+                                    </svg>
+                                </button>
+                                <button type="button" class="mobile-preview-toggle rounded-xl border-2 border-arcade-ink bg-arcade-cyan px-3 py-1.5 text-[11px] font-bold text-arcade-ink shadow-[0_3px_0_#26190f] transition hover:-translate-y-0.5 hover:bg-arcade-yellow" data-bs-toggle="modal" data-bs-target="#mobile-preview-modal">
+                                    View Target
+                                </button>
+                            </div>
                         </div>
                         <div class="preview-frame rounded-[20px] border-2 border-dashed border-arcade-ink/15 bg-[#f7efe1] p-4">
                             <iframe class="game-source-preview" title="Live challenge preview" sandbox="allow-same-origin" data-live-preview></iframe>
@@ -262,8 +274,11 @@ $gameUserChallengeId = $gameUserChallenge !== null ? (int) $gameUserChallenge['u
                                     placeholder="Search properties..."
                                     class="w-full rounded-xl border-2 border-arcade-ink/10 bg-white px-3 py-2 text-sm text-arcade-ink outline-none transition focus:border-arcade-orange">
                             </div>
-                            <button id="reset-layout-btn" type="button" class="rounded-xl border-2 border-arcade-ink/10 bg-arcade-peach/60 px-3 py-2 text-xs font-semibold text-arcade-ink transition hover:bg-arcade-yellow/70">
-                                Reset Placements
+                            <button id="reset-layout-btn" type="button" class="rounded-xl border-2 border-arcade-ink/10 bg-arcade-peach/60 px-3 py-2 text-xs font-semibold text-arcade-ink transition hover:bg-arcade-yellow/70" aria-label="Reset placements" title="Reset placements">
+                                <svg class="reset-layout-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                    <path d="M3 12a9 9 0 1 0 3-6.7" />
+                                    <path d="M3 3v6h6" />
+                                </svg>
                             </button>
                         </div>
                         <div class="drop-zone property-zone" data-drop-key="pool">
@@ -296,6 +311,29 @@ $gameUserChallengeId = $gameUserChallenge !== null ? (int) $gameUserChallenge['u
             </div>
         </div>
 </section>
+
+<div class="modal fade gameplay-reset-modal" id="gameplay-reset-modal" tabindex="-1" aria-labelledby="gameplay-reset-modal-title" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-[24px] border-4 border-arcade-ink bg-arcade-panel p-0 text-arcade-ink shadow-[8px_8px_0_#26190f]">
+            <div class="modal-header border-0 px-4 pb-2 pt-4">
+                <div>
+                    <p class="font-arcade text-[10px] uppercase tracking-[0.22em] text-arcade-orange">Reset Placement</p>
+                    <h2 id="gameplay-reset-modal-title" class="modal-title mt-2 text-xl font-bold">Reset all placed properties?</h2>
+                </div>
+                <button type="button" class="btn-close opacity-100" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body px-4 pb-4 pt-2">
+                <p class="text-sm font-semibold leading-7 text-arcade-ink/70">
+                    This will return every placed property to the pool. Your active run and timer will continue.
+                </p>
+                <div class="mt-4 flex flex-col gap-3 sm:flex-row sm:justify-end">
+                    <button type="button" class="rounded-xl border-2 border-arcade-ink/15 bg-white px-4 py-2 text-sm font-bold text-arcade-ink transition hover:bg-arcade-peach/60" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" id="confirm-reset-layout-button" class="rounded-xl border-2 border-arcade-ink bg-arcade-orange px-5 py-2 text-sm font-bold text-white shadow-[0_4px_0_#26190f] transition hover:-translate-y-0.5 hover:bg-arcade-coral">Reset Placement</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
 <div class="modal fade gameplay-exit-modal" id="gameplay-exit-modal" tabindex="-1" aria-labelledby="gameplay-exit-modal-title" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
@@ -347,7 +385,49 @@ $gameUserChallengeId = $gameUserChallenge !== null ? (int) $gameUserChallenge['u
     </div>
 </div>
 
-<div class="modal fade gameplay-complete-modal" id="gameplay-complete-modal" tabindex="-1" aria-labelledby="gameplay-complete-modal-title" aria-hidden="true">
+<div class="modal fade live-compare-modal" id="live-compare-modal" tabindex="-1" aria-labelledby="live-compare-modal-title" aria-hidden="true">
+    <div class="modal-dialog modal-fullscreen">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div>
+                    <p class="font-arcade text-[10px] uppercase tracking-[0.22em] text-arcade-orange">Design Compare</p>
+                    <h2 id="live-compare-modal-title" class="modal-title mt-2 text-xl font-bold"><?= htmlspecialchars($gameChallengeTitle, ENT_QUOTES, 'UTF-8') ?></h2>
+                </div>
+                <button type="button" class="btn-close opacity-100" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="live-compare-grid">
+                    <section class="live-compare-panel">
+                        <div class="live-compare-panel__header">
+                            <span>Current Design</span>
+                        </div>
+                        <div class="live-compare-frame">
+                            <iframe class="game-source-preview" title="Expanded live challenge preview" sandbox="allow-same-origin" data-live-compare-preview></iframe>
+                        </div>
+                    </section>
+                    <section class="live-compare-panel">
+                        <div class="live-compare-panel__header">
+                            <span>Target Design</span>
+                        </div>
+                        <div
+                            class="live-compare-frame"
+                            data-source-target-frame
+                            data-html-source="<?= htmlspecialchars($gameChallengeHtmlSource, ENT_QUOTES, 'UTF-8') ?>"
+                            data-css-source="<?= htmlspecialchars($gameChallengeCssSource, ENT_QUOTES, 'UTF-8') ?>">
+                            <div class="game-source-loader" data-source-loader <?= $gameChallenge === null ? 'hidden' : '' ?>>
+                                <span class="game-source-loader__spinner" aria-hidden="true"></span>
+                                <strong>Loading target...</strong>
+                            </div>
+                            <iframe class="game-source-preview" title="Expanded challenge target preview" sandbox="allow-same-origin" data-source-preview hidden></iframe>
+                        </div>
+                    </section>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade gameplay-complete-modal" id="gameplay-complete-modal" tabindex="-1" aria-labelledby="gameplay-complete-modal-title" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content rounded-[24px] border-4 border-arcade-ink bg-arcade-panel p-0 text-arcade-ink shadow-[8px_8px_0_#26190f]">
             <div class="modal-header border-0 px-4 pb-2 pt-4">
@@ -355,7 +435,6 @@ $gameUserChallengeId = $gameUserChallenge !== null ? (int) $gameUserChallenge['u
                     <p class="font-arcade text-[10px] uppercase tracking-[0.22em] text-arcade-orange">Challenge Complete</p>
                     <h2 id="gameplay-complete-modal-title" class="modal-title mt-2 text-xl font-bold">Nice work.</h2>
                 </div>
-                <button type="button" class="btn-close opacity-100" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body px-4 pb-4 pt-2">
                 <div class="gameplay-complete-summary">
@@ -471,13 +550,24 @@ $gameUserChallengeId = $gameUserChallenge !== null ? (int) $gameUserChallenge['u
         csrfToken: <?= json_encode(pixelwarCsrfToken(), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?: "''" ?>,
         pusherKey: <?= json_encode($gamePusherEnabled ? (string) PUSHER_KEY : '', JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?: "''" ?>,
         pusherCluster: <?= json_encode($gamePusherEnabled ? (string) PUSHER_CLUSTER : '', JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?: "''" ?>,
+        startSoundUrl: <?= json_encode('assets/sound effects/game_start.mp3', JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?: "''" ?>,
+        glassCrackSoundUrl: <?= json_encode('assets/sound effects/glass_crack.mp3', JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?: "''" ?>,
+        correctSoundUrl: <?= json_encode('assets/sound effects/correct.mp3', JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?: "''" ?>,
+        wrongSoundUrl: <?= json_encode('assets/sound effects/wrong.mp3', JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?: "''" ?>,
+        backgroundMusicUrl: <?= json_encode('assets/sound effects/bg_music.mp3', JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?: "''" ?>,
+        cheerSoundUrls: <?= json_encode([
+            'assets/sound effects/Game voice cheer/Good Job!.mp3',
+            'assets/sound effects/Game voice cheer/Awesome!.mp3',
+            'assets/sound effects/Game voice cheer/great!.wav',
+        ], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?: '[]' ?>,
         endedRedirectUrl: './?c=home&room_notice=ended_incomplete',
     };
 
     const selectorGrid = document.getElementById('selector-card-grid');
     const livePreview = document.querySelector('[data-live-preview]');
+    const liveComparePreview = document.querySelector('[data-live-compare-preview]');
     const targetPreviews = Array.from(document.querySelectorAll('[data-source-preview]'));
-    const allPreviewFrames = [livePreview, ...targetPreviews].filter((frame) => frame instanceof HTMLIFrameElement);
+    const allPreviewFrames = [livePreview, liveComparePreview, ...targetPreviews].filter((frame) => frame instanceof HTMLIFrameElement);
     const targetFrames = Array.from(document.querySelectorAll('[data-source-target-frame]'));
     const statusLabel = document.getElementById('game-status');
     const gameplayTime = document.getElementById('gameplay-time');
@@ -489,17 +579,25 @@ $gameUserChallengeId = $gameUserChallenge !== null ? (int) $gameUserChallenge['u
     const strictModeSubmitButton = document.getElementById('strict-mode-submit-button');
     const openingEffect = document.getElementById('game-opening-effect');
     const completionConfetti = document.getElementById('completion-confetti');
+    const streakPop = document.getElementById('gameplay-streak-pop');
+    const identifierCompletePop = document.getElementById('identifier-complete-pop');
     const completionModalElement = document.getElementById('gameplay-complete-modal');
     const completionModal = completionModalElement ? new bootstrap.Modal(completionModalElement) : null;
     const strictResultModalElement = document.getElementById('gameplay-strict-result-modal');
     const strictResultModal = strictResultModalElement ? new bootstrap.Modal(strictResultModalElement) : null;
+    const resetModalElement = document.getElementById('gameplay-reset-modal');
+    const resetModal = resetModalElement ? new bootstrap.Modal(resetModalElement) : null;
     const exitModalElement = document.getElementById('gameplay-exit-modal');
     const exitModal = exitModalElement ? new bootstrap.Modal(exitModalElement) : null;
+    const confirmResetButton = document.getElementById('confirm-reset-layout-button');
     const confirmGiveUpButton = document.getElementById('confirm-give-up-button');
     const targetGrid = document.getElementById('challenge-grid');
     const splitHandle = document.getElementById('split-handle');
     const identifiersScrollContainer = document.querySelector('.identifiers-scroll');
     const previewModal = document.getElementById('mobile-preview-modal');
+    const liveCompareModalElement = document.getElementById('live-compare-modal');
+    const liveCompareModal = liveCompareModalElement ? new bootstrap.Modal(liveCompareModalElement) : null;
+    const liveCompareButton = document.querySelector('.preview-expand-button');
 
     const state = {
         html: '',
@@ -528,9 +626,27 @@ $gameUserChallengeId = $gameUserChallenge !== null ? (int) $gameUserChallenge['u
         skipUnloadWarning: false,
         isUnavailable: false,
         strictProgressPercent: null,
+        streakCount: 0,
+        streakTimerId: null,
+        completedSelectorKeys: new Set(),
+        identifierCompleteTimerId: null,
+        identifierCompleteActiveUntil: 0,
+        introFinished: false,
+        challengeLoaded: false,
+        musicStarted: false,
     };
 
     let gameplayAudioContext = null;
+    let gameStartAudio = null;
+    let gameEndAudio = null;
+    let glassCrackAudio = null;
+    let correctDropAudio = null;
+    let wrongDropAudio = null;
+    let backgroundMusicAudio = null;
+    let cheerAudios = [];
+    let hasPlayedGameStartSound = false;
+    let isGameStartSoundAttempting = false;
+    let gameStartSoundRetryDeadline = 0;
     let roomEndSubmitting = false;
 
     const escapeHtml = (value) => String(value)
@@ -583,6 +699,312 @@ $gameUserChallengeId = $gameUserChallenge !== null ? (int) $gameUserChallenge['u
             return;
         }
     };
+
+    const preloadGameStartSound = () => {
+        if (!challengeConfig.startSoundUrl) {
+            return;
+        }
+
+        try {
+            gameStartAudio = gameStartAudio || new Audio(challengeConfig.startSoundUrl);
+            gameStartAudio.preload = 'auto';
+            gameStartAudio.volume = 0.72;
+            gameStartAudio.load();
+        } catch (error) {
+            return;
+        }
+    };
+
+    const preloadGlassCrackSound = () => {
+        if (!challengeConfig.glassCrackSoundUrl) {
+            return;
+        }
+
+        try {
+            glassCrackAudio = glassCrackAudio || new Audio(challengeConfig.glassCrackSoundUrl);
+            glassCrackAudio.preload = 'auto';
+            glassCrackAudio.volume = 0.82;
+            glassCrackAudio.load();
+        } catch (error) {
+            return;
+        }
+    };
+
+    const playGlassCrackSound = () => {
+        if (!gameplaySoundIsOn() || !challengeConfig.glassCrackSoundUrl) {
+            return;
+        }
+
+        try {
+            preloadGlassCrackSound();
+            if (!glassCrackAudio) {
+                return;
+            }
+
+            glassCrackAudio.currentTime = 0;
+            glassCrackAudio.volume = 0.82;
+            const playRequest = glassCrackAudio.play();
+
+            if (playRequest && typeof playRequest.catch === 'function') {
+                playRequest.catch(() => {});
+            }
+        } catch (error) {
+            return;
+        }
+    };
+
+    const preloadPropertyDropSounds = () => {
+        try {
+            if (challengeConfig.correctSoundUrl) {
+                correctDropAudio = correctDropAudio || new Audio(challengeConfig.correctSoundUrl);
+                correctDropAudio.preload = 'auto';
+                correctDropAudio.volume = 0.72;
+                correctDropAudio.load();
+            }
+
+            if (challengeConfig.wrongSoundUrl) {
+                wrongDropAudio = wrongDropAudio || new Audio(challengeConfig.wrongSoundUrl);
+                wrongDropAudio.preload = 'auto';
+                wrongDropAudio.volume = 0.72;
+                wrongDropAudio.load();
+            }
+        } catch (error) {
+            return;
+        }
+    };
+
+    const playPropertyDropSound = (isCorrect) => {
+        if (!gameplaySoundIsOn() || challengeConfig.strictMode) {
+            return;
+        }
+
+        try {
+            preloadPropertyDropSounds();
+            const audio = isCorrect ? correctDropAudio : wrongDropAudio;
+            if (!audio) {
+                return;
+            }
+
+            audio.currentTime = 0;
+            audio.volume = isCorrect ? 0.72 : 0.76;
+            const playRequest = audio.play();
+
+            if (playRequest && typeof playRequest.catch === 'function') {
+                playRequest.catch(() => {});
+            }
+        } catch (error) {
+            return;
+        }
+    };
+
+    const stopBackgroundMusic = () => {
+        if (!backgroundMusicAudio) {
+            return;
+        }
+
+        try {
+            backgroundMusicAudio.pause();
+            backgroundMusicAudio.currentTime = 0;
+        } catch (error) {
+            return;
+        }
+    };
+
+    const startBackgroundMusic = () => {
+        if (state.musicStarted || !state.introFinished || !state.challengeLoaded || !gameplaySoundIsOn() || !challengeConfig.backgroundMusicUrl) {
+            return;
+        }
+
+        try {
+            backgroundMusicAudio = backgroundMusicAudio || new Audio();
+            if (!backgroundMusicAudio.src) {
+                backgroundMusicAudio.preload = 'none';
+                backgroundMusicAudio.src = challengeConfig.backgroundMusicUrl;
+            }
+
+            backgroundMusicAudio.loop = true;
+            backgroundMusicAudio.volume = 0.18;
+            const playRequest = backgroundMusicAudio.play();
+            state.musicStarted = true;
+
+            if (playRequest && typeof playRequest.catch === 'function') {
+                playRequest.catch(() => {
+                    state.musicStarted = false;
+                });
+            }
+        } catch (error) {
+            state.musicStarted = false;
+        }
+    };
+
+    const preloadCheerSounds = () => {
+        if (!Array.isArray(challengeConfig.cheerSoundUrls) || challengeConfig.cheerSoundUrls.length === 0) {
+            return;
+        }
+
+        try {
+            cheerAudios = challengeConfig.cheerSoundUrls.map((url) => {
+                const audio = new Audio(url);
+                audio.preload = 'auto';
+                audio.volume = 0.78;
+                audio.load();
+                return audio;
+            });
+        } catch (error) {
+            cheerAudios = [];
+        }
+    };
+
+    const playIdentifierCompleteCheer = () => {
+        if (!gameplaySoundIsOn()) {
+            return;
+        }
+
+        try {
+            if (cheerAudios.length === 0) {
+                preloadCheerSounds();
+            }
+
+            if (cheerAudios.length === 0) {
+                return;
+            }
+
+            const audio = cheerAudios[Math.floor(Math.random() * cheerAudios.length)];
+            audio.currentTime = 0;
+            audio.volume = 0.78;
+            const playRequest = audio.play();
+
+            if (playRequest && typeof playRequest.catch === 'function') {
+                playRequest.catch(() => {});
+            }
+        } catch (error) {
+            return;
+        }
+    };
+
+    const removeGameStartSoundRetry = () => {
+        document.removeEventListener('pointerdown', retryGameStartSoundOnInteraction, true);
+        document.removeEventListener('touchstart', retryGameStartSoundOnInteraction, true);
+        document.removeEventListener('keydown', retryGameStartSoundOnInteraction, true);
+    };
+
+    function retryGameStartSoundOnInteraction() {
+        if (Date.now() > gameStartSoundRetryDeadline) {
+            removeGameStartSoundRetry();
+            return;
+        }
+
+        playGameStartSound(false);
+    }
+
+    const queueGameStartSoundRetry = () => {
+        gameStartSoundRetryDeadline = Date.now() + 5000;
+        removeGameStartSoundRetry();
+        document.addEventListener('pointerdown', retryGameStartSoundOnInteraction, { capture: true, once: true });
+        document.addEventListener('touchstart', retryGameStartSoundOnInteraction, { capture: true, once: true });
+        document.addEventListener('keydown', retryGameStartSoundOnInteraction, { capture: true, once: true });
+    };
+
+    const playGameStartSound = (allowRetry = true) => {
+        if (hasPlayedGameStartSound || isGameStartSoundAttempting || !gameplaySoundIsOn() || !challengeConfig.startSoundUrl) {
+            return;
+        }
+
+        try {
+            preloadGameStartSound();
+            if (!gameStartAudio) {
+                return;
+            }
+
+            isGameStartSoundAttempting = true;
+            gameStartAudio.currentTime = 0;
+            gameStartAudio.volume = 0.72;
+            const playRequest = gameStartAudio.play();
+
+            if (playRequest && typeof playRequest.then === 'function') {
+                playRequest
+                    .then(() => {
+                        hasPlayedGameStartSound = true;
+                        isGameStartSoundAttempting = false;
+                        removeGameStartSoundRetry();
+                    })
+                    .catch(() => {
+                        isGameStartSoundAttempting = false;
+                        if (allowRetry) {
+                            queueGameStartSoundRetry();
+                        }
+                    });
+                return;
+            }
+
+            hasPlayedGameStartSound = true;
+            isGameStartSoundAttempting = false;
+            removeGameStartSoundRetry();
+        } catch (error) {
+            isGameStartSoundAttempting = false;
+            if (allowRetry) {
+                queueGameStartSoundRetry();
+            }
+            return;
+        }
+    };
+
+    const preloadGameEndSound = () => {
+        if (!challengeConfig.startSoundUrl) {
+            return;
+        }
+
+        try {
+            gameEndAudio = gameEndAudio || new Audio(challengeConfig.startSoundUrl);
+            gameEndAudio.preload = 'auto';
+            gameEndAudio.volume = 0.72;
+            gameEndAudio.load();
+        } catch (error) {
+            return;
+        }
+    };
+
+    const playGameEndSoundAfterResult = () => {
+        if (!gameplaySoundIsOn() || !challengeConfig.startSoundUrl) {
+            return;
+        }
+
+        window.setTimeout(() => {
+            try {
+                preloadGameEndSound();
+                if (!gameEndAudio) {
+                    return;
+                }
+
+                gameEndAudio.currentTime = 0;
+                gameEndAudio.volume = 0.72;
+                const playRequest = gameEndAudio.play();
+
+                if (playRequest && typeof playRequest.catch === 'function') {
+                    playRequest.catch(() => {});
+                }
+            } catch (error) {
+                return;
+            }
+        }, 90);
+    };
+
+    if (gameplaySoundIsOn() && challengeConfig.startSoundUrl) {
+        preloadGameStartSound();
+        preloadGameEndSound();
+    }
+
+    if (gameplaySoundIsOn() && challengeConfig.glassCrackSoundUrl) {
+        preloadGlassCrackSound();
+    }
+
+    if (gameplaySoundIsOn() && (challengeConfig.correctSoundUrl || challengeConfig.wrongSoundUrl)) {
+        preloadPropertyDropSounds();
+    }
+
+    if (gameplaySoundIsOn() && Array.isArray(challengeConfig.cheerSoundUrls)) {
+        preloadCheerSounds();
+    }
 
     const buildPreviewDocument = (html, css) => `<!doctype html>
 <html lang="en">
@@ -735,13 +1157,20 @@ ${css}
         const shouldPlayIntro = params.get('intro') === '1' || challengeConfig.roomId > 0 || challengeConfig.pvpId > 0;
         if (!shouldPlayIntro) {
             openingEffect.remove();
+            state.introFinished = true;
+            startBackgroundMusic();
             return;
         }
 
         if (!openingEffect.classList.contains('is-playing')) {
             openingEffect.classList.add('is-playing');
         }
-        window.setTimeout(() => openingEffect.remove(), 1500);
+        window.setTimeout(() => {
+            openingEffect.remove();
+            state.introFinished = true;
+            playGameStartSound();
+            startBackgroundMusic();
+        }, 1500);
     };
 
     const setStatus = (message, isSuccess = false) => {
@@ -907,6 +1336,7 @@ ${css}
 
             state.isCompleted = true;
             state.skipUnloadWarning = true;
+            stopBackgroundMusic();
             if (gameplayTime && payload.data?.completed_at) {
                 gameplayTime.dataset.startedAt = '';
                 gameplayTime.textContent = formatElapsedTime(Number(payload.data?.duration_seconds || 0));
@@ -915,6 +1345,7 @@ ${css}
             launchConfetti();
             populateCompletionModal(payload.data || {});
             completionModal?.show();
+            playGameEndSoundAfterResult();
         } catch (error) {
             console.error(error);
             state.isCompletionSubmitting = false;
@@ -930,6 +1361,7 @@ ${css}
         state.isUnavailable = true;
         state.skipUnloadWarning = true;
         state.isCompletionSubmitting = false;
+        stopBackgroundMusic();
         setStatus(message || 'Challenge unavailable');
         exitModal?.hide();
 
@@ -947,6 +1379,7 @@ ${css}
         state.skipUnloadWarning = true;
         state.isCompletionSubmitting = false;
         roomEndSubmitting = true;
+        stopBackgroundMusic();
         setStatus(message || 'The room was ended.');
         exitModal?.hide();
         completionModal?.hide();
@@ -970,6 +1403,7 @@ ${css}
         state.isCompleted = true;
         state.skipUnloadWarning = true;
         state.isCompletionSubmitting = false;
+        stopBackgroundMusic();
         setStatus(result === 'win' ? 'You won the duel.' : 'You lost the duel.');
         exitModal?.hide();
         completionModal?.hide();
@@ -989,6 +1423,7 @@ ${css}
 
         state.skipUnloadWarning = true;
         state.isCompletionSubmitting = true;
+        stopBackgroundMusic();
         exitModal?.hide();
         setStatus('Ending 1v1 match...');
 
@@ -1335,6 +1770,90 @@ ${css}
         state.selectedPayload = null;
     };
 
+    const propertyFitsDestination = (propertyKey, destinationKey) => {
+        if (destinationKey === 'pool') {
+            return null;
+        }
+
+        const requiredCount = state.requiredBySelector[destinationKey]?.[propertyKey] || 0;
+        const currentCount = getCount(destinationKey, propertyKey);
+
+        return requiredCount > currentCount;
+    };
+
+    const showStreakFeedback = (isCorrect) => {
+        if (!streakPop || challengeConfig.strictMode) {
+            return;
+        }
+
+        window.clearTimeout(state.streakTimerId);
+
+        const cheerDelay = Math.max(0, state.identifierCompleteActiveUntil - Date.now());
+        if (cheerDelay > 0) {
+            state.streakTimerId = window.setTimeout(() => showStreakFeedback(isCorrect), cheerDelay + 80);
+            return;
+        }
+
+        streakPop.classList.remove('is-visible', 'is-hit', 'is-break');
+
+        if (isCorrect) {
+            state.streakCount += 1;
+            streakPop.textContent = `Streak ${state.streakCount}x`;
+            streakPop.dataset.streakLabel = streakPop.textContent;
+            requestAnimationFrame(() => {
+                streakPop.classList.add('is-visible', 'is-hit');
+            });
+            state.streakTimerId = window.setTimeout(() => {
+                streakPop.classList.remove('is-visible', 'is-hit');
+            }, 1150);
+            return;
+        }
+
+        if (state.streakCount <= 0) {
+            streakPop.textContent = '';
+            delete streakPop.dataset.streakLabel;
+            return;
+        }
+
+        const brokenLabel = `Streak ${state.streakCount}x`;
+        state.streakCount = 0;
+        streakPop.textContent = brokenLabel;
+        streakPop.dataset.streakLabel = brokenLabel;
+        playGlassCrackSound();
+        requestAnimationFrame(() => {
+            streakPop.classList.add('is-visible', 'is-break');
+        });
+        state.streakTimerId = window.setTimeout(() => {
+            streakPop.classList.remove('is-visible', 'is-break');
+            streakPop.textContent = '';
+            delete streakPop.dataset.streakLabel;
+        }, 900);
+    };
+
+    const showIdentifierCompleteFeedback = (selectorKey) => {
+        if (!identifierCompletePop || challengeConfig.strictMode) {
+            return;
+        }
+
+        window.clearTimeout(state.identifierCompleteTimerId);
+        identifierCompletePop.classList.remove('is-visible', 'is-celebrating');
+        identifierCompletePop.innerHTML = `
+            <span>Nice work!</span>
+            <strong>${escapeHtml(state.selectorLookup[selectorKey] || 'Identifier')} complete</strong>
+        `;
+        playIdentifierCompleteCheer();
+        state.identifierCompleteActiveUntil = Date.now() + 1400;
+
+        requestAnimationFrame(() => {
+            identifierCompletePop.classList.add('is-visible', 'is-celebrating');
+        });
+
+        state.identifierCompleteTimerId = window.setTimeout(() => {
+            identifierCompletePop.classList.remove('is-visible', 'is-celebrating');
+            state.identifierCompleteActiveUntil = 0;
+        }, 1400);
+    };
+
     const clearSelectorCardHighlight = (resetTrackedKey = true) => {
         Object.values(state.selectorCardLookup).forEach((card) => card.classList.remove('is-target-active'));
         if (resetTrackedKey) {
@@ -1351,6 +1870,8 @@ ${css}
             return false;
         }
 
+        const placementResult = propertyFitsDestination(payload.propertyKey, destination);
+
         if (moveOne(payload.propertyKey, payload.sourceKey, destination)) {
             playGameplaySound('drop');
             clearSelectedPayload();
@@ -1358,6 +1879,10 @@ ${css}
             state.hoveredSelectorKey = null;
             clearSelectorCardHighlight();
             render();
+            if (placementResult !== null) {
+                playPropertyDropSound(placementResult);
+                showStreakFeedback(placementResult);
+            }
             return true;
         }
 
@@ -1496,17 +2021,22 @@ ${css}
     }).join('\n');
 
     const renderPreviewStyles = () => {
-        if (livePreview instanceof HTMLIFrameElement) {
-            livePreview.srcdoc = buildPreviewDocument(state.html, currentPlayerCss());
-        }
+        const liveDocument = buildPreviewDocument(state.html, currentPlayerCss());
+        [livePreview, liveComparePreview].forEach((frame) => {
+            if (frame instanceof HTMLIFrameElement) {
+                frame.srcdoc = liveDocument;
+            }
+        });
     };
 
-    if (livePreview instanceof HTMLIFrameElement) {
-        livePreview.addEventListener('load', () => {
-            disablePreviewLinks(livePreview);
-            fitPreviewFrame(livePreview);
-        }, { once: false });
-    }
+    [livePreview, liveComparePreview].forEach((frame) => {
+        if (frame instanceof HTMLIFrameElement) {
+            frame.addEventListener('load', () => {
+                disablePreviewLinks(frame);
+                fitPreviewFrame(frame);
+            }, { once: false });
+        }
+    });
 
     const selectorState = (selectorKey) => {
         const requiredMap = state.requiredBySelector[selectorKey] || {};
@@ -1549,8 +2079,16 @@ ${css}
             if (!challengeConfig.strictMode) {
                 if (selectorStatus.complete) {
                     card.classList.add('is-target-complete');
+                    if (!state.completedSelectorKeys.has(selectorKey)) {
+                        state.completedSelectorKeys.add(selectorKey);
+                        showIdentifierCompleteFeedback(selectorKey);
+                    }
                 } else if (selectorStatus.mismatch) {
                     card.classList.add('is-target-danger');
+                }
+
+                if (!selectorStatus.complete) {
+                    state.completedSelectorKeys.delete(selectorKey);
                 }
             }
 
@@ -1659,6 +2197,7 @@ ${css}
             state.skipUnloadWarning = true;
             state.isCompleted = progressPercent >= 100;
             state.isUnavailable = progressPercent < 100;
+            stopBackgroundMusic();
             setStatus(payload?.message || `Strict mode result recorded: ${progressPercent}%.`, progressPercent >= 100);
             exitModal?.hide();
             completionModal?.hide();
@@ -1667,6 +2206,7 @@ ${css}
             }
             populateStrictResultModal(progressPercent, payload?.message || `Your run ended with ${progressPercent}% match.`);
             strictResultModal?.show();
+            playGameEndSoundAfterResult();
         } catch (error) {
             console.error(error);
             state.isCompletionSubmitting = false;
@@ -1906,6 +2446,12 @@ ${css}
         state.hoveredSelectorKey = null;
         state.pinnedSelectorKey = null;
         state.strictProgressPercent = null;
+        state.completedSelectorKeys.clear();
+        state.identifierCompleteActiveUntil = 0;
+        window.clearTimeout(state.streakTimerId);
+        window.clearTimeout(state.identifierCompleteTimerId);
+        streakPop?.classList.remove('is-visible', 'is-hit', 'is-break');
+        identifierCompletePop?.classList.remove('is-visible', 'is-celebrating');
         clearSelectorCardHighlight();
         clearSelectedPayload();
         render();
@@ -1983,6 +2529,8 @@ ${css}
             attachDropHandlers();
             loadTargetPreviews();
             render();
+            state.challengeLoaded = true;
+            startBackgroundMusic();
             setStatus(challengeConfig.strictMode ? 'Strict mode: submit to record your progress.' : 'In progress');
         } catch (error) {
             console.error(error);
@@ -2015,9 +2563,22 @@ ${css}
         }
     });
 
-    resetButton?.addEventListener('click', resetGame);
+    resetButton?.addEventListener('click', () => {
+        if (state.isCompleted || state.isCompletionSubmitting || state.isUnavailable) {
+            return;
+        }
+        resetModal?.show();
+    });
+    confirmResetButton?.addEventListener('click', () => {
+        resetModal?.hide();
+        resetGame();
+    });
     propertySearchInput?.addEventListener('input', renderLists);
     strictModeSubmitButton?.addEventListener('click', handleStrictModeSubmit);
+    liveCompareButton?.addEventListener('click', () => {
+        renderPreviewStyles();
+        liveCompareModal?.show();
+    });
     giveUpForm?.addEventListener('submit', (event) => {
         event.preventDefault();
         if (state.isCompleted || state.isCompletionSubmitting) {
@@ -2037,6 +2598,7 @@ ${css}
         }
 
         state.skipUnloadWarning = true;
+        stopBackgroundMusic();
         exitModal?.hide();
         giveUpForm.submit();
     });
@@ -2047,6 +2609,7 @@ ${css}
         }
     });
     previewModal?.addEventListener('shown.bs.modal', () => requestAnimationFrame(() => targetPreviews.forEach((frame) => fitPreviewFrame(frame))));
+    liveCompareModalElement?.addEventListener('shown.bs.modal', () => requestAnimationFrame(() => allPreviewFrames.forEach((frame) => fitPreviewFrame(frame))));
     if (allPreviewFrames.length > 0 && 'ResizeObserver' in window) {
         const previewObserver = new ResizeObserver(() => allPreviewFrames.forEach((frame) => fitPreviewFrame(frame)));
         allPreviewFrames.forEach((frame) => frame.parentElement && previewObserver.observe(frame.parentElement));
