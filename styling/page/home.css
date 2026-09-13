@@ -115,6 +115,42 @@
     background: linear-gradient(#ff8c42, #ffd166);
 }
 
+@media (min-width: 641px) and (max-width: 1279px) {
+    .home-dashboard {
+        overflow-x: clip;
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+
+    .home-dashboard .container {
+        max-width: 100%;
+    }
+
+    .home-dashboard > .container > .grid {
+        grid-template-columns: minmax(0, 1fr) !important;
+    }
+
+    .home-dashboard > .container > .grid > section,
+    .home-dashboard article,
+    .home-dashboard section.self-start {
+        width: 100%;
+        max-width: none;
+    }
+
+    .ranking-stat-grid,
+    .ranking-season-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .challenge-card {
+        height: 100%;
+    }
+
+    .challenge-card > .flex {
+        align-items: stretch;
+    }
+}
+
 .join-room-field {
     display: grid;
     gap: 0.45rem;

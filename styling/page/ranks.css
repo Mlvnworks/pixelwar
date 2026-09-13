@@ -318,9 +318,9 @@ body.pixelwar-dark-mode .ranks-pill--locked {
     }
 }
 
-/* Rank cards should sit at 90% of the ladder container and remain centered. */
+/* Keep rank cards full-width outside mobile so medium screens match other panels. */
 .ranks-ladder-card {
-    width: 90% !important;
+    width: 100% !important;
     margin-left: auto;
     margin-right: auto;
 }

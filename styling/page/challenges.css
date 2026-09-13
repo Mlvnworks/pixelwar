@@ -349,6 +349,53 @@ body.pixelwar-dark-mode .challenges-page__grid {
     }
 }
 
+@media (min-width: 641px) and (max-width: 1023px) {
+    .challenges-page {
+        padding-left: 1rem !important;
+        padding-right: 1rem !important;
+    }
+
+    .challenges-page .container {
+        max-width: 100%;
+    }
+
+    .challenges-results {
+        display: grid !important;
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        align-items: stretch;
+        gap: 1rem !important;
+    }
+
+    .challenge-library-card {
+        width: 100% !important;
+        max-width: none !important;
+        height: 100%;
+        margin: 0 !important;
+        padding: 1rem !important;
+    }
+
+    .challenge-library-card + .challenge-library-card:not([hidden]) {
+        margin-top: 0 !important;
+    }
+
+    .challenge-library-card__footer {
+        display: flex !important;
+        align-items: flex-end;
+        flex-direction: row;
+    }
+
+    .challenge-library-card__action {
+        width: auto;
+        min-width: max-content;
+        text-align: right !important;
+    }
+
+    .challenge-library-card__action a {
+        width: auto;
+        min-width: 6.25rem;
+    }
+}
+
 body.pixelwar-dark-mode .challenge-library-card {
     border-color: rgba(255, 247, 232, 0.22) !important;
     background: #1f160f !important;

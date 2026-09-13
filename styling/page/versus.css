@@ -466,3 +466,46 @@ body.pixelwar-dark-mode .versus-status {
         white-space: normal !important;
     }
 }
+
+@media (min-width: 641px) and (max-width: 1023px) {
+    .versus-page {
+        padding-left: 1rem !important;
+        padding-right: 1rem !important;
+    }
+
+    .versus-page .container {
+        max-width: 100%;
+    }
+
+    .versus-player-grid {
+        display: grid !important;
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        align-items: stretch;
+        gap: 1rem !important;
+    }
+
+    .versus-player-card {
+        width: 100% !important;
+        max-width: none !important;
+        height: 100%;
+        margin: 0 !important;
+        padding: 1rem !important;
+    }
+
+    .versus-player-card + .versus-player-card {
+        margin-top: 0 !important;
+    }
+
+    .versus-player-card__profile {
+        align-items: center;
+        grid-template-columns: auto minmax(0, 1fr);
+    }
+
+    .versus-player-card__title-row {
+        align-items: flex-start;
+    }
+
+    .versus-player-card__title-row h2 {
+        white-space: nowrap !important;
+    }
+}

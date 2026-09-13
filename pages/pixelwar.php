@@ -917,7 +917,7 @@ $gameUserChallengeId = $gameUserChallenge !== null ? (int) $gameUserChallenge['u
     };
 
     const scheduleRocketHazard = (delay = null) => {
-        if (!rocketLayer || state.rocketActive || state.isCompleted || state.isCompletionSubmitting || state.isUnavailable || !state.challengeLoaded) {
+        if (challengeConfig.strictMode || !rocketLayer || state.rocketActive || state.isCompleted || state.isCompletionSubmitting || state.isUnavailable || !state.challengeLoaded) {
             return;
         }
 
@@ -925,7 +925,7 @@ $gameUserChallengeId = $gameUserChallenge !== null ? (int) $gameUserChallenge['u
         const rocketInterval = 1 * 60 * 1000;
         const nextRocketAt = Date.now() + (delay ?? rocketInterval);
         state.rocketTimerId = window.setInterval(() => {
-            if (state.rocketActive || state.isCompleted || state.isCompletionSubmitting || state.isUnavailable || !state.challengeLoaded) {
+            if (challengeConfig.strictMode || state.rocketActive || state.isCompleted || state.isCompletionSubmitting || state.isUnavailable || !state.challengeLoaded) {
                 return;
             }
 
@@ -1426,7 +1426,7 @@ $gameUserChallengeId = $gameUserChallenge !== null ? (int) $gameUserChallenge['u
     };
 
     function triggerRocketHazard() {
-        if (!rocketLayer || state.rocketActive || state.isCompleted || state.isCompletionSubmitting || state.isUnavailable) {
+        if (challengeConfig.strictMode || !rocketLayer || state.rocketActive || state.isCompleted || state.isCompletionSubmitting || state.isUnavailable) {
             return;
         }
 
@@ -3261,6 +3261,9 @@ ${css}
             render();
             state.challengeLoaded = true;
             startBackgroundMusic();
+            if (challengeConfig.strictMode) {
+                stopRocketHazard();
+            }
             scheduleRocketHazard();
             setStatus(challengeConfig.strictMode ? 'Strict mode: submit to record your progress.' : 'In progress');
         } catch (error) {

@@ -433,7 +433,7 @@ body.pixelwar-dark-mode .leaderboards-page a:hover {
 }
 
 .leaderboards-list-row {
-    width: 90% !important;
+    width: 100% !important;
     max-width: 100%;
     margin-left: auto;
     margin-right: auto;
@@ -567,6 +567,18 @@ body.pixelwar-dark-mode .leaderboards-page a:hover {
 
     body.pixelwar-dark-mode .leaderboards-list-row--current {
         background: linear-gradient(135deg, rgba(255, 209, 102, 0.22), #2a1d13) !important;
+    }
+}
+
+@media (min-width: 641px) and (max-width: 1023px) {
+    .leaderboards-list .mt-4.grid {
+        display: grid !important;
+        gap: 0.85rem;
+    }
+
+    .leaderboards-list-row {
+        width: 100% !important;
+        max-width: none;
     }
 }
 
