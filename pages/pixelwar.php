@@ -198,6 +198,9 @@ $gameUserChallengeId = $gameUserChallenge !== null ? (int) $gameUserChallenge['u
         <div id="completion-confetti" class="completion-confetti" aria-hidden="true"></div>
         <div id="gameplay-streak-pop" class="gameplay-streak-pop" aria-live="polite"></div>
         <div id="identifier-complete-pop" class="identifier-complete-pop" aria-live="polite"></div>
+        <div id="rocket-warning-flash" class="rocket-warning-flash" aria-hidden="true"></div>
+        <div id="rocket-warning-pop" class="rocket-warning-pop" aria-live="polite">Rocket incoming</div>
+        <div id="rocket-layer" class="rocket-layer" aria-hidden="true"></div>
 
         <div class="challenge-shell border-4 border-arcade-ink/10 bg-arcade-panel/80 p-2">
             <aside class="floating-hud" aria-live="polite">
@@ -554,6 +557,8 @@ $gameUserChallengeId = $gameUserChallenge !== null ? (int) $gameUserChallenge['u
         glassCrackSoundUrl: <?= json_encode('assets/sound effects/glass_crack.mp3', JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?: "''" ?>,
         correctSoundUrl: <?= json_encode('assets/sound effects/correct.mp3', JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?: "''" ?>,
         wrongSoundUrl: <?= json_encode('assets/sound effects/wrong.mp3', JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?: "''" ?>,
+        rocketLaunchSoundUrl: <?= json_encode('assets/sound effects/rocket-luanch.mp3', JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?: "''" ?>,
+        rocketExplosionSoundUrl: <?= json_encode('assets/sound effects/rocket-explosion.mp3', JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?: "''" ?>,
         backgroundMusicUrl: <?= json_encode('assets/sound effects/bg_music.mp3', JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?: "''" ?>,
         cheerSoundUrls: <?= json_encode([
             'assets/sound effects/Game voice cheer/Good Job!.mp3',
@@ -581,6 +586,9 @@ $gameUserChallengeId = $gameUserChallenge !== null ? (int) $gameUserChallenge['u
     const completionConfetti = document.getElementById('completion-confetti');
     const streakPop = document.getElementById('gameplay-streak-pop');
     const identifierCompletePop = document.getElementById('identifier-complete-pop');
+    const rocketWarningFlash = document.getElementById('rocket-warning-flash');
+    const rocketWarningPop = document.getElementById('rocket-warning-pop');
+    const rocketLayer = document.getElementById('rocket-layer');
     const completionModalElement = document.getElementById('gameplay-complete-modal');
     const completionModal = completionModalElement ? new bootstrap.Modal(completionModalElement) : null;
     const strictResultModalElement = document.getElementById('gameplay-strict-result-modal');
@@ -634,6 +642,10 @@ $gameUserChallengeId = $gameUserChallenge !== null ? (int) $gameUserChallenge['u
         introFinished: false,
         challengeLoaded: false,
         musicStarted: false,
+        rocketTimerId: null,
+        rocketCountdownTimerId: null,
+        rocketLaunchTimerId: null,
+        rocketActive: false,
     };
 
     let gameplayAudioContext = null;
@@ -642,6 +654,8 @@ $gameUserChallengeId = $gameUserChallenge !== null ? (int) $gameUserChallenge['u
     let glassCrackAudio = null;
     let correctDropAudio = null;
     let wrongDropAudio = null;
+    let rocketLaunchAudio = null;
+    let rocketExplosionAudio = null;
     let backgroundMusicAudio = null;
     let cheerAudios = [];
     let hasPlayedGameStartSound = false;
@@ -797,6 +811,50 @@ $gameUserChallengeId = $gameUserChallenge !== null ? (int) $gameUserChallenge['u
         }
     };
 
+    const preloadRocketSounds = () => {
+        try {
+            if (challengeConfig.rocketLaunchSoundUrl) {
+                rocketLaunchAudio = rocketLaunchAudio || new Audio(challengeConfig.rocketLaunchSoundUrl);
+                rocketLaunchAudio.preload = 'auto';
+                rocketLaunchAudio.volume = 0.78;
+                rocketLaunchAudio.load();
+            }
+
+            if (challengeConfig.rocketExplosionSoundUrl) {
+                rocketExplosionAudio = rocketExplosionAudio || new Audio(challengeConfig.rocketExplosionSoundUrl);
+                rocketExplosionAudio.preload = 'auto';
+                rocketExplosionAudio.volume = 0.86;
+                rocketExplosionAudio.load();
+            }
+        } catch (error) {
+            return;
+        }
+    };
+
+    const playRocketSound = (type) => {
+        if (!gameplaySoundIsOn()) {
+            return;
+        }
+
+        try {
+            preloadRocketSounds();
+            const audio = type === 'launch' ? rocketLaunchAudio : rocketExplosionAudio;
+            if (!audio) {
+                return;
+            }
+
+            audio.currentTime = 0;
+            audio.volume = type === 'launch' ? 0.78 : 0.86;
+            const playRequest = audio.play();
+
+            if (playRequest && typeof playRequest.catch === 'function') {
+                playRequest.catch(() => {});
+            }
+        } catch (error) {
+            return;
+        }
+    };
+
     const stopBackgroundMusic = () => {
         if (!backgroundMusicAudio) {
             return;
@@ -836,6 +894,666 @@ $gameUserChallengeId = $gameUserChallenge !== null ? (int) $gameUserChallenge['u
             state.musicStarted = false;
         }
     };
+
+    const stopRocketHazard = () => {
+        window.clearInterval(state.rocketTimerId);
+        window.clearInterval(state.rocketCountdownTimerId);
+        window.clearTimeout(state.rocketLaunchTimerId);
+        state.rocketTimerId = null;
+        state.rocketCountdownTimerId = null;
+        state.rocketLaunchTimerId = null;
+        state.rocketActive = false;
+        rocketWarningFlash?.classList.remove('is-active');
+        rocketWarningPop?.classList.remove('is-visible');
+        document.querySelectorAll('.selector-card.is-rocket-target, .selector-card.is-rocket-hit').forEach((card) => {
+            card.classList.remove('is-rocket-target', 'is-rocket-hit');
+        });
+        document.querySelectorAll('.selector-zone.is-rocket-target-zone, .selector-zone.is-rocket-hit-zone').forEach((zone) => {
+            zone.classList.remove('is-rocket-target-zone', 'is-rocket-hit-zone');
+        });
+        if (rocketLayer) {
+            rocketLayer.innerHTML = '';
+        }
+    };
+
+    const scheduleRocketHazard = (delay = null) => {
+        if (!rocketLayer || state.rocketActive || state.isCompleted || state.isCompletionSubmitting || state.isUnavailable || !state.challengeLoaded) {
+            return;
+        }
+
+        window.clearInterval(state.rocketTimerId);
+        const rocketInterval = 1 * 60 * 1000;
+        const nextRocketAt = Date.now() + (delay ?? rocketInterval);
+        state.rocketTimerId = window.setInterval(() => {
+            if (state.rocketActive || state.isCompleted || state.isCompletionSubmitting || state.isUnavailable || !state.challengeLoaded) {
+                return;
+            }
+
+            if (Date.now() >= nextRocketAt) {
+                window.clearInterval(state.rocketTimerId);
+                state.rocketTimerId = null;
+                triggerRocketHazard();
+            }
+        }, 1000);
+    };
+
+    const shatterOnePropertyFromSelector = (selectorKey) => {
+        if (!selectorKey || !(selectorKey in state.placements)) {
+            return false;
+        }
+
+        const placedKeys = Object.keys(state.placements[selectorKey] || {}).filter((propertyKey) => getCount(selectorKey, propertyKey) > 0);
+        if (placedKeys.length === 0) {
+            return false;
+        }
+
+        const propertyKey = placedKeys[Math.floor(Math.random() * placedKeys.length)];
+        const chip = Array.from(state.listNodes[selectorKey]?.querySelectorAll('.property-chip') || [])
+            .find((node) => node.dataset.propertyKey === propertyKey);
+        chip?.classList.add('is-shattering');
+
+        window.setTimeout(() => {
+            if (state.isCompleted || state.isCompletionSubmitting || state.isUnavailable) {
+                return;
+            }
+            moveOne(propertyKey, selectorKey, 'pool');
+            if (state.selectedPayload?.sourceKey === selectorKey && state.selectedPayload?.propertyKey === propertyKey) {
+                clearSelectedPayload();
+            }
+            render();
+        }, chip ? 420 : 0);
+
+        return true;
+    };
+
+    const centerRocketTargetCardForMobile = (targetCard) => {
+        if (!(targetCard instanceof HTMLElement)) {
+            return;
+        }
+
+        if (identifiersScrollContainer instanceof HTMLElement && identifiersScrollContainer.contains(targetCard)) {
+            const cardRect = targetCard.getBoundingClientRect();
+            const scrollRect = identifiersScrollContainer.getBoundingClientRect();
+            const targetScrollTop = identifiersScrollContainer.scrollTop
+                + (cardRect.top - scrollRect.top)
+                - ((scrollRect.height - cardRect.height) / 2);
+            identifiersScrollContainer.scrollTo({
+                top: Math.max(0, targetScrollTop),
+                behavior: 'auto',
+            });
+            return;
+        }
+
+        targetCard.scrollIntoView({ behavior: 'auto', block: 'center', inline: 'nearest' });
+    };
+
+    const getRocketTargetPoint = (targetElement, isMobileLaunch) => {
+        const targetRect = targetElement.getBoundingClientRect();
+        if (!isMobileLaunch || !(identifiersScrollContainer instanceof HTMLElement) || !identifiersScrollContainer.contains(targetElement)) {
+            return {
+                x: targetRect.left + (targetRect.width / 2),
+                y: targetRect.top + (targetRect.height / 2),
+            };
+        }
+
+        const scrollRect = identifiersScrollContainer.getBoundingClientRect();
+        const visibleTop = Math.max(targetRect.top, scrollRect.top);
+        const visibleBottom = Math.min(targetRect.bottom, scrollRect.bottom);
+        const visibleHeight = Math.max(0, visibleBottom - visibleTop);
+
+        return {
+            x: targetRect.left + (targetRect.width / 2),
+            y: visibleHeight > 0
+                ? visibleTop + (visibleHeight / 2)
+                : targetRect.top + (targetRect.height / 2),
+        };
+    };
+
+    const launchRocketElement = (targetPoint, launchDirection, onImpact) => {
+        if (!rocketLayer) {
+            onImpact();
+            return;
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.className = 'rocket-bomb-canvas';
+        rocketLayer.appendChild(canvas);
+
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+            canvas.remove();
+            onImpact();
+            return;
+        }
+
+        const rocketLength = 54;
+        const hitRadius = 12;
+        const explosionDuration = 1.1;
+        const thrustAccel = 980;
+        const maxSpeed = 620;
+        const isMobileRocket = launchDirection === 'top';
+        const rocketScale = isMobileRocket ? 1.22 : 1;
+        const particles = [];
+        let width = 0;
+        let height = 0;
+        let dpr = 1;
+        let animationFrameId = 0;
+        let lastTime = null;
+        let mode = 'flying';
+        let explodeTimer = 0;
+        let shake = 0;
+        let flashAlpha = 0;
+        let hasImpacted = false;
+        let hasCleanedUp = false;
+
+        const resizeCanvas = () => {
+            dpr = Math.min(window.devicePixelRatio || 1, 2);
+            const canvasRect = canvas.getBoundingClientRect();
+            width = canvasRect.width || window.innerWidth;
+            height = canvasRect.height || window.innerHeight;
+            canvas.width = Math.max(1, Math.round(width * dpr));
+            canvas.height = Math.max(1, Math.round(height * dpr));
+            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        };
+        resizeCanvas();
+
+        const canvasRect = canvas.getBoundingClientRect();
+        const localTargetPoint = {
+            x: targetPoint.x - canvasRect.left,
+            y: targetPoint.y - canvasRect.top,
+        };
+        const startX = launchDirection === 'top' ? localTargetPoint.x : width + 88;
+        const startY = launchDirection === 'top' ? -88 : Math.max(72, Math.min(height - 72, localTargetPoint.y - 72));
+        const dx = localTargetPoint.x - startX;
+        const dy = localTargetPoint.y - startY;
+        const distance = Math.hypot(dx, dy) || 1;
+        const rocket = {
+            x: startX,
+            y: startY,
+            targetX: localTargetPoint.x,
+            targetY: localTargetPoint.y,
+            dirX: dx / distance,
+            dirY: dy / distance,
+            angle: Math.atan2(dy, dx),
+            speed: 0,
+            vx: 0,
+            vy: 0,
+        };
+
+        const drawRoundedRocketPath = (length, bodyWidth) => {
+            ctx.beginPath();
+            ctx.moveTo(-length * 0.30, -bodyWidth * 0.5);
+            ctx.lineTo(length * 0.20, -bodyWidth * 0.5);
+            ctx.quadraticCurveTo(length * 0.34, -bodyWidth * 0.5, length * 0.32, -bodyWidth * 0.42);
+            ctx.lineTo(length * 0.32, bodyWidth * 0.42);
+            ctx.quadraticCurveTo(length * 0.34, bodyWidth * 0.5, length * 0.20, bodyWidth * 0.5);
+            ctx.lineTo(-length * 0.30, bodyWidth * 0.5);
+            ctx.quadraticCurveTo(-length * 0.42, bodyWidth * 0.5, -length * 0.42, 0);
+            ctx.quadraticCurveTo(-length * 0.42, -bodyWidth * 0.5, -length * 0.30, -bodyWidth * 0.5);
+            ctx.closePath();
+        };
+
+        const spawnExhaust = () => {
+            const tailX = rocket.x - Math.cos(rocket.angle) * (rocketLength * 0.55);
+            const tailY = rocket.y - Math.sin(rocket.angle) * (rocketLength * 0.55);
+            for (let index = 0; index < 3; index += 1) {
+                const spread = (Math.random() - 0.5) * 0.6;
+                const backAngle = rocket.angle + Math.PI + spread;
+                const speed = 60 + Math.random() * 90;
+                particles.push({
+                    x: tailX,
+                    y: tailY,
+                    vx: Math.cos(backAngle) * speed + rocket.vx * 0.3,
+                    vy: Math.sin(backAngle) * speed + rocket.vy * 0.3,
+                    life: 0,
+                    maxLife: 0.35 + Math.random() * 0.25,
+                    size: 4 + Math.random() * 4,
+                    kind: 'smoke',
+                });
+            }
+            if (particles.length > 500) {
+                particles.splice(0, particles.length - 500);
+            }
+        };
+
+        const spawnExplosion = (x, y) => {
+            for (let index = 0; index < 90; index += 1) {
+                const angle = Math.random() * Math.PI * 2;
+                const speed = 90 + Math.random() * 420;
+                particles.push({
+                    x,
+                    y,
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed,
+                    life: 0,
+                    maxLife: 0.5 + Math.random() * 0.7,
+                    size: 3 + Math.random() * 6,
+                    kind: 'spark',
+                });
+            }
+
+            for (let index = 0; index < 28; index += 1) {
+                const angle = Math.random() * Math.PI * 2;
+                const speed = 20 + Math.random() * 70;
+                particles.push({
+                    x,
+                    y,
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed - 30,
+                    life: 0,
+                    maxLife: 0.9 + Math.random() * 0.6,
+                    size: 10 + Math.random() * 14,
+                    kind: 'cloud',
+                });
+            }
+        };
+
+        const updateParticles = (dt) => {
+            for (let index = particles.length - 1; index >= 0; index -= 1) {
+                const particle = particles[index];
+                particle.life += dt;
+                if (particle.life >= particle.maxLife) {
+                    particles.splice(index, 1);
+                    continue;
+                }
+
+                particle.x += particle.vx * dt;
+                particle.y += particle.vy * dt;
+                const drag = particle.kind === 'cloud' ? 1.2 : 1.5;
+                particle.vx *= (1 - drag * dt);
+                particle.vy *= (1 - drag * dt);
+                if (particle.kind === 'spark') {
+                    particle.vy += 180 * dt;
+                }
+            }
+        };
+
+        const drawParticles = () => {
+            particles.forEach((particle) => {
+                const progress = particle.life / particle.maxLife;
+                const alpha = Math.max(0, 1 - progress);
+                const size = particle.size * (particle.kind === 'cloud' ? (1 + progress * 0.8) : (1 - progress * 0.6));
+                const inner = particle.kind === 'cloud' ? '120,120,120' : '255,244,214';
+                const outer = particle.kind === 'cloud' ? '40,40,40' : '255,120,0';
+                const gradient = ctx.createRadialGradient(particle.x, particle.y, 0, particle.x, particle.y, size);
+                gradient.addColorStop(0, `rgba(${inner},${alpha})`);
+                gradient.addColorStop(1, `rgba(${outer},0)`);
+                ctx.fillStyle = gradient;
+                ctx.beginPath();
+                ctx.arc(particle.x, particle.y, size, 0, Math.PI * 2);
+                ctx.fill();
+            });
+        };
+
+        const drawTargetMarker = (now) => {
+            if (mode !== 'flying') {
+                return;
+            }
+
+            const pulse = (isMobileRocket ? 15 : 10) + Math.sin(now / 300) * (isMobileRocket ? 5 : 3);
+            ctx.save();
+            ctx.shadowColor = isMobileRocket ? 'rgba(255,80,0,0.85)' : 'transparent';
+            ctx.shadowBlur = isMobileRocket ? 18 : 0;
+            ctx.strokeStyle = 'rgba(255,157,0,0.94)';
+            ctx.lineWidth = isMobileRocket ? 3 : 2;
+            ctx.beginPath();
+            ctx.arc(rocket.targetX, rocket.targetY, pulse, 0, Math.PI * 2);
+            ctx.stroke();
+            if (isMobileRocket) {
+                ctx.strokeStyle = 'rgba(255,255,255,0.82)';
+                ctx.lineWidth = 1.5;
+                ctx.beginPath();
+                ctx.arc(rocket.targetX, rocket.targetY, pulse + 8, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+            ctx.beginPath();
+            const crosshairSize = isMobileRocket ? 24 : 16;
+            ctx.moveTo(rocket.targetX - crosshairSize, rocket.targetY);
+            ctx.lineTo(rocket.targetX + crosshairSize, rocket.targetY);
+            ctx.moveTo(rocket.targetX, rocket.targetY - crosshairSize);
+            ctx.lineTo(rocket.targetX, rocket.targetY + crosshairSize);
+            ctx.stroke();
+            ctx.restore();
+        };
+
+        const drawRocket = () => {
+            if (mode !== 'flying') {
+                return;
+            }
+
+            ctx.save();
+            ctx.translate(rocket.x, rocket.y);
+            ctx.rotate(rocket.angle);
+            ctx.scale(rocketScale, rocketScale);
+
+            const length = rocketLength;
+            const bodyWidth = length * 0.3;
+
+            ctx.save();
+            ctx.translate(isMobileRocket ? 5 : 3, isMobileRocket ? 8 : 5);
+            ctx.globalAlpha = isMobileRocket ? 0.34 : 0.25;
+            ctx.filter = isMobileRocket ? 'blur(1px)' : 'none';
+            ctx.fillStyle = '#000';
+            drawRoundedRocketPath(length, bodyWidth);
+            ctx.fill();
+            ctx.restore();
+
+            ctx.fillStyle = '#34495e';
+            ctx.beginPath();
+            ctx.moveTo(-length * 0.28, -bodyWidth * 0.5);
+            ctx.lineTo(-length * 0.55, -bodyWidth * 1.6);
+            ctx.lineTo(-length * 0.12, -bodyWidth * 0.5);
+            ctx.closePath();
+            ctx.fill();
+            ctx.beginPath();
+            ctx.moveTo(-length * 0.28, bodyWidth * 0.5);
+            ctx.lineTo(-length * 0.55, bodyWidth * 1.6);
+            ctx.lineTo(-length * 0.12, bodyWidth * 0.5);
+            ctx.closePath();
+            ctx.fill();
+
+            const bodyGradient = ctx.createLinearGradient(0, -bodyWidth / 2, 0, bodyWidth / 2);
+            bodyGradient.addColorStop(0, isMobileRocket ? '#ff786a' : '#e0574a');
+            bodyGradient.addColorStop(0.5, '#c0392b');
+            bodyGradient.addColorStop(1, '#8e2a20');
+            ctx.shadowColor = isMobileRocket ? 'rgba(255,157,0,0.42)' : 'transparent';
+            ctx.shadowBlur = isMobileRocket ? 14 : 0;
+            ctx.fillStyle = bodyGradient;
+            drawRoundedRocketPath(length, bodyWidth);
+            ctx.fill();
+            ctx.shadowBlur = 0;
+            ctx.strokeStyle = 'rgba(0,0,0,0.35)';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+
+            ctx.fillStyle = '#2c3e50';
+            ctx.beginPath();
+            ctx.moveTo(length * 0.32, -bodyWidth * 0.42);
+            ctx.lineTo(length * 0.5, 0);
+            ctx.lineTo(length * 0.32, bodyWidth * 0.42);
+            ctx.closePath();
+            ctx.fill();
+
+            ctx.fillStyle = '#a9d6ff';
+            ctx.beginPath();
+            ctx.arc(-length * 0.02, 0, bodyWidth * 0.22, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = 'rgba(0,0,0,0.4)';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+
+            ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.moveTo(-length * 0.30, -bodyWidth * 0.48);
+            ctx.lineTo(length * 0.20, -bodyWidth * 0.48);
+            ctx.stroke();
+
+            const flicker = 0.75 + Math.random() * 0.5;
+            const flameLength = length * 0.55 * flicker;
+            const flameGradient = ctx.createLinearGradient(-length * 0.28, 0, -length * 0.28 - flameLength, 0);
+            flameGradient.addColorStop(0, '#fff3b0');
+            flameGradient.addColorStop(0.4, '#ff9d00');
+            flameGradient.addColorStop(1, 'rgba(255,80,0,0)');
+            ctx.shadowColor = isMobileRocket ? 'rgba(255,120,0,0.82)' : 'transparent';
+            ctx.shadowBlur = isMobileRocket ? 18 : 0;
+            ctx.fillStyle = flameGradient;
+            ctx.beginPath();
+            ctx.moveTo(-length * 0.28, -bodyWidth * 0.32);
+            ctx.quadraticCurveTo(-length * 0.28 - flameLength * 0.6, 0, -length * 0.28 - flameLength, 0);
+            ctx.quadraticCurveTo(-length * 0.28 - flameLength * 0.6, 0, -length * 0.28, bodyWidth * 0.32);
+            ctx.closePath();
+            ctx.fill();
+            ctx.shadowBlur = 0;
+
+            ctx.restore();
+        };
+
+        const drawExplosionGlow = () => {
+            if (mode !== 'exploding') {
+                return;
+            }
+
+            const progress = explodeTimer / explosionDuration;
+            const radius = 20 + progress * 140;
+            const alpha = Math.max(0, 1 - progress * 1.3);
+            const gradient = ctx.createRadialGradient(rocket.targetX, rocket.targetY, 0, rocket.targetX, rocket.targetY, radius);
+            gradient.addColorStop(0, `rgba(255,244,214,${alpha})`);
+            gradient.addColorStop(0.35, `rgba(255,157,0,${alpha * 0.7})`);
+            gradient.addColorStop(1, 'rgba(255,80,0,0)');
+            ctx.fillStyle = gradient;
+            ctx.beginPath();
+            ctx.arc(rocket.targetX, rocket.targetY, radius, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.strokeStyle = `rgba(255,255,255,${alpha})`;
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.arc(rocket.targetX, rocket.targetY, 12 + progress * 90, 0, Math.PI * 2);
+            ctx.stroke();
+        };
+
+        const updateFlying = (dt) => {
+            const remainingDistance = Math.hypot(rocket.targetX - rocket.x, rocket.targetY - rocket.y);
+            rocket.speed = Math.min(rocket.speed + thrustAccel * dt, maxSpeed);
+            const step = Math.min(rocket.speed * dt, remainingDistance);
+
+            rocket.x += rocket.dirX * step;
+            rocket.y += rocket.dirY * step;
+            rocket.vx = rocket.dirX * rocket.speed;
+            rocket.vy = rocket.dirY * rocket.speed;
+
+            spawnExhaust();
+
+            const distanceToTarget = Math.hypot(rocket.targetX - rocket.x, rocket.targetY - rocket.y);
+            if (distanceToTarget <= hitRadius) {
+                mode = 'exploding';
+                explodeTimer = 0;
+                shake = 18;
+                flashAlpha = 0.85;
+                spawnExplosion(rocket.targetX, rocket.targetY);
+                if (!hasImpacted) {
+                    hasImpacted = true;
+                    onImpact();
+                }
+            }
+        };
+
+        const cleanupRocketCanvas = () => {
+            if (hasCleanedUp) {
+                return;
+            }
+            hasCleanedUp = true;
+            cancelAnimationFrame(animationFrameId);
+            window.removeEventListener('resize', handleResize);
+            canvas.remove();
+        };
+
+        const frame = (now) => {
+            if (!canvas.isConnected) {
+                return;
+            }
+
+            if (lastTime === null) {
+                lastTime = now;
+            }
+            const dt = Math.min((now - lastTime) / 1000, 1 / 30);
+            lastTime = now;
+
+            if (mode === 'flying') {
+                updateFlying(dt);
+            } else if (mode === 'exploding') {
+                explodeTimer += dt;
+                shake = Math.max(0, shake - dt * 40);
+                flashAlpha = Math.max(0, flashAlpha - dt * 1.7);
+                if (explodeTimer >= explosionDuration) {
+                    cleanupRocketCanvas();
+                    return;
+                }
+            }
+            updateParticles(dt);
+
+            ctx.clearRect(0, 0, width, height);
+            ctx.save();
+            if (shake > 0) {
+                ctx.translate((Math.random() - 0.5) * shake, (Math.random() - 0.5) * shake);
+            }
+            drawTargetMarker(now);
+            drawParticles();
+            drawExplosionGlow();
+            drawRocket();
+            if (flashAlpha > 0) {
+                ctx.fillStyle = `rgba(255,255,255,${flashAlpha})`;
+                ctx.fillRect(-20, -20, width + 40, height + 40);
+            }
+            ctx.restore();
+
+            animationFrameId = requestAnimationFrame(frame);
+        };
+
+        const handleResize = () => resizeCanvas();
+        window.addEventListener('resize', handleResize);
+        animationFrameId = requestAnimationFrame(frame);
+
+        window.setTimeout(() => {
+            if (!canvas.isConnected || hasImpacted) {
+                return;
+            }
+
+            cleanupRocketCanvas();
+            onImpact();
+        }, 5200);
+    };
+
+    function triggerRocketHazard() {
+        if (!rocketLayer || state.rocketActive || state.isCompleted || state.isCompletionSubmitting || state.isUnavailable) {
+            return;
+        }
+
+        const targetCards = Object.values(state.selectorCardLookup).filter((card) => card instanceof HTMLElement && card.isConnected);
+        if (targetCards.length === 0) {
+            scheduleRocketHazard();
+            return;
+        }
+
+        state.rocketActive = true;
+        const targetCard = targetCards[Math.floor(Math.random() * targetCards.length)];
+        const targetSelectorKey = targetCard.dataset.selectorCard || '';
+        const targetSelectorLabel = targetSelectorKey && state.selectorLookup[targetSelectorKey]
+            ? state.selectorLookup[targetSelectorKey]
+            : 'identifier';
+        const targetZone = targetCard.querySelector(`[data-drop-key="${targetSelectorKey}"]`);
+        const countdownSeconds = 5;
+        let countdownLeft = countdownSeconds;
+        let impactTriggered = false;
+
+        const updateCountdownWarning = () => {
+            if (rocketWarningPop) {
+                rocketWarningPop.textContent = `Rocket incoming: ${countdownLeft}s - ${targetSelectorLabel}`;
+            }
+        };
+
+        rocketLayer.innerHTML = '';
+        preloadRocketSounds();
+        updateCountdownWarning();
+        rocketWarningPop?.classList.add('is-visible');
+        targetCard.classList.add('is-rocket-target');
+        if (targetZone instanceof HTMLElement) {
+            targetZone.classList.add('is-rocket-target-zone');
+        }
+        if (!targetCard.hasAttribute('tabindex')) {
+            targetCard.setAttribute('tabindex', '-1');
+        }
+        targetCard.focus({ preventScroll: true });
+        if (window.matchMedia('(max-width: 1023px)').matches) {
+            centerRocketTargetCardForMobile(targetCard);
+        } else {
+            targetCard.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+        }
+
+        window.clearInterval(state.rocketCountdownTimerId);
+        state.rocketCountdownTimerId = window.setInterval(() => {
+            countdownLeft -= 1;
+            if (countdownLeft <= 0) {
+                window.clearInterval(state.rocketCountdownTimerId);
+                state.rocketCountdownTimerId = null;
+                return;
+            }
+            updateCountdownWarning();
+        }, 1000);
+
+        state.rocketLaunchTimerId = window.setTimeout(() => {
+            state.rocketLaunchTimerId = null;
+            window.clearInterval(state.rocketCountdownTimerId);
+            state.rocketCountdownTimerId = null;
+
+            if (!targetCard.isConnected || state.isCompleted || state.isCompletionSubmitting || state.isUnavailable) {
+                stopRocketHazard();
+                return;
+            }
+
+            if (rocketWarningPop) {
+                rocketWarningPop.textContent = `Rocket locked: ${targetSelectorLabel}`;
+            }
+            const isMobileLaunch = window.matchMedia('(max-width: 1023px)').matches;
+            if (isMobileLaunch) {
+                centerRocketTargetCardForMobile(targetCard);
+            } else {
+                targetCard.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+            }
+
+            const launchAfterTargetSettles = () => {
+                if (!targetCard.isConnected || state.isCompleted || state.isCompletionSubmitting || state.isUnavailable) {
+                    stopRocketHazard();
+                    return;
+                }
+
+                const freshTargetZone = targetCard.querySelector(`[data-drop-key="${targetSelectorKey}"]`);
+                const targetElement = isMobileLaunch || !(freshTargetZone instanceof HTMLElement) ? targetCard : freshTargetZone;
+                const targetPoint = getRocketTargetPoint(targetElement, isMobileLaunch);
+                const launchDirection = isMobileLaunch ? 'top' : 'right';
+
+                rocketWarningFlash?.classList.add('is-active');
+                playRocketSound('launch');
+                launchRocketElement(targetPoint, launchDirection, () => {
+                    if (impactTriggered) {
+                        return;
+                    }
+                    impactTriggered = true;
+                    playRocketSound('explosion');
+                    if (rocketWarningPop) {
+                        rocketWarningPop.textContent = 'Impact!';
+                    }
+
+                    targetCard.classList.remove('is-rocket-target');
+                    freshTargetZone?.classList.remove('is-rocket-target-zone');
+                    freshTargetZone?.classList.add('is-rocket-hit-zone');
+                    targetCard.classList.add('is-rocket-hit');
+                    if (!shatterOnePropertyFromSelector(targetSelectorKey) && rocketWarningPop) {
+                        rocketWarningPop.textContent = 'Impact! No property hit.';
+                    }
+
+                    window.setTimeout(() => {
+                        rocketWarningPop?.classList.remove('is-visible');
+                        rocketWarningFlash?.classList.remove('is-active');
+                        targetCard.classList.remove('is-rocket-hit');
+                        freshTargetZone?.classList.remove('is-rocket-hit-zone');
+                        state.rocketActive = false;
+                        scheduleRocketHazard();
+                    }, 1050);
+                });
+            };
+
+            window.setTimeout(() => {
+                if (isMobileLaunch) {
+                    requestAnimationFrame(() => requestAnimationFrame(launchAfterTargetSettles));
+                    return;
+                }
+
+                launchAfterTargetSettles();
+            }, isMobileLaunch ? 80 : 260);
+        }, countdownSeconds * 1000);
+    }
 
     const preloadCheerSounds = () => {
         if (!Array.isArray(challengeConfig.cheerSoundUrls) || challengeConfig.cheerSoundUrls.length === 0) {
@@ -1159,6 +1877,7 @@ ${css}
             openingEffect.remove();
             state.introFinished = true;
             startBackgroundMusic();
+            scheduleRocketHazard();
             return;
         }
 
@@ -1170,6 +1889,7 @@ ${css}
             state.introFinished = true;
             playGameStartSound();
             startBackgroundMusic();
+            scheduleRocketHazard();
         }, 1500);
     };
 
@@ -1337,6 +2057,7 @@ ${css}
             state.isCompleted = true;
             state.skipUnloadWarning = true;
             stopBackgroundMusic();
+            stopRocketHazard();
             if (gameplayTime && payload.data?.completed_at) {
                 gameplayTime.dataset.startedAt = '';
                 gameplayTime.textContent = formatElapsedTime(Number(payload.data?.duration_seconds || 0));
@@ -1362,6 +2083,7 @@ ${css}
         state.skipUnloadWarning = true;
         state.isCompletionSubmitting = false;
         stopBackgroundMusic();
+        stopRocketHazard();
         setStatus(message || 'Challenge unavailable');
         exitModal?.hide();
 
@@ -1380,6 +2102,7 @@ ${css}
         state.isCompletionSubmitting = false;
         roomEndSubmitting = true;
         stopBackgroundMusic();
+        stopRocketHazard();
         setStatus(message || 'The room was ended.');
         exitModal?.hide();
         completionModal?.hide();
@@ -1404,6 +2127,7 @@ ${css}
         state.skipUnloadWarning = true;
         state.isCompletionSubmitting = false;
         stopBackgroundMusic();
+        stopRocketHazard();
         setStatus(result === 'win' ? 'You won the duel.' : 'You lost the duel.');
         exitModal?.hide();
         completionModal?.hide();
@@ -1424,6 +2148,7 @@ ${css}
         state.skipUnloadWarning = true;
         state.isCompletionSubmitting = true;
         stopBackgroundMusic();
+        stopRocketHazard();
         exitModal?.hide();
         setStatus('Ending 1v1 match...');
 
@@ -1902,6 +2627,7 @@ ${css}
         chip.draggable = true;
         chip.dataset.propertyKey = propertyKey;
         chip.dataset.sourceKey = sourceKey;
+        chip.dataset.propertyLabel = rule;
         chip.setAttribute('aria-pressed', isSamePayload(state.selectedPayload, { propertyKey, sourceKey }) ? 'true' : 'false');
 
         if (isSamePayload(state.selectedPayload, { propertyKey, sourceKey })) {
@@ -2185,6 +2911,7 @@ ${css}
         }
 
         state.isCompletionSubmitting = true;
+        stopRocketHazard();
         const progressState = renderProgress();
         const progressPercent = Number(progressState?.progressPercent || 0);
         state.strictProgressPercent = progressPercent;
@@ -2198,6 +2925,7 @@ ${css}
             state.isCompleted = progressPercent >= 100;
             state.isUnavailable = progressPercent < 100;
             stopBackgroundMusic();
+            stopRocketHazard();
             setStatus(payload?.message || `Strict mode result recorded: ${progressPercent}%.`, progressPercent >= 100);
             exitModal?.hide();
             completionModal?.hide();
@@ -2454,7 +3182,9 @@ ${css}
         identifierCompletePop?.classList.remove('is-visible', 'is-celebrating');
         clearSelectorCardHighlight();
         clearSelectedPayload();
+        stopRocketHazard();
         render();
+        scheduleRocketHazard();
     };
 
     const clampTargetWidth = (value) => {
@@ -2531,6 +3261,7 @@ ${css}
             render();
             state.challengeLoaded = true;
             startBackgroundMusic();
+            scheduleRocketHazard();
             setStatus(challengeConfig.strictMode ? 'Strict mode: submit to record your progress.' : 'In progress');
         } catch (error) {
             console.error(error);
@@ -2599,6 +3330,7 @@ ${css}
 
         state.skipUnloadWarning = true;
         stopBackgroundMusic();
+        stopRocketHazard();
         exitModal?.hide();
         giveUpForm.submit();
     });
