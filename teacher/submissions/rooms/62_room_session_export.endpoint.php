@@ -4,9 +4,10 @@ if (
     $teacherRequestMethod === 'GET'
     && $teacherRequestedPage === 'room-session'
     && isset($_GET['export'])
-    && (string) $_GET['export'] === 'csv'
+    && DataExporter::isSupported((string) $_GET['export'])
 ) {
     try {
+        $exportFormat = strtolower((string) $_GET['export']);
         $teacherId = (int) ($_SESSION['user_id'] ?? 0);
         $roomId = max(0, (int) ($_GET['id'] ?? 0));
 
@@ -34,7 +35,7 @@ if (
         };
         $roomCodeFilePart = $sanitizeFilePart((string) ($room['room_code'] ?? ''), 'room');
         $roomNameFilePart = $sanitizeFilePart((string) ($room['room_name'] ?? ''), 'session');
-        $fileName = $roomCodeFilePart . '_' . $roomNameFilePart . '.csv';
+        $fileName = 'room-' . $roomId . '_' . $roomCodeFilePart . '_' . $roomNameFilePart . '_records.csv';
 
         $statusLabel = static function (array $row) use ($strictModeEnabled): string {
             $status = (int) ($row['status'] ?? 0);
@@ -63,13 +64,7 @@ if (
             ob_clean();
         }
 
-        header('Content-Type: text/csv; charset=UTF-8');
-        header('Content-Disposition: attachment; filename="' . $fileName . '"');
-        $output = fopen('php://output', 'wb');
-
-        if (!is_resource($output)) {
-            throw new RuntimeException('Could not create the export file.');
-        }
+        $output = DataExporter::open($exportFormat, $fileName);
 
         fputcsv($output, [
             'Room Code',
@@ -103,7 +98,12 @@ if (
             ], ',', '"', '\\');
         }
 
-        fclose($output);
+        DataExporter::finish($output, $exportFormat, $fileName, 'Room Session Records', [
+            'Room' => (string) ($room['room_name'] ?? 'Room'),
+            'Room ID' => $roomId,
+            'Room Code' => (string) ($room['room_code'] ?? ''),
+            'Challenge' => (string) ($room['challenge_name'] ?? ''),
+        ]);
         exit;
     } catch (Throwable $err) {
         error_log('Pixelwar teacher room session export error: ' . $err->getMessage());

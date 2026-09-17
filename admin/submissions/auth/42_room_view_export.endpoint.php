@@ -3,9 +3,10 @@ if (
     $adminRequestMethod === 'GET'
     && $adminRequestedPage === 'room-view'
     && isset($_GET['export'])
-    && (string) $_GET['export'] === 'csv'
+    && DataExporter::isSupported((string) $_GET['export'])
 ) {
     try {
+        $exportFormat = strtolower((string) $_GET['export']);
         $roomId = max(0, (int) ($_GET['id'] ?? 0));
         $statusFilter = strtolower(trim((string) ($_GET['status'] ?? 'all')));
         $search = trim((string) ($_GET['search'] ?? ''));
@@ -63,23 +64,16 @@ if (
             }
         ));
 
-        $fileName = sprintf(
-            'room-players-%d-%s.csv',
-            $roomId,
-            date('Y-m-d')
-        );
+        $roomName = trim((string) ($room['room_name'] ?? 'Room')) ?: 'Room';
+        $roomCode = trim((string) ($room['room_code'] ?? ''));
+        $roomFilePart = trim((string) preg_replace('/[^a-z0-9]+/i', '-', strtolower($roomName)), '-') ?: 'room';
+        $fileName = sprintf('room-%d-%s-%s-player-records-%s.csv', $roomId, $roomCode ?: 'no-code', $roomFilePart, date('Y-m-d'));
 
         if (ob_get_level() > 0) {
             ob_clean();
         }
 
-        header('Content-Type: text/csv; charset=UTF-8');
-        header('Content-Disposition: attachment; filename="' . $fileName . '"');
-        $output = fopen('php://output', 'wb');
-
-        if (!is_resource($output)) {
-            throw new RuntimeException('Could not create the export file.');
-        }
+        $output = DataExporter::open($exportFormat, $fileName);
 
         fputcsv($output, ['Record ID', 'Player', 'Username', 'Email', 'Student ID', 'Status', 'Started At', 'Completed At'], ',', '"', '\\');
 
@@ -99,7 +93,12 @@ if (
             ], ',', '"', '\\');
         }
 
-        fclose($output);
+        DataExporter::finish($output, $exportFormat, $fileName, 'Room Player Records', [
+            'Room' => $roomName,
+            'Room ID' => $roomId,
+            'Room Code' => $roomCode,
+            'Filter' => ucfirst($statusFilter),
+        ]);
         exit;
     } catch (Throwable $err) {
         error_log('Pixelwar admin room view export error: ' . $err->getMessage());

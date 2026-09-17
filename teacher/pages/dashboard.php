@@ -1,5 +1,9 @@
 <?php
-$teacherName = trim((string) ($_SESSION['firstname'] ?? $_SESSION['username'] ?? 'Teacher')) ?: 'Teacher';
+$teacherName = trim((string) ($_SESSION['firstname'] ?? ''));
+$teacherName = $teacherName !== '' ? $teacherName : (trim((string) ($_SESSION['username'] ?? '')) ?: 'Teacher');
+$teacherName = function_exists('mb_convert_case')
+    ? mb_convert_case(mb_strtolower($teacherName, 'UTF-8'), MB_CASE_TITLE, 'UTF-8')
+    : ucwords(strtolower($teacherName), " -'");
 $teacherId = (int) ($_SESSION['user_id'] ?? 0);
 $analyticsTrackedDays = 30;
 $analyticsEndDate = new DateTimeImmutable('today');

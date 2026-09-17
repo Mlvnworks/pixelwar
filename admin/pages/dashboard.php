@@ -1,5 +1,9 @@
 <?php
-$adminName = trim((string) ($_SESSION['firstname'] ?? $_SESSION['username'] ?? 'Admin')) ?: 'Admin';
+$adminName = trim((string) ($_SESSION['firstname'] ?? ''));
+$adminName = $adminName !== '' ? $adminName : (trim((string) ($_SESSION['username'] ?? '')) ?: 'Admin');
+$adminName = function_exists('mb_convert_case')
+    ? mb_convert_case(mb_strtolower($adminName, 'UTF-8'), MB_CASE_TITLE, 'UTF-8')
+    : ucwords(strtolower($adminName), " -'");
 $studentCount = $userRepository instanceof UserRepository ? $userRepository->countUsersByRole(3) : 0;
 $studentCountToday = $userRepository instanceof UserRepository ? $userRepository->countUsersRegisteredTodayByRole(3) : 0;
 $teacherCount = $userRepository instanceof UserRepository ? $userRepository->countUsersByRole(2) : 0;

@@ -48,7 +48,7 @@ $logBuildQuery = static function (string $category, int $page = 1): string {
             <div class="flex flex-wrap gap-2">
                 <button type="button" class="teacher-button teacher-button--primary gap-2" data-bs-toggle="modal" data-bs-target="#admin-logs-export-modal">
                     <i data-lucide="download" class="h-4 w-4" aria-hidden="true"></i>
-                    <span>Export CSV</span>
+                    <span>Export</span>
                 </button>
                 <a href="./?c=dashboard" class="teacher-button teacher-button--light gap-2">
                     <i data-lucide="arrow-left" class="h-4 w-4" aria-hidden="true"></i>
@@ -155,7 +155,6 @@ $logBuildQuery = static function (string $category, int $page = 1): string {
     <div class="modal-dialog modal-dialog-centered">
         <form class="modal-content rounded-[28px] border-4 border-arcade-ink bg-arcade-panel p-0 text-arcade-ink shadow-[8px_8px_0_#26190f]" action="./" method="get">
             <input type="hidden" name="c" value="logs">
-            <input type="hidden" name="export" value="csv">
             <input type="hidden" name="category" value="<?= htmlspecialchars($selectedCategory, ENT_QUOTES, 'UTF-8') ?>">
             <div class="modal-header border-0 px-5 pb-2 pt-5">
                 <div>
@@ -165,7 +164,14 @@ $logBuildQuery = static function (string $category, int $page = 1): string {
                 <button type="button" class="btn-close opacity-100" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body px-5 pb-5 pt-2">
-                <p class="text-sm font-semibold leading-6 text-arcade-ink/65">Export the current activity log view as CSV for the exact date range you choose.</p>
+                <p class="text-sm font-semibold leading-6 text-arcade-ink/65">Choose a file format and date range for the current activity log view.</p>
+                <label class="admin-logs-export-date-field mt-4">
+                    <span>File Format</span>
+                    <select name="export" required>
+                        <option value="csv">CSV spreadsheet</option>
+                        <option value="pdf">PDF document</option>
+                    </select>
+                </label>
                 <div class="mt-4 grid gap-3 sm:grid-cols-2">
                     <label class="admin-logs-export-date-field">
                         <span>Start Date</span>
@@ -178,7 +184,7 @@ $logBuildQuery = static function (string $category, int $page = 1): string {
                 </div>
                 <div class="mt-5 flex justify-end gap-3">
                     <button type="button" class="rounded-xl border-2 border-arcade-ink/15 bg-white px-4 py-2 text-sm font-bold text-arcade-ink transition hover:bg-arcade-peach/60" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="rounded-xl border-2 border-arcade-ink bg-arcade-orange px-4 py-2 text-sm font-bold text-white shadow-[0_3px_0_#26190f] transition hover:-translate-y-0.5 hover:bg-arcade-yellow hover:text-arcade-ink">Export CSV</button>
+                    <button type="submit" class="rounded-xl border-2 border-arcade-ink bg-arcade-orange px-4 py-2 text-sm font-bold text-white shadow-[0_3px_0_#26190f] transition hover:-translate-y-0.5 hover:bg-arcade-yellow hover:text-arcade-ink">Download</button>
                 </div>
             </div>
         </form>

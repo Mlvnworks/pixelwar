@@ -354,3 +354,37 @@ body.pixelwar-dark-mode .password-visibility-toggle:hover {
         height: 1.2rem;
     }
 }
+
+.export-date-field select,
+.teacher-export-date-field select,
+.admin-export-date-field select,
+.admin-logs-export-date-field select {
+    width: 100%;
+    min-height: 3rem;
+    border: 2px solid rgba(38, 25, 15, 0.16);
+    border-radius: 1rem;
+    background: rgba(255, 255, 255, 0.96);
+    padding: 0.75rem 2.5rem 0.75rem 0.95rem;
+    color: #26190f;
+    font-size: 0.92rem;
+    font-weight: 800;
+    outline: none;
+    transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.export-date-field select:focus,
+.teacher-export-date-field select:focus,
+.admin-export-date-field select:focus,
+.admin-logs-export-date-field select:focus {
+    border-color: #ff8c42;
+    box-shadow: 0 0 0 4px rgba(255, 140, 66, 0.16);
+}
+
+body.pixelwar-dark-mode .export-date-field select,
+body.pixelwar-dark-mode .teacher-export-date-field select,
+body.pixelwar-dark-mode .admin-export-date-field select,
+body.pixelwar-dark-mode .admin-logs-export-date-field select {
+    border-color: rgba(255, 247, 232, 0.2);
+    background-color: #1f160f;
+    color: #fff7e8;
+}

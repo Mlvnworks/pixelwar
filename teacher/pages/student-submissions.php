@@ -110,19 +110,6 @@ foreach ($studentSubmissionAttemptRows as $attemptRow) {
         'completedAt' => $completedAt,
         'duration' => $durationLabel,
         'durationDetails' => $durationDetails,
-        'summary' => $status === 'completed'
-            ? ($isStrictRoomAttempt
-                ? 'Submitted this strict mode room challenge and recorded the final match score.'
-                : ($isPvpAttempt && $attemptStatus === 'pvp_win'
-                    ? 'Won this 1v1 duel challenge and locked in the match result.'
-                    : 'Completed this CSS matching challenge and locked in the solve.'))
-            : ($status === 'failed'
-                ? ($isStrictRoomAttempt
-                    ? 'Submitted this strict mode room challenge and recorded the final match score.'
-                    : ($isPvpAttempt && $attemptStatus === 'pvp_loss'
-                        ? 'Lost this 1v1 duel challenge and recorded the match result.'
-                        : 'Started this CSS matching challenge inside a room, but the run was not completed.'))
-                : 'Started this CSS matching challenge and still has an active run.'),
         'href' => $status === 'ongoing'
             ? './?c=pixelwar&intro=1&challenge_id=' . (int) $attemptRow['challenge_id'] . ($isPvpAttempt ? '&pvp_id=' . (int) ($attemptRow['pvp_id'] ?? 0) : '')
             : './?c=challenge&id=' . (int) $attemptRow['challenge_id'],
@@ -163,7 +150,7 @@ $studentSubmissionInitialStatusFilter = isset($_GET['status']) && in_array((stri
                     <div class="flex flex-wrap items-center gap-2">
                         <button type="button" class="inline-flex items-center justify-center gap-2 rounded-xl border-2 border-arcade-ink bg-arcade-yellow px-4 py-2 text-sm font-bold text-arcade-ink shadow-[0_3px_0_#26190f] transition hover:-translate-y-0.5 hover:bg-arcade-orange hover:text-white" data-bs-toggle="modal" data-bs-target="#student-submissions-export-modal">
                             <i data-lucide="download" class="h-4 w-4" aria-hidden="true"></i>
-                            <span>Export CSV</span>
+                            <span>Export</span>
                         </button>
                         <a href="./?c=student-view&id=<?= (int) $studentSubmissionId ?>" class="inline-flex items-center justify-center gap-2 rounded-xl border-2 border-arcade-ink bg-white px-4 py-2 text-sm font-bold text-arcade-ink no-underline shadow-[0_3px_0_#26190f] transition hover:-translate-y-0.5 hover:bg-arcade-yellow">
                             <i data-lucide="arrow-left" class="h-4 w-4" aria-hidden="true"></i>
@@ -213,7 +200,7 @@ $studentSubmissionInitialStatusFilter = isset($_GET['status']) && in_array((stri
                 <div class="grid min-w-0 gap-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
                     <label class="block">
                         <span class="text-sm font-bold">Search challenges</span>
-                        <input id="student-submissions-search" type="search" class="mt-1 w-full rounded-xl border-2 border-arcade-ink/15 bg-white px-3 py-2 text-sm outline-none transition focus:border-arcade-orange" placeholder="Search title, status, level, or details..." value="<?= htmlspecialchars($studentSubmissionSearchInput, ENT_QUOTES, 'UTF-8') ?>">
+                        <input id="student-submissions-search" type="search" class="mt-1 w-full rounded-xl border-2 border-arcade-ink/15 bg-white px-3 py-2 text-sm outline-none transition focus:border-arcade-orange" placeholder="Search challenge name, ID, status, or level..." value="<?= htmlspecialchars($studentSubmissionSearchInput, ENT_QUOTES, 'UTF-8') ?>">
                     </label>
                     <div class="flex flex-wrap gap-2">
                         <button class="analytics-filter <?= $studentSubmissionInitialStatusFilter === 'all' ? 'is-active bg-arcade-yellow' : 'bg-white' ?> rounded-xl border-2 border-arcade-ink/10 px-3 py-2 text-xs font-bold" type="button" data-status-filter="all">All</button>
@@ -232,11 +219,11 @@ $studentSubmissionInitialStatusFilter = isset($_GET['status']) && in_array((stri
                         <article
                             class="analytics-row grid gap-2 border-b border-arcade-ink/10 px-4 py-3 last:border-b-0 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.55fr)_minmax(0,0.65fr)_minmax(0,1fr)_auto] lg:items-center"
                             data-analytics-row
-                            data-search="<?= htmlspecialchars(strtolower($row['title'] . ' ' . $row['status'] . ' ' . $row['level'] . ' ' . $row['summary']), ENT_QUOTES, 'UTF-8') ?>"
+                            data-search="<?= htmlspecialchars(strtolower($row['title'] . ' challenge id #' . $row['challengeId'] . ' ' . $row['challengeId'] . ' ' . $row['status'] . ' ' . $row['level']), ENT_QUOTES, 'UTF-8') ?>"
                             data-status="<?= htmlspecialchars($row['status'], ENT_QUOTES, 'UTF-8') ?>">
                             <div class="min-w-0">
                                 <p class="text-sm font-bold"><?= htmlspecialchars($row['title'], ENT_QUOTES, 'UTF-8') ?></p>
-                                <p class="text-xs font-semibold text-arcade-ink/55"><?= htmlspecialchars($row['summary'], ENT_QUOTES, 'UTF-8') ?></p>
+                                <p class="text-xs font-semibold text-arcade-ink/55">Challenge ID: #<?= (int) $row['challengeId'] ?></p>
                                 <div class="mt-1 flex flex-wrap items-center gap-2">
                                     <span class="rounded-full <?= $row['modeLabel'] === '1v1' ? 'bg-arcade-cyan/30' : ($row['modeLabel'] === 'Room' ? 'bg-arcade-orange/20' : 'bg-arcade-mint/35') ?> px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-arcade-ink">
                                         <?= htmlspecialchars($row['modeLabel'], ENT_QUOTES, 'UTF-8') ?>
@@ -274,7 +261,6 @@ $studentSubmissionInitialStatusFilter = isset($_GET['status']) && in_array((stri
             <form class="modal-content rounded-[28px] border-4 border-arcade-ink bg-arcade-panel p-0 text-arcade-ink shadow-[8px_8px_0_#26190f]" action="./" method="get">
                 <input type="hidden" name="c" value="student-submissions">
                 <input type="hidden" name="id" value="<?= (int) $studentSubmissionId ?>">
-                <input type="hidden" name="export" value="csv">
                 <div class="modal-header border-0 px-5 pb-2 pt-5">
                     <div>
                         <p class="font-arcade text-[10px] uppercase tracking-[0.24em] text-arcade-orange">Export Records</p>
@@ -283,7 +269,14 @@ $studentSubmissionInitialStatusFilter = isset($_GET['status']) && in_array((stri
                     <button type="button" class="btn-close opacity-100" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body px-5 pb-5 pt-2">
-                    <p class="text-sm font-semibold leading-6 text-arcade-ink/65">Export this student's submission records as CSV for the selected date range.</p>
+                    <p class="text-sm font-semibold leading-6 text-arcade-ink/65">Choose a file format and date range for this student's submission records.</p>
+                    <label class="export-date-field mt-4">
+                        <span>File Format</span>
+                        <select name="export" required>
+                            <option value="csv">CSV spreadsheet</option>
+                            <option value="pdf">PDF document</option>
+                        </select>
+                    </label>
                     <div class="mt-4 grid gap-3 sm:grid-cols-2">
                         <label class="export-date-field">
                             <span>Start Date</span>
@@ -296,7 +289,7 @@ $studentSubmissionInitialStatusFilter = isset($_GET['status']) && in_array((stri
                     </div>
                     <div class="mt-5 flex justify-end gap-3">
                         <button type="button" class="rounded-xl border-2 border-arcade-ink/15 bg-white px-4 py-2 text-sm font-bold text-arcade-ink transition hover:bg-arcade-peach/60" data-bs-dismiss="modal">Cancel</button>
-                        <button type="submit" class="rounded-xl border-2 border-arcade-ink bg-arcade-yellow px-5 py-2 text-sm font-bold text-arcade-ink shadow-[0_4px_0_#26190f] transition hover:-translate-y-0.5 hover:bg-arcade-orange hover:text-white">Export CSV</button>
+                        <button type="submit" class="rounded-xl border-2 border-arcade-ink bg-arcade-yellow px-5 py-2 text-sm font-bold text-arcade-ink shadow-[0_4px_0_#26190f] transition hover:-translate-y-0.5 hover:bg-arcade-orange hover:text-white">Download</button>
                     </div>
                 </div>
             </form>

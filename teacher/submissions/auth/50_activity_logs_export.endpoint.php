@@ -3,9 +3,10 @@ if (
     $teacherRequestMethod === 'GET'
     && $teacherRequestedPage === 'activity-logs'
     && isset($_GET['export'])
-    && (string) $_GET['export'] === 'csv'
+    && DataExporter::isSupported((string) $_GET['export'])
 ) {
     try {
+        $exportFormat = strtolower((string) $_GET['export']);
         $teacherId = (int) ($_SESSION['user_id'] ?? 0);
 
         if ($teacherId <= 0) {
@@ -42,8 +43,10 @@ if (
         }
 
         $exportRows = $logs->listCreationLogsForUserByDateRange($teacherId, $exportStartDate, $exportEndDate, 2000);
+        $teacherUsername = trim((string) ($_SESSION['username'] ?? 'teacher')) ?: 'teacher';
         $fileName = sprintf(
-            'teacher-activity-creations-%s-to-%s.csv',
+            'teacher-%d-activity-history-%s-to-%s.csv',
+            $teacherId,
             $exportStartDate->format('Y-m-d'),
             $exportEndDate->format('Y-m-d')
         );
@@ -52,13 +55,7 @@ if (
             ob_clean();
         }
 
-        header('Content-Type: text/csv; charset=UTF-8');
-        header('Content-Disposition: attachment; filename="' . $fileName . '"');
-        $output = fopen('php://output', 'wb');
-
-        if (!is_resource($output)) {
-            throw new RuntimeException('Could not create the export file.');
-        }
+        $output = DataExporter::open($exportFormat, $fileName);
 
         fputcsv($output, ['Category', 'Activity', 'Created At'], ',', '"', '\\');
 
@@ -70,7 +67,11 @@ if (
             ], ',', '"', '\\');
         }
 
-        fclose($output);
+        DataExporter::finish($output, $exportFormat, $fileName, 'Teacher Activity History', [
+            'Teacher' => $teacherUsername,
+            'User ID' => $teacherId,
+            'Period' => $exportStartDate->format('M j, Y') . ' - ' . $exportEndDate->format('M j, Y'),
+        ]);
         exit;
     } catch (Throwable $err) {
         error_log('Pixelwar teacher activity export error: ' . $err->getMessage());

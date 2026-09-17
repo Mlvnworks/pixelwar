@@ -3,9 +3,10 @@ if (
     $requestMethod === 'GET'
     && $requestedPage === 'player-analytics'
     && isset($_GET['export'])
-    && (string) $_GET['export'] === 'csv'
+    && DataExporter::isSupported((string) $_GET['export'])
 ) {
     try {
+        $exportFormat = strtolower((string) $_GET['export']);
         $currentStudentId = (int) ($_SESSION['user_id'] ?? 0);
 
         if ($currentStudentId <= 0) {
@@ -64,8 +65,12 @@ if (
         };
 
         $exportRows = $repository->listAttemptHistoryByDateRange($currentStudentId, $exportStartDate, $exportEndDate, 1000);
+        $studentUsername = trim((string) ($_SESSION['username'] ?? 'player')) ?: 'player';
+        $studentFilePart = trim((string) preg_replace('/[^a-z0-9]+/i', '-', strtolower($studentUsername)), '-') ?: 'player';
         $exportFileName = sprintf(
-            'pixelwar-solving-records-%s-to-%s.csv',
+            'player-%d-%s-solving-history-%s-to-%s.csv',
+            $currentStudentId,
+            $studentFilePart,
             $exportStartDate->format('Y-m-d'),
             $exportEndDate->format('Y-m-d')
         );
@@ -74,15 +79,9 @@ if (
             ob_clean();
         }
 
-        header('Content-Type: text/csv; charset=UTF-8');
-        header('Content-Disposition: attachment; filename="' . $exportFileName . '"');
-        $output = fopen('php://output', 'wb');
+        $output = DataExporter::open($exportFormat, $exportFileName);
 
-        if (!is_resource($output)) {
-            throw new RuntimeException('Could not create the export file.');
-        }
-
-        fputcsv($output, ['Challenge', 'Game Type', 'Status', 'Difficulty', 'Started At', 'Completed At', 'Duration', 'Awarded Points'], ',', '"', '\\');
+        fputcsv($output, ['Challenge ID', 'Challenge', 'Game Type', 'Status', 'Difficulty', 'Started At', 'Completed At', 'Duration', 'Awarded Points'], ',', '"', '\\');
 
         foreach ($exportRows as $exportRow) {
             $startedAt = new DateTimeImmutable((string) $exportRow['started_at']);
@@ -110,6 +109,7 @@ if (
             }
 
             fputcsv($output, [
+                (int) ($exportRow['challenge_id'] ?? 0),
                 (string) $exportRow['name'],
                 $gameType,
                 $statusLabel,
@@ -121,7 +121,11 @@ if (
             ], ',', '"', '\\');
         }
 
-        fclose($output);
+        DataExporter::finish($output, $exportFormat, $exportFileName, 'Player Challenge History', [
+            'Player' => $studentUsername,
+            'User ID' => $currentStudentId,
+            'Period' => $exportStartDate->format('M j, Y') . ' - ' . $exportEndDate->format('M j, Y'),
+        ]);
         exit;
     } catch (Throwable $err) {
         error_log('Pixelwar player analytics export error: ' . $err->getMessage());

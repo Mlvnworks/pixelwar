@@ -1,5 +1,10 @@
 <?php
 $username = $_SESSION['username'] ?? 'Pixel Rookie';
+$playerGreetingName = trim((string) ($_SESSION['firstname'] ?? ''));
+$playerGreetingName = $playerGreetingName !== '' ? $playerGreetingName : (trim((string) $username) ?: 'Pixel Rookie');
+$playerGreetingName = function_exists('mb_convert_case')
+    ? mb_convert_case(mb_strtolower($playerGreetingName, 'UTF-8'), MB_CASE_TITLE, 'UTF-8')
+    : ucwords(strtolower($playerGreetingName), " -'");
 $playerDisplayName = trim((string) ($_SESSION['firstname'] ?? '') . ' ' . (string) ($_SESSION['lastname'] ?? ''));
 $playerDisplayName = $playerDisplayName !== '' ? $playerDisplayName : (string) $username;
 $today = new DateTimeImmutable('today');
@@ -213,7 +218,7 @@ $pvpResultMessage = $pvpNotice === 'win'
                 <div>
                     <h1 class="home-welcome-title text-3xl font-bold leading-tight md:text-5xl">
                         Hello, <span
-                            class="home-welcome-name"><?= htmlspecialchars(strtoupper($username), ENT_QUOTES, 'UTF-8') ?></span>
+                            class="home-welcome-name"><?= htmlspecialchars($playerGreetingName, ENT_QUOTES, 'UTF-8') ?></span>
                     </h1>
                 </div>
                 <div class="home-hero-actions flex flex-nowrap items-center gap-2 py-1">

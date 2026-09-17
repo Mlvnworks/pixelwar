@@ -19,6 +19,36 @@ $studentSubmissionAttemptCounts = $userChallengeRepository instanceof UserChalle
 $studentSubmissionRows = $userChallengeRepository instanceof UserChallengeRepository
     ? $userChallengeRepository->listAttemptHistory($studentSubmissionId, 500)
     : [];
+$studentSubmissionSearch = trim((string) ($_GET['search'] ?? ''));
+
+if ($studentSubmissionSearch !== '') {
+    $studentSubmissionSearchNeedle = function_exists('mb_strtolower')
+        ? mb_strtolower($studentSubmissionSearch, 'UTF-8')
+        : strtolower($studentSubmissionSearch);
+    $studentSubmissionRows = array_values(array_filter(
+        $studentSubmissionRows,
+        static function (array $row) use ($studentSubmissionSearchNeedle): bool {
+            $isRoomAttempt = (int) ($row['room_id'] ?? 0) > 0;
+            $isPvpAttempt = (int) ($row['pvp_id'] ?? 0) > 0;
+            $mode = $isPvpAttempt ? '1v1' : ($isRoomAttempt ? 'room' : 'solo');
+            $challengeId = (string) ($row['challenge_id'] ?? '');
+            $haystack = implode(' ', [
+                $challengeId,
+                '#' . $challengeId,
+                'challenge id #' . $challengeId,
+                (string) ($row['name'] ?? ''),
+                (string) ($row['attempt_status'] ?? ''),
+                (string) ($row['difficulty_name'] ?? ''),
+                $mode,
+            ]);
+            $haystack = function_exists('mb_strtolower')
+                ? mb_strtolower($haystack, 'UTF-8')
+                : strtolower($haystack);
+
+            return str_contains($haystack, $studentSubmissionSearchNeedle);
+        }
+    ));
+}
 $studentSubmissionTotal = count($studentSubmissionRows);
 $studentSubmissionPages = max(1, (int) ceil($studentSubmissionTotal / $studentSubmissionPerPage));
 $studentSubmissionPage = min($studentSubmissionPage, $studentSubmissionPages);
@@ -38,12 +68,13 @@ for ($dayIndex = 0; $dayIndex < $studentSubmissionRangeDays; $dayIndex++) {
     $studentSubmissionChartValues[] = (int) ($studentSubmissionAttemptCounts[$dateKey] ?? 0);
 }
 
-$studentSubmissionBuildQuery = static function (array $overrides = []) use ($studentSubmissionId, $studentSubmissionPage, $studentSubmissionRangeDays): string {
+$studentSubmissionBuildQuery = static function (array $overrides = []) use ($studentSubmissionId, $studentSubmissionPage, $studentSubmissionRangeDays, $studentSubmissionSearch): string {
     $query = [
         'c' => 'student-submissions',
         'id' => $studentSubmissionId,
         'page' => $studentSubmissionPage,
         'range' => $studentSubmissionRangeDays,
+        'search' => $studentSubmissionSearch,
     ];
 
     foreach ($overrides as $key => $value) {
@@ -168,16 +199,27 @@ $formatSubmissionOutcome = static function (string $attemptStatus): array {
             </article>
 
             <section class="teacher-panel p-0 overflow-hidden">
-                    <div class="flex flex-col gap-3 border-b border-arcade-ink/10 px-5 py-4 md:flex-row md:items-center md:justify-between">
+                <div class="flex flex-col gap-3 border-b border-arcade-ink/10 px-5 py-4 md:flex-row md:items-center md:justify-between">
                     <div>
                         <p class="text-sm font-semibold uppercase tracking-[0.08em] text-arcade-ink/60">Records</p>
                         <h2 class="mt-1 text-2xl font-bold">Submission outcomes</h2>
                     </div>
                     <button type="button" class="teacher-button teacher-button--primary gap-2" data-bs-toggle="modal" data-bs-target="#admin-student-submissions-export-modal">
                         <i data-lucide="download" class="h-4 w-4" aria-hidden="true"></i>
-                        <span>Export CSV</span>
+                        <span>Export</span>
                     </button>
                 </div>
+
+                <form method="get" action="./" class="grid gap-3 border-b border-arcade-ink/10 px-5 py-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
+                    <input type="hidden" name="c" value="student-submissions">
+                    <input type="hidden" name="id" value="<?= (int) $studentSubmissionId ?>">
+                    <input type="hidden" name="range" value="<?= (int) $studentSubmissionRangeDays ?>">
+                    <label class="block min-w-0">
+                        <span class="text-sm font-semibold text-arcade-ink/70">Search challenges</span>
+                        <input type="search" name="search" value="<?= htmlspecialchars($studentSubmissionSearch, ENT_QUOTES, 'UTF-8') ?>" class="mt-1 w-full rounded-xl border border-arcade-ink/15 bg-white px-4 py-2.5 text-sm font-medium outline-none transition focus:border-arcade-orange" placeholder="Search challenge name, ID, status, or level">
+                    </label>
+                    <button type="submit" class="teacher-button teacher-button--primary">Search</button>
+                </form>
 
                 <?php if ($studentSubmissionPageRows === []) : ?>
                     <div class="px-5 py-6 text-sm font-medium text-arcade-ink/55">
@@ -210,7 +252,7 @@ $formatSubmissionOutcome = static function (string $attemptStatus): array {
                                         <td class="px-4 py-3">
                                             <div class="min-w-0">
                                                 <div class="truncate font-semibold text-arcade-ink"><?= htmlspecialchars((string) ($row['name'] ?? 'Untitled Challenge'), ENT_QUOTES, 'UTF-8') ?></div>
-                                                <div class="mt-1 text-xs leading-5 text-arcade-ink/55"><?= $tools->formatExcerpt((string) ($row['instruction'] ?? '')) ?></div>
+                                                <div class="mt-1 text-xs leading-5 text-arcade-ink/55">Challenge ID: #<?= (int) ($row['challenge_id'] ?? 0) ?></div>
                                             </div>
                                         </td>
                                         <td class="px-4 py-3">
@@ -268,7 +310,6 @@ $formatSubmissionOutcome = static function (string $attemptStatus): array {
             <form class="modal-content rounded-[28px] border-4 border-arcade-ink bg-arcade-panel p-0 text-arcade-ink shadow-[8px_8px_0_#26190f]" action="./" method="get">
                 <input type="hidden" name="c" value="student-submissions">
                 <input type="hidden" name="id" value="<?= (int) $studentSubmissionId ?>">
-                <input type="hidden" name="export" value="csv">
                 <div class="modal-header border-0 px-5 pb-2 pt-5">
                     <div>
                         <p class="font-arcade text-[10px] uppercase tracking-[0.24em] text-arcade-orange">Export Records</p>
@@ -277,7 +318,14 @@ $formatSubmissionOutcome = static function (string $attemptStatus): array {
                     <button type="button" class="btn-close opacity-100" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body px-5 pb-5 pt-2">
-                    <p class="text-sm font-semibold leading-6 text-arcade-ink/65">Export student submission records as CSV for the exact date range you choose.</p>
+                    <p class="text-sm font-semibold leading-6 text-arcade-ink/65">Choose a file format and date range for the student submission records.</p>
+                    <label class="admin-export-date-field mt-4">
+                        <span>File Format</span>
+                        <select name="export" required>
+                            <option value="csv">CSV spreadsheet</option>
+                            <option value="pdf">PDF document</option>
+                        </select>
+                    </label>
                     <div class="mt-4 grid gap-3 sm:grid-cols-2">
                         <label class="admin-export-date-field">
                             <span>Start Date</span>
@@ -290,7 +338,7 @@ $formatSubmissionOutcome = static function (string $attemptStatus): array {
                     </div>
                     <div class="mt-5 flex justify-end gap-3">
                         <button type="button" class="rounded-xl border-2 border-arcade-ink/15 bg-white px-4 py-2 text-sm font-bold text-arcade-ink transition hover:bg-arcade-peach/60" data-bs-dismiss="modal">Cancel</button>
-                        <button type="submit" class="rounded-xl border-2 border-arcade-ink bg-arcade-orange px-4 py-2 text-sm font-bold text-white shadow-[0_3px_0_#26190f] transition hover:-translate-y-0.5 hover:bg-arcade-yellow hover:text-arcade-ink">Export CSV</button>
+                        <button type="submit" class="rounded-xl border-2 border-arcade-ink bg-arcade-orange px-4 py-2 text-sm font-bold text-white shadow-[0_3px_0_#26190f] transition hover:-translate-y-0.5 hover:bg-arcade-yellow hover:text-arcade-ink">Download</button>
                     </div>
                 </div>
             </form>

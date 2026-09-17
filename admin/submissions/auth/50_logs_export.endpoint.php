@@ -3,9 +3,10 @@ if (
     $adminRequestMethod === 'GET'
     && $adminRequestedPage === 'logs'
     && isset($_GET['export'])
-    && (string) $_GET['export'] === 'csv'
+    && DataExporter::isSupported((string) $_GET['export'])
 ) {
     try {
+        $exportFormat = strtolower((string) $_GET['export']);
         $logs = adminPanelRequireActivityLogRepository($activityLogRepository ?? null);
         $exportStartInput = trim((string) ($_GET['export_start_date'] ?? ''));
         $exportEndInput = trim((string) ($_GET['export_end_date'] ?? ''));
@@ -54,13 +55,7 @@ if (
             ob_clean();
         }
 
-        header('Content-Type: text/csv; charset=UTF-8');
-        header('Content-Disposition: attachment; filename="' . $fileName . '"');
-        $output = fopen('php://output', 'wb');
-
-        if (!is_resource($output)) {
-            throw new RuntimeException('Could not create the export file.');
-        }
+        $output = DataExporter::open($exportFormat, $fileName);
 
         fputcsv($output, ['Date', 'User', 'Email', 'Role', 'Category', 'Log'], ',', '"', '\\');
 
@@ -81,7 +76,10 @@ if (
             ], ',', '"', '\\');
         }
 
-        fclose($output);
+        DataExporter::finish($output, $exportFormat, $fileName, 'Platform Activity History', [
+            'Category' => ucfirst($exportCategory !== '' ? $exportCategory : 'all'),
+            'Period' => $exportStartDate->format('M j, Y') . ' - ' . $exportEndDate->format('M j, Y'),
+        ]);
         exit;
     } catch (Throwable $err) {
         error_log('Pixelwar admin logs export error: ' . $err->getMessage());

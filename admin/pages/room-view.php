@@ -241,10 +241,16 @@ $adminRoomViewBuildQuery = static function (array $overrides = []) use ($adminRo
                         <p class="font-arcade text-[10px] uppercase tracking-[0.24em] text-arcade-cyan">Joined Players</p>
                         <h2 class="mt-2 text-2xl font-black">Room Players</h2>
                     </div>
-                    <a href="<?= htmlspecialchars($adminRoomViewBuildQuery(['export' => 'csv']), ENT_QUOTES, 'UTF-8') ?>" class="teacher-button teacher-button--primary gap-2 no-underline">
-                        <i data-lucide="download" class="h-4 w-4" aria-hidden="true"></i>
-                        <span>Export CSV</span>
-                    </a>
+                    <div class="flex flex-wrap gap-2">
+                        <a href="<?= htmlspecialchars($adminRoomViewBuildQuery(['export' => 'csv']), ENT_QUOTES, 'UTF-8') ?>" class="teacher-button teacher-button--primary gap-2 no-underline">
+                            <i data-lucide="file-spreadsheet" class="h-4 w-4" aria-hidden="true"></i>
+                            <span>CSV</span>
+                        </a>
+                        <a href="<?= htmlspecialchars($adminRoomViewBuildQuery(['export' => 'pdf']), ENT_QUOTES, 'UTF-8') ?>" class="teacher-button teacher-button--light gap-2 no-underline">
+                            <i data-lucide="file-text" class="h-4 w-4" aria-hidden="true"></i>
+                            <span>PDF</span>
+                        </a>
+                    </div>
                 </div>
 
                 <form method="get" action="./" class="admin-room-player-filter-grid mt-5">

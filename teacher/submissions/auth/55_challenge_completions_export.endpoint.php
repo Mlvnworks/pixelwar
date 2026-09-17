@@ -3,9 +3,10 @@ if (
     $teacherRequestMethod === 'GET'
     && $teacherRequestedPage === 'challenge-completions'
     && isset($_GET['export'])
-    && (string) $_GET['export'] === 'csv'
+    && DataExporter::isSupported((string) $_GET['export'])
 ) {
     try {
+        $exportFormat = strtolower((string) $_GET['export']);
         $teacherId = (int) ($_SESSION['user_id'] ?? 0);
         $challengeId = (int) ($_GET['id'] ?? 0);
 
@@ -50,9 +51,12 @@ if (
         }
 
         $rows = $completions->listOutcomesByChallengeAndDateRange($challengeId, $exportStartDate, $exportEndDate, 2000);
+        $challengeName = trim((string) ($challenge['name'] ?? 'Untitled Challenge')) ?: 'Untitled Challenge';
+        $challengeFilePart = trim((string) preg_replace('/[^a-z0-9]+/i', '-', strtolower($challengeName)), '-') ?: 'challenge';
         $fileName = sprintf(
-            'challenge-completions-%d-%s-to-%s.csv',
+            'challenge-%d-%s-completions-%s-to-%s.csv',
             $challengeId,
+            $challengeFilePart,
             $exportStartDate->format('Y-m-d'),
             $exportEndDate->format('Y-m-d')
         );
@@ -104,13 +108,7 @@ if (
             ob_clean();
         }
 
-        header('Content-Type: text/csv; charset=UTF-8');
-        header('Content-Disposition: attachment; filename="' . $fileName . '"');
-        $output = fopen('php://output', 'wb');
-
-        if (!is_resource($output)) {
-            throw new RuntimeException('Could not create the export file.');
-        }
+        $output = DataExporter::open($exportFormat, $fileName);
 
         fputcsv($output, ['Player', 'Username', 'Email', 'Type', 'Outcome', 'Started At', 'Completed At', 'Duration'], ',', '"', '\\');
 
@@ -140,7 +138,11 @@ if (
             ], ',', '"', '\\');
         }
 
-        fclose($output);
+        DataExporter::finish($output, $exportFormat, $fileName, 'Challenge Completion Records', [
+            'Challenge' => $challengeName,
+            'Challenge ID' => $challengeId,
+            'Period' => $exportStartDate->format('M j, Y') . ' - ' . $exportEndDate->format('M j, Y'),
+        ]);
         exit;
     } catch (Throwable $err) {
         error_log('Pixelwar teacher challenge completions export error: ' . $err->getMessage());

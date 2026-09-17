@@ -56,7 +56,7 @@ unset($_SESSION['verification_errors'], $_SESSION['verification_notices']);
 
             <p class="mt-3 text-center text-sm text-arcade-ink/68">
                 Wrong account?
-                <a href="./?c=signup" class="font-bold text-arcade-orange no-underline hover:text-arcade-coral">Create again</a>
+                <button type="submit" form="verification-logout-form" class="border-0 bg-transparent p-0 font-bold text-arcade-orange transition hover:text-arcade-coral">Logout</button>
             </p>
 
             <?php if ($pendingEmail !== '') : ?>
@@ -75,6 +75,10 @@ unset($_SESSION['verification_errors'], $_SESSION['verification_notices']);
                     </div>
                 </details>
             <?php endif; ?>
+        </form>
+
+        <form id="verification-logout-form" class="hidden" action="./?c=logout" method="post">
+            <?= pixelwarCsrfField() ?>
         </form>
 
         <?php if ($pendingEmail !== '') : ?>

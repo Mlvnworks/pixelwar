@@ -183,9 +183,13 @@ foreach ($roomSessionPlayers as $roomSessionPlayer) {
                             <span>End Room</span>
                         </button>
                     <?php endif; ?>
-                    <a href="./?c=room-session&id=<?= (int) ($roomSessionRoom['room_id'] ?? 0) ?>&export=csv" class="teacher-button teacher-button--light gap-2">
-                        <i data-lucide="download" class="h-4 w-4" aria-hidden="true"></i>
-                        <span>Export CSV</span>
+                    <a href="./?c=room-session&id=<?= (int) ($roomSessionRoom['room_id'] ?? 0) ?>&export=csv" class="teacher-button teacher-button--light gap-2" aria-label="Export room records as CSV">
+                        <i data-lucide="file-spreadsheet" class="h-4 w-4" aria-hidden="true"></i>
+                        <span>CSV</span>
+                    </a>
+                    <a href="./?c=room-session&id=<?= (int) ($roomSessionRoom['room_id'] ?? 0) ?>&export=pdf" class="teacher-button teacher-button--light gap-2" aria-label="Export room records as PDF">
+                        <i data-lucide="file-text" class="h-4 w-4" aria-hidden="true"></i>
+                        <span>PDF</span>
                     </a>
                     <a href="./?c=room-view&id=<?= (int) ($roomSessionRoom['room_id'] ?? 0) ?>" class="teacher-button teacher-button--light gap-2">
                         <i data-lucide="arrow-left" class="h-4 w-4" aria-hidden="true"></i>
@@ -211,12 +215,27 @@ foreach ($roomSessionPlayers as $roomSessionPlayer) {
         </section>
 
         <section class="teacher-panel room-session-player-panel rounded-[26px] border-4 border-arcade-ink bg-arcade-panel p-4 shadow-[7px_7px_0_#26190f] md:p-5">
-            <div class="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+            <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
                 <div>
                     <p class="font-arcade text-[10px] uppercase tracking-[0.22em] text-arcade-cyan">Joined Players</p>
                     <h2 class="mt-2 text-2xl font-black">Player Records</h2>
                 </div>
-                <p id="room-session-record-count" class="text-sm font-bold text-arcade-ink/60"><?= (int) $roomSessionJoinedCount ?> record<?= $roomSessionJoinedCount === 1 ? '' : 's' ?></p>
+                <div class="flex flex-col gap-2 sm:items-end">
+                    <p id="room-session-record-count" class="text-sm font-bold text-arcade-ink/60"><?= (int) $roomSessionJoinedCount ?> record<?= $roomSessionJoinedCount === 1 ? '' : 's' ?></p>
+                    <label class="flex items-center gap-2 text-sm font-bold text-arcade-ink/70">
+                        <span class="shrink-0">Sort by</span>
+                        <select id="room-session-player-sort" class="min-w-0 rounded-xl border-2 border-arcade-ink/15 bg-white px-3 py-2 text-sm font-bold text-arcade-ink outline-none transition focus:border-arcade-orange">
+                            <option value="name-asc">Name (A-Z)</option>
+                            <option value="name-desc">Name (Z-A)</option>
+                            <option value="completed-desc">Completion date (newest)</option>
+                            <option value="completed-asc">Completion date (oldest)</option>
+                            <?php if ($strictModeEnabled) : ?>
+                                <option value="score-desc">Highest score</option>
+                            <?php endif; ?>
+                            <option value="duration-asc">Fastest</option>
+                        </select>
+                    </label>
+                </div>
             </div>
 
             <?php if ($roomSessionPlayers === []) : ?>
@@ -242,7 +261,11 @@ foreach ($roomSessionPlayers as $roomSessionPlayer) {
                     ?>
                     <article
                         class="room-session-card rounded-[22px] border-2 border-arcade-ink/12 bg-white p-4"
-                        data-room-player-user-id="<?= (int) ($roomSessionPlayer['user_id'] ?? 0) ?>">
+                        data-room-player-user-id="<?= (int) ($roomSessionPlayer['user_id'] ?? 0) ?>"
+                        data-player-name="<?= htmlspecialchars(strtolower($displayName), ENT_QUOTES, 'UTF-8') ?>"
+                        data-player-started-at="<?= htmlspecialchars((string) ($roomSessionPlayer['started_at'] ?? ''), ENT_QUOTES, 'UTF-8') ?>"
+                        data-player-completed-at="<?= htmlspecialchars((string) ($roomSessionPlayer['completed_at'] ?? ''), ENT_QUOTES, 'UTF-8') ?>"
+                        data-player-score="<?= (int) ($roomSessionPlayer['strict_mode_score'] ?? 0) ?>">
                         <div class="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
                             <div class="flex min-w-0 items-start gap-3">
                                 <span class="grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-2xl border-2 border-arcade-ink bg-arcade-yellow font-arcade text-[11px] text-arcade-ink">
@@ -450,6 +473,7 @@ foreach ($roomSessionPlayers as $roomSessionPlayer) {
         const pusherCluster = <?= json_encode($pusherEnabled ? (string) PUSHER_CLUSTER : '', JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?>;
         const strictModeEnabled = <?= $strictModeEnabled ? 'true' : 'false' ?>;
         const playerList = document.getElementById('room-session-player-list');
+        const playerSort = document.getElementById('room-session-player-sort');
         const emptyState = document.getElementById('room-session-empty-state');
         const recordCount = document.getElementById('room-session-record-count');
         const startedPill = document.getElementById('room-session-started-pill');
@@ -513,6 +537,57 @@ foreach ($roomSessionPlayers as $roomSessionPlayer) {
             }
 
             return renderStatus(statusLabel).label;
+        };
+
+        const timestampValue = (value) => {
+            const normalized = String(value || '').trim().replace(' ', 'T');
+            const timestamp = normalized ? new Date(normalized).getTime() : Number.NaN;
+            return Number.isNaN(timestamp) ? null : timestamp;
+        };
+
+        const completedDuration = (card) => {
+            const startedAt = timestampValue(card.dataset.playerStartedAt || '');
+            const completedAt = timestampValue(card.dataset.playerCompletedAt || '');
+            return startedAt !== null && completedAt !== null && completedAt >= startedAt
+                ? completedAt - startedAt
+                : null;
+        };
+
+        const sortPlayerCards = () => {
+            if (!playerList || !playerSort) {
+                return;
+            }
+
+            const cards = Array.from(playerList.querySelectorAll('[data-room-player-user-id]'));
+            const sortMode = playerSort.value;
+            const compareNullableNumbers = (left, right, direction = 1) => {
+                if (left === null && right === null) return 0;
+                if (left === null) return 1;
+                if (right === null) return -1;
+                return (left - right) * direction;
+            };
+            const byName = (left, right) => (left.dataset.playerName || '').localeCompare(right.dataset.playerName || '', undefined, { sensitivity: 'base' });
+
+            cards.sort((left, right) => {
+                let result = 0;
+                if (sortMode === 'name-desc') {
+                    result = -byName(left, right);
+                } else if (sortMode === 'completed-desc') {
+                    result = compareNullableNumbers(timestampValue(left.dataset.playerCompletedAt || ''), timestampValue(right.dataset.playerCompletedAt || ''), -1);
+                } else if (sortMode === 'completed-asc') {
+                    result = compareNullableNumbers(timestampValue(left.dataset.playerCompletedAt || ''), timestampValue(right.dataset.playerCompletedAt || ''));
+                } else if (sortMode === 'score-desc') {
+                    result = Number(right.dataset.playerScore || 0) - Number(left.dataset.playerScore || 0);
+                } else if (sortMode === 'duration-asc') {
+                    result = compareNullableNumbers(completedDuration(left), completedDuration(right));
+                } else {
+                    result = byName(left, right);
+                }
+
+                return result || byName(left, right);
+            });
+
+            cards.forEach((card) => playerList.appendChild(card));
         };
 
         const renderCountdown = () => {
@@ -618,6 +693,10 @@ foreach ($roomSessionPlayers as $roomSessionPlayer) {
             const article = document.createElement('article');
             article.className = 'room-session-card rounded-[22px] border-2 border-arcade-ink/12 bg-white p-4';
             article.setAttribute('data-room-player-user-id', String(payload.user_id || 0));
+            article.dataset.playerName = String(payload.name || payload.username || 'Student').toLowerCase();
+            article.dataset.playerStartedAt = String(payload.started_at || '');
+            article.dataset.playerCompletedAt = String(payload.completed_at || '');
+            article.dataset.playerScore = String(payload.strict_mode_score || 0);
             const initials = String(payload.initials || 'ST');
             const avatar = payload.avatar_url
                 ? `<img src="${payload.avatar_url}" alt="" class="h-full w-full object-cover">`
@@ -653,6 +732,7 @@ foreach ($roomSessionPlayers as $roomSessionPlayer) {
 
             playerList.appendChild(article);
             updateCount();
+            sortPlayerCards();
         };
 
         const upsertCard = (payload) => {
@@ -698,8 +778,14 @@ foreach ($roomSessionPlayers as $roomSessionPlayer) {
                 recordId.textContent = `#${payload.rp_id || 0}`;
             }
 
+            card.dataset.playerName = String(payload.name || name?.textContent || payload.username || 'Student').toLowerCase();
+            card.dataset.playerStartedAt = String(payload.started_at || card.dataset.playerStartedAt || '');
+            card.dataset.playerCompletedAt = String(payload.completed_at || card.dataset.playerCompletedAt || '');
+            card.dataset.playerScore = String(payload.strict_mode_score ?? card.dataset.playerScore ?? 0);
+
             applyStatus(card, payload.status_label || 'waiting', payload.started_at || '', payload.completed_at || '', payload.duration_label || '');
             updateCount();
+            sortPlayerCards();
         };
 
         const syncPresenceSnapshot = () => {
@@ -810,6 +896,8 @@ foreach ($roomSessionPlayers as $roomSessionPlayer) {
         }
 
         syncPresenceSnapshot();
+        playerSort?.addEventListener('change', sortPlayerCards);
+        sortPlayerCards();
         renderCountdown();
         window.setInterval(renderCountdown, 1000);
         window.setInterval(() => {

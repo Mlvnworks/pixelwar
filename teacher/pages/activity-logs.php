@@ -51,7 +51,7 @@ for ($dayIndex = 0; $dayIndex < $selectedRangeDays; $dayIndex++) {
                 <div class="flex flex-nowrap items-center gap-2">
                     <button type="button" class="teacher-button teacher-button--primary gap-2" data-bs-toggle="modal" data-bs-target="#teacher-activity-export-modal">
                         <i data-lucide="download" class="h-4 w-4" aria-hidden="true"></i>
-                        <span>Export CSV</span>
+                        <span>Export</span>
                     </button>
                     <a href="./?c=dashboard" class="teacher-button teacher-button--light gap-2">
                         <i data-lucide="arrow-left" class="h-4 w-4" aria-hidden="true"></i>
@@ -148,7 +148,6 @@ for ($dayIndex = 0; $dayIndex < $selectedRangeDays; $dayIndex++) {
     <div class="modal-dialog modal-dialog-centered">
         <form class="modal-content rounded-[28px] border-4 border-arcade-ink bg-arcade-panel p-0 text-arcade-ink shadow-[8px_8px_0_#26190f]" action="./" method="get">
             <input type="hidden" name="c" value="activity-logs">
-            <input type="hidden" name="export" value="csv">
             <div class="modal-header border-0 px-5 pb-2 pt-5">
                 <div>
                     <p class="font-arcade text-[10px] uppercase tracking-[0.24em] text-arcade-orange">Export Records</p>
@@ -157,7 +156,14 @@ for ($dayIndex = 0; $dayIndex < $selectedRangeDays; $dayIndex++) {
                 <button type="button" class="btn-close opacity-100" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body px-5 pb-5 pt-2">
-                <p class="text-sm font-semibold leading-6 text-arcade-ink/65">Export room and challenge creation records as CSV for the exact date range you choose.</p>
+                <p class="text-sm font-semibold leading-6 text-arcade-ink/65">Choose a file format and date range for room and challenge creation records.</p>
+                <label class="teacher-export-date-field mt-4">
+                    <span>File Format</span>
+                    <select name="export" required>
+                        <option value="csv">CSV spreadsheet</option>
+                        <option value="pdf">PDF document</option>
+                    </select>
+                </label>
                 <div class="mt-4 grid gap-3 sm:grid-cols-2">
                     <label class="teacher-export-date-field">
                         <span>Start Date</span>
@@ -170,7 +176,7 @@ for ($dayIndex = 0; $dayIndex < $selectedRangeDays; $dayIndex++) {
                 </div>
                 <div class="mt-5 flex justify-end gap-3">
                     <button type="button" class="rounded-xl border-2 border-arcade-ink/15 bg-white px-4 py-2 text-sm font-bold text-arcade-ink transition hover:bg-arcade-peach/60" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="rounded-xl border-2 border-arcade-ink bg-arcade-yellow px-5 py-2 text-sm font-bold text-arcade-ink shadow-[0_4px_0_#26190f] transition hover:-translate-y-0.5 hover:bg-arcade-orange hover:text-white">Export CSV</button>
+                    <button type="submit" class="rounded-xl border-2 border-arcade-ink bg-arcade-yellow px-5 py-2 text-sm font-bold text-arcade-ink shadow-[0_4px_0_#26190f] transition hover:-translate-y-0.5 hover:bg-arcade-orange hover:text-white">Download</button>
                 </div>
             </div>
         </form>

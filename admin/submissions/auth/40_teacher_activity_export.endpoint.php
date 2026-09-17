@@ -3,9 +3,10 @@ if (
     $adminRequestMethod === 'GET'
     && $adminRequestedPage === 'teacher-activity'
     && isset($_GET['export'])
-    && (string) $_GET['export'] === 'csv'
+    && DataExporter::isSupported((string) $_GET['export'])
 ) {
     try {
+        $exportFormat = strtolower((string) $_GET['export']);
         $teacherId = max(0, (int) ($_GET['id'] ?? 0));
         if ($teacherId <= 0) {
             throw new RuntimeException('A valid teacher is required before exporting records.');
@@ -91,8 +92,14 @@ if (
             static fn(array $left, array $right): int => strcmp((string) ($right['created_at'] ?? ''), (string) ($left['created_at'] ?? ''))
         );
 
+        $teacherName = trim((string) ($teacherProfile['firstname'] ?? '') . ' ' . (string) ($teacherProfile['lastname'] ?? ''))
+            ?: (trim((string) ($teacherProfile['username'] ?? 'Teacher')) ?: 'Teacher');
+        $teacherFilePart = trim((string) preg_replace('/[^a-z0-9]+/i', '-', strtolower($teacherName)), '-') ?: 'teacher';
+
         $fileName = sprintf(
-            'teacher-activity-%s-%s-to-%s.csv',
+            'teacher-%d-%s-%s-activity-%s-to-%s.csv',
+            $teacherId,
+            $teacherFilePart,
             $exportType,
             $exportStartDate->format('Y-m-d'),
             $exportEndDate->format('Y-m-d')
@@ -102,13 +109,7 @@ if (
             ob_clean();
         }
 
-        header('Content-Type: text/csv; charset=UTF-8');
-        header('Content-Disposition: attachment; filename="' . $fileName . '"');
-        $output = fopen('php://output', 'wb');
-
-        if (!is_resource($output)) {
-            throw new RuntimeException('Could not create the export file.');
-        }
+        $output = DataExporter::open($exportFormat, $fileName);
 
         fputcsv($output, ['Type', 'Name', 'Details', 'Created At'], ',', '"', '\\');
 
@@ -121,7 +122,12 @@ if (
             ], ',', '"', '\\');
         }
 
-        fclose($output);
+        DataExporter::finish($output, $exportFormat, $fileName, 'Teacher Activity History', [
+            'Teacher' => $teacherName,
+            'User ID' => $teacherId,
+            'Record Type' => ucfirst($exportType),
+            'Period' => $exportStartDate->format('M j, Y') . ' - ' . $exportEndDate->format('M j, Y'),
+        ]);
         exit;
     } catch (Throwable $err) {
         error_log('Pixelwar admin teacher activity export error: ' . $err->getMessage());

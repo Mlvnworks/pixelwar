@@ -3,9 +3,10 @@ if (
     $adminRequestMethod === 'GET'
     && $adminRequestedPage === 'student-submissions'
     && isset($_GET['export'])
-    && (string) $_GET['export'] === 'csv'
+    && DataExporter::isSupported((string) $_GET['export'])
 ) {
     try {
+        $exportFormat = strtolower((string) $_GET['export']);
         $studentId = max(0, (int) ($_GET['id'] ?? 0));
 
         if ($studentId <= 0) {
@@ -71,9 +72,13 @@ if (
         };
 
         $exportRows = $repository->listAttemptHistoryByDateRange($studentId, $exportStartDate, $exportEndDate, 2000);
+        $studentName = trim((string) ($studentProfile['firstname'] ?? '') . ' ' . (string) ($studentProfile['lastname'] ?? ''))
+            ?: (trim((string) ($studentProfile['username'] ?? 'Student')) ?: 'Student');
+        $studentFilePart = trim((string) preg_replace('/[^a-z0-9]+/i', '-', strtolower($studentName)), '-') ?: 'student';
         $fileName = sprintf(
-            'student-submissions-%d-%s-to-%s.csv',
+            'student-%d-%s-submissions-%s-to-%s.csv',
             $studentId,
+            $studentFilePart,
             $exportStartDate->format('Y-m-d'),
             $exportEndDate->format('Y-m-d')
         );
@@ -82,15 +87,9 @@ if (
             ob_clean();
         }
 
-        header('Content-Type: text/csv; charset=UTF-8');
-        header('Content-Disposition: attachment; filename="' . $fileName . '"');
-        $output = fopen('php://output', 'wb');
+        $output = DataExporter::open($exportFormat, $fileName);
 
-        if (!is_resource($output)) {
-            throw new RuntimeException('Could not create the export file.');
-        }
-
-        fputcsv($output, ['Challenge', 'Status', 'Difficulty', 'Started At', 'Completed At', 'Duration', 'Awarded Points'], ',', '"', '\\');
+        fputcsv($output, ['Challenge ID', 'Challenge', 'Status', 'Difficulty', 'Started At', 'Completed At', 'Duration', 'Awarded Points'], ',', '"', '\\');
 
         foreach ($exportRows as $exportRow) {
             $startedAt = new DateTimeImmutable((string) $exportRow['started_at']);
@@ -106,6 +105,7 @@ if (
                 : ($attemptStatus === 'gave_up' ? 'Gave Up' : 'Ongoing');
 
             fputcsv($output, [
+                (int) ($exportRow['challenge_id'] ?? 0),
                 (string) ($exportRow['name'] ?? ''),
                 $statusLabel,
                 ucfirst(strtolower((string) ($exportRow['difficulty_name'] ?? 'Unknown'))),
@@ -116,7 +116,11 @@ if (
             ], ',', '"', '\\');
         }
 
-        fclose($output);
+        DataExporter::finish($output, $exportFormat, $fileName, 'Student Submission History', [
+            'Student' => $studentName,
+            'User ID' => $studentId,
+            'Period' => $exportStartDate->format('M j, Y') . ' - ' . $exportEndDate->format('M j, Y'),
+        ]);
         exit;
     } catch (Throwable $err) {
         error_log('Pixelwar admin student submissions export error: ' . $err->getMessage());

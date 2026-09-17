@@ -206,7 +206,7 @@ $teacherActivityBuildQuery = static function (array $overrides = []) use ($teach
                             <span class="teacher-pill bg-white"><?= (int) $teacherRoomTotal ?> rooms</span>
                             <button type="button" class="teacher-button teacher-button--primary gap-2" data-bs-toggle="modal" data-bs-target="#admin-teacher-activity-export-modal">
                                 <i data-lucide="download" class="h-4 w-4" aria-hidden="true"></i>
-                                <span>Export CSV</span>
+                                <span>Export</span>
                             </button>
                         </div>
                     </div>
@@ -328,16 +328,22 @@ $teacherActivityBuildQuery = static function (array $overrides = []) use ($teach
             <form method="get" action="./">
                 <input type="hidden" name="c" value="teacher-activity">
                 <input type="hidden" name="id" value="<?= (int) $teacherActivityId ?>">
-                <input type="hidden" name="export" value="csv">
                 <div class="modal-header border-0 px-5 pt-5 pb-0">
                     <div>
-                        <p class="text-sm font-semibold uppercase tracking-[0.08em] text-arcade-ink/60">Export CSV</p>
+                        <p class="text-sm font-semibold uppercase tracking-[0.08em] text-arcade-ink/60">Export Records</p>
                         <h2 class="modal-title mt-2 text-2xl font-bold" id="admin-teacher-activity-export-modal-title">Choose date range</h2>
                     </div>
                     <button type="button" class="btn-close opacity-100" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body px-5 py-4">
                     <div class="grid gap-3">
+                        <label class="admin-export-field">
+                            <span class="admin-activity-filter-label">File Format</span>
+                            <select class="admin-activity-filter-input" name="export" required>
+                                <option value="csv">CSV spreadsheet</option>
+                                <option value="pdf">PDF document</option>
+                            </select>
+                        </label>
                         <label class="admin-export-field">
                             <span class="admin-activity-filter-label">Type</span>
                             <select class="admin-activity-filter-input" name="export_type">
