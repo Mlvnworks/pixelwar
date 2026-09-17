@@ -213,7 +213,7 @@ $pvpResultMessage = $pvpNotice === 'win'
                 <div>
                     <h1 class="home-welcome-title text-3xl font-bold leading-tight md:text-5xl">
                         Hello, <span
-                            class="home-welcome-name"><?= htmlspecialchars($username, ENT_QUOTES, 'UTF-8') ?></span>
+                            class="home-welcome-name"><?= htmlspecialchars(strtoupper($username), ENT_QUOTES, 'UTF-8') ?></span>
                     </h1>
                 </div>
                 <div class="home-hero-actions flex flex-nowrap items-center gap-2 py-1">

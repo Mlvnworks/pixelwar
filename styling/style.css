@@ -268,3 +268,89 @@ body.pixelwar-dark-mode .challenge-difficulty--hard {
     background: rgba(249, 115, 115, 0.22) !important;
     color: #ffb1b1 !important;
 }
+
+.password-field-shell {
+    position: relative;
+    display: block;
+    width: 100%;
+    min-width: 0;
+}
+
+.password-field-shell > input {
+    width: 100% !important;
+    margin-top: 0 !important;
+    padding-right: 3rem !important;
+}
+
+.password-visibility-toggle {
+    position: absolute;
+    top: 50%;
+    right: 0.45rem;
+    z-index: 2;
+    display: inline-grid;
+    width: 2.15rem;
+    height: 2.15rem;
+    padding: 0;
+    place-items: center;
+    transform: translateY(-50%);
+    border: 1px solid transparent;
+    border-radius: 0.65rem;
+    background: transparent;
+    color: rgba(38, 25, 15, 0.62);
+    cursor: pointer;
+    transition: color 160ms ease, background-color 160ms ease, border-color 160ms ease, transform 160ms ease;
+}
+
+.password-visibility-toggle svg {
+    width: 1.15rem;
+    height: 1.15rem;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    pointer-events: none;
+}
+
+.password-visibility-toggle:hover {
+    border-color: rgba(38, 25, 15, 0.12);
+    background: rgba(255, 209, 102, 0.36);
+    color: #26190f;
+}
+
+.password-visibility-toggle:focus-visible {
+    outline: 3px solid rgba(255, 140, 66, 0.35);
+    outline-offset: 1px;
+}
+
+.password-visibility-toggle:active {
+    transform: translateY(-50%) scale(0.94);
+}
+
+.password-field-shell > input:disabled + .password-visibility-toggle {
+    cursor: not-allowed;
+    opacity: 0.45;
+}
+
+body.pixelwar-dark-mode .password-visibility-toggle {
+    color: rgba(255, 247, 232, 0.68);
+}
+
+body.pixelwar-dark-mode .password-visibility-toggle:hover {
+    border-color: rgba(255, 247, 232, 0.2);
+    background: rgba(255, 209, 102, 0.16);
+    color: #fff7e8;
+}
+
+@media (max-width: 640px) {
+    .password-visibility-toggle {
+        right: 0.35rem;
+        width: 2.25rem;
+        height: 2.25rem;
+    }
+
+    .password-visibility-toggle svg {
+        width: 1.2rem;
+        height: 1.2rem;
+    }
+}

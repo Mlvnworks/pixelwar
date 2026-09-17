@@ -69,7 +69,7 @@ $completedRooms = count(array_filter($teacherRooms, static fn(array $room): bool
                                             <?= $roomIsOpen ? 'Open' : 'Closed' ?>
                                         </span>
                                         <span class="teacher-pill <?= $strictModeEnabled ? 'bg-arcade-coral/25' : 'bg-arcade-cyan/25' ?>">
-                                            <?= $strictModeEnabled ? 'Strict' : 'Normal' ?>
+                                            <?= $strictModeEnabled ? 'Strict mode' : 'Practice mode' ?>
                                         </span>
                                         <span class="teacher-pill bg-arcade-yellow">
                                             <?= (int) ($room['timer_limit'] ?? 0) ?> min

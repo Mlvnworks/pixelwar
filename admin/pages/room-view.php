@@ -179,7 +179,7 @@ $adminRoomViewBuildQuery = static function (array $overrides = []) use ($adminRo
                         <div class="mt-3 flex flex-wrap gap-2">
                             <span class="teacher-pill bg-white"><?= htmlspecialchars($roomCode, ENT_QUOTES, 'UTF-8') ?></span>
                             <span class="teacher-pill <?= $roomIsOpen ? 'bg-arcade-mint/40' : 'bg-arcade-coral/25' ?>"><?= $roomIsOpen ? 'Open' : 'Closed' ?></span>
-                            <span class="teacher-pill <?= $strictModeEnabled ? 'bg-arcade-coral/25' : 'bg-arcade-cyan/25' ?>"><?= $strictModeEnabled ? 'Strict' : 'Normal' ?></span>
+                            <span class="teacher-pill <?= $strictModeEnabled ? 'bg-arcade-coral/25' : 'bg-arcade-cyan/25' ?>"><?= $strictModeEnabled ? 'Strict mode' : 'Practice mode' ?></span>
                         </div>
                     </div>
                 <div class="admin-room-view-hero__actions">
@@ -205,7 +205,7 @@ $adminRoomViewBuildQuery = static function (array $overrides = []) use ($adminRo
                     </article>
                     <article class="admin-room-view-stat-card">
                         <small>Mode</small>
-                        <strong><?= $strictModeEnabled ? 'Strict' : 'Normal' ?></strong>
+                        <strong><?= $strictModeEnabled ? 'Strict mode' : 'Practice mode' ?></strong>
                     </article>
                     <article class="admin-room-view-stat-card">
                         <small>Created</small>

@@ -104,7 +104,7 @@ if ($isRealRoom) {
         'title' => (string) ($roomRecord['challenge_name'] ?? 'Challenge'),
         'objective' => (string) ($roomRecord['challenge_instruction'] ?? ''),
         'author' => trim((string) ($roomRecord['teacher_firstname'] ?? '') . ' ' . (string) ($roomRecord['teacher_lastname'] ?? '')) ?: (string) ($roomRecord['teacher_username'] ?? 'Teacher'),
-        'focus' => (int) ($roomRecord['strict_mode'] ?? 0) === 1 ? 'Strict mode' : 'Standard mode',
+        'focus' => (int) ($roomRecord['strict_mode'] ?? 0) === 1 ? 'Strict mode' : 'Practice mode',
         'estimate' => (int) ($roomRecord['timer_limit'] ?? 0) > 0 ? ((int) ($roomRecord['timer_limit'] ?? 0)) . ' min timer' : 'No timer',
         'reward' => $challengePoints . ' pts',
         'level' => $challengeDifficulty,

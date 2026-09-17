@@ -79,6 +79,7 @@ $globalVersusInviteEnabled = isset($_SESSION['user_id'])
     <?php endif; ?>
     <link rel="stylesheet" href="./styling/theme.css">
     <link rel="stylesheet" href="./styling/responsive.css">
+    <script src="./assets/js/password-toggle.js" defer></script>
 
     <link rel="shortcut icon" href="./assets/img/icon.png" type="image/x-icon">
     <title><?= htmlspecialchars($appName, ENT_QUOTES, 'UTF-8') ?></title>

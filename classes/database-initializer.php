@@ -162,19 +162,6 @@ final class DatabaseInitializer
                 CONSTRAINT `challenges_user_id_foreign` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`),
                 CONSTRAINT `challenges_difficulty_id_foreign` FOREIGN KEY (`difficulty_id`) REFERENCES `difficulties` (`difficulty_id`)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci',
-            'CREATE TABLE IF NOT EXISTS `comments` (
-                `comment_id` INT NOT NULL AUTO_INCREMENT,
-                `user_id` INT NOT NULL,
-                `challenge_id` INT NOT NULL,
-                `comment` VARCHAR(1000) NOT NULL,
-                `date_created` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                PRIMARY KEY (`comment_id`),
-                KEY `comments_user_id_index` (`user_id`),
-                KEY `comments_challenge_id_index` (`challenge_id`),
-                KEY `comments_date_created_index` (`date_created`),
-                CONSTRAINT `comments_user_id_foreign` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`),
-                CONSTRAINT `comments_challenge_id_foreign` FOREIGN KEY (`challenge_id`) REFERENCES `challenges` (`challenge_id`)
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci',
             'CREATE TABLE IF NOT EXISTS `notifications` (
                 `notif_id` INT NOT NULL AUTO_INCREMENT,
                 `user_id` INT NOT NULL,

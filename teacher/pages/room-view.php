@@ -59,7 +59,7 @@ $formatTimestamp = static function (?string $value): string {
                                 <?= $roomIsOpen ? 'Open' : 'Closed' ?>
                             </span>
                             <span class="teacher-pill <?= $strictModeEnabled ? 'bg-arcade-coral/25' : 'bg-arcade-cyan/25' ?>">
-                                <?= $strictModeEnabled ? 'Strict' : 'Normal' ?>
+                                <?= $strictModeEnabled ? 'Strict mode' : 'Practice mode' ?>
                             </span>
                         </div>
                         <?php if ($roomDescription !== '') : ?>
@@ -115,7 +115,7 @@ $formatTimestamp = static function (?string $value): string {
                             </span>
                             <span>
                                 <small>Mode</small>
-                                <strong><?= $strictModeEnabled ? 'Strict' : 'Normal' ?></strong>
+                                <strong><?= $strictModeEnabled ? 'Strict mode' : 'Practice mode' ?></strong>
                             </span>
                             <span>
                                 <small>State</small>

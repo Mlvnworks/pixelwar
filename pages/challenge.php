@@ -4,7 +4,6 @@ require_once __DIR__ . '/../classes/challenge-catalog.php';
 $challengeId = (int) ($_GET['id'] ?? 0);
 $challengeSlug = isset($_GET['slug']) ? trim((string) $_GET['slug']) : '';
 $currentStudentId = (int) ($_SESSION['user_id'] ?? 0);
-$challengeCommentsShouldOpen = isset($_GET['comments']);
 $dbChallenge = $challengeId > 0 && $challengeRepository instanceof ChallengeRepository
     ? $challengeRepository->findCreatedChallenge($challengeId)
     : null;
@@ -67,41 +66,6 @@ if ($isDatabaseChallenge) {
         'isCompleted' => isset($completedChallengeLookup[(int) $dbChallenge['challenge_id']]),
     ];
     $challengeStartUrl = './?c=pixelwar&intro=1&challenge_id=' . (int) $challenge['id'];
-    $comments = [];
-
-    if (isset($connection) && $connection instanceof mysqli) {
-        $commentStatement = $connection->prepare(
-            'SELECT
-                comments.comment_id,
-                comments.comment,
-                comments.date_created,
-                users.username,
-                user_details.firstname,
-                user_details.lastname
-             FROM comments
-             INNER JOIN users ON users.user_id = comments.user_id
-             LEFT JOIN user_details ON user_details.user_id = users.user_id
-             WHERE comments.challenge_id = ?
-             ORDER BY comments.date_created DESC, comments.comment_id DESC'
-        );
-        $commentChallengeId = (int) $challenge['id'];
-        $commentStatement->bind_param('i', $commentChallengeId);
-        $commentStatement->execute();
-        $commentRows = $commentStatement->get_result()->fetch_all(MYSQLI_ASSOC);
-        $commentStatement->close();
-
-        foreach ($commentRows as $commentRow) {
-            $commentFirstname = trim((string) ($commentRow['firstname'] ?? ''));
-            $commentLastname = trim((string) ($commentRow['lastname'] ?? ''));
-            $commentFullName = trim($commentFirstname . ' ' . $commentLastname);
-            $commentTimestamp = strtotime((string) ($commentRow['date_created'] ?? ''));
-            $comments[] = [
-                'player' => $commentFullName !== '' ? $commentFullName : (string) ($commentRow['username'] ?? 'Player'),
-                'posted' => $commentTimestamp > 0 ? date('M j, Y g:i A', $commentTimestamp) : 'Recently',
-                'body' => (string) ($commentRow['comment'] ?? ''),
-            ];
-        }
-    }
 
     $moreChallengeRows = $challengeRepository instanceof ChallengeRepository
         ? array_filter($challengeRepository->listLatestPublicCreated(6), static fn (array $row): bool => (int) $row['challenge_id'] !== (int) $challenge['id'])
@@ -128,7 +92,6 @@ if ($isDatabaseChallenge) {
         $challenge['authorAvatarUrl'] = '';
         $challenge['authorInitials'] = strtoupper(substr(preg_replace('/[^a-z0-9]+/i', '', (string) ($challenge['author'] ?? 'TR')) ?: 'TR', 0, 2));
         $challengeStartUrl = './?c=pixelwar&intro=1&challenge=' . urlencode($challenge['slug']);
-        $comments = $challenge['comments'];
         $moreChallenges = array_map(static function (array $catalogItem): array {
             return [
                 'title' => $catalogItem['title'],
@@ -146,7 +109,6 @@ if ($isDatabaseChallenge) {
     } else {
         $challenge = null;
         $challengeStartUrl = './?c=challenges';
-        $comments = [];
         $moreChallenges = [];
     }
 }
@@ -251,12 +213,6 @@ HTML;
                         <button id="preview-toggle" type="button" class="challenge-preview-toggle inline-flex w-full justify-center rounded-xl border-2 border-arcade-ink bg-arcade-cyan px-4 py-3 text-sm font-bold text-arcade-ink shadow-[0_4px_0_#26190f] transition hover:-translate-y-0.5 hover:bg-arcade-yellow" data-bs-toggle="modal" data-bs-target="#challenge-preview-modal">
                             <span>Preview</span>
                         </button>
-                        <button id="comments-toggle" type="button" class="relative inline-flex w-full justify-center rounded-xl border-2 border-arcade-ink bg-white px-4 py-3 text-sm font-bold text-arcade-ink shadow-[0_4px_0_#26190f] transition hover:-translate-y-0.5 hover:bg-arcade-yellow sm:w-auto sm:min-w-[8.5rem]" aria-expanded="false" aria-controls="challenge-comments-section">
-                            <span data-comments-toggle-label>Comments</span>
-                            <span class="comments-count-badge absolute -right-2 -top-2 grid h-6 min-w-6 place-items-center rounded-full border-2 border-arcade-ink bg-arcade-yellow px-1 text-[10px] font-extrabold text-arcade-ink">
-                                <?= count($comments) ?>
-                            </span>
-                        </button>
                         <a href="<?= htmlspecialchars($challengeStartUrl, ENT_QUOTES, 'UTF-8') ?>" class="inline-flex w-full justify-center rounded-xl border-2 border-arcade-ink bg-arcade-orange px-6 py-3 text-sm font-bold text-white no-underline shadow-[0_4px_0_#26190f] transition hover:-translate-y-0.5 hover:bg-arcade-yellow hover:text-arcade-ink sm:flex-1">
                             <?= !empty($challenge['isCompleted']) ? 'Train Again' : 'Start Challenge' ?>
                         </a>
@@ -294,57 +250,6 @@ HTML;
                 </section>
             </div>
 
-            <section id="challenge-comments-section" class="mt-7 rounded-[24px] border-2 border-arcade-ink/15 bg-white/75 p-5 shadow-[0_10px_30px_rgba(38,25,15,0.12)]" tabindex="-1" hidden>
-                <div class="flex flex-wrap items-end justify-between gap-3">
-                    <div>
-                        <p class="font-arcade text-[10px] uppercase tracking-[0.24em] text-arcade-orange">Discussion</p>
-                        <h2 class="mt-2 text-2xl font-bold">Player Comments</h2>
-                    </div>
-                    <span class="rounded-full bg-arcade-yellow px-3 py-1 text-xs font-bold text-arcade-ink"><?= count($comments) ?> posts</span>
-                </div>
-
-                <?php if ($isDatabaseChallenge && $currentStudentId > 0) : ?>
-                    <form class="mt-4 rounded-2xl border-2 border-arcade-ink/15 bg-arcade-cream/80 p-4" method="post" action="./?c=challenge&id=<?= (int) $challenge['id'] ?>&comments=1" data-comment-form>
-                        <?= pixelwarCsrfField() ?>
-                        <input type="hidden" name="comment_action" value="create">
-                        <input type="hidden" name="challenge_id" value="<?= (int) $challenge['id'] ?>">
-                        <label class="text-sm font-bold" for="challenge-comment">Post a comment</label>
-                        <textarea id="challenge-comment" name="comment" maxlength="1000" required class="mt-2 min-h-24 w-full rounded-xl bg-white px-3 py-2 text-sm outline-none transition focus:ring-4 focus:ring-arcade-orange/20" placeholder="Share a tip, question, or note about this challenge."></textarea>
-                        <button type="submit" class="mt-3 inline-flex items-center gap-2 rounded-xl border-2 border-arcade-ink bg-arcade-yellow px-4 py-2 text-sm font-bold text-arcade-ink shadow-[0_3px_0_#26190f] transition hover:-translate-y-0.5 hover:bg-arcade-orange hover:text-white disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:translate-y-0" data-comment-submit>
-                            <span class="comment-submit__spinner hidden h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" aria-hidden="true"></span>
-                            <span data-comment-submit-label>Post Comment</span>
-                        </button>
-                    </form>
-                <?php elseif ($isDatabaseChallenge) : ?>
-                    <div class="mt-4 rounded-2xl border-2 border-arcade-ink/15 bg-arcade-cream/80 p-4 text-sm font-bold leading-6 text-arcade-ink/65">
-                        Log in as a player to post a comment.
-                    </div>
-                <?php endif; ?>
-
-                <div class="mt-4 grid gap-3 md:grid-cols-2" data-comment-list>
-                    <?php if ($comments === []) : ?>
-                        <article class="rounded-2xl border-2 border-dashed border-arcade-ink/20 bg-arcade-panel/70 p-4 text-sm font-bold leading-6 text-arcade-ink/60" data-comment-row>
-                            No comments yet. Start the discussion for this challenge.
-                        </article>
-                    <?php else : ?>
-                        <?php foreach ($comments as $commentIndex => $comment) : ?>
-                            <article class="challenge-comment rounded-2xl border-2 border-arcade-ink/15 bg-arcade-panel p-4" data-comment-row data-comment-index="<?= (int) $commentIndex ?>">
-                                <div class="flex flex-wrap items-center justify-between gap-2">
-                                    <p class="font-bold"><?= htmlspecialchars($comment['player'], ENT_QUOTES, 'UTF-8') ?></p>
-                                    <p class="text-xs font-bold uppercase tracking-[0.16em] text-arcade-ink/50"><?= htmlspecialchars($comment['posted'], ENT_QUOTES, 'UTF-8') ?></p>
-                                </div>
-                                <p class="mt-2 text-sm leading-6 text-arcade-ink/70"><?= htmlspecialchars($comment['body'], ENT_QUOTES, 'UTF-8') ?></p>
-                            </article>
-                        <?php endforeach; ?>
-                    <?php endif; ?>
-                </div>
-
-                <div class="mt-4 flex items-center justify-between gap-3">
-                    <button id="comments-prev" type="button" class="rounded-xl bg-white px-3 py-1.5 text-xs font-bold transition hover:bg-arcade-yellow/50">Prev</button>
-                    <span id="comments-page-status" class="text-xs font-bold text-arcade-ink/60"></span>
-                    <button id="comments-next" type="button" class="rounded-xl bg-white px-3 py-1.5 text-xs font-bold transition hover:bg-arcade-yellow/50">Next</button>
-                </div>
-            </section>
         </article>
 
         <section class="challenge-more-section mt-6">
@@ -418,25 +323,9 @@ HTML;
 
 <script>
 (() => {
-    const rows = Array.from(document.querySelectorAll('[data-comment-row]'));
-    const previousButton = document.getElementById('comments-prev');
-    const nextButton = document.getElementById('comments-next');
-    const pageStatus = document.getElementById('comments-page-status');
-    const commentsToggle = document.getElementById('comments-toggle');
-    const commentsToggleLabel = commentsToggle?.querySelector('[data-comments-toggle-label]');
-    const commentsSection = document.getElementById('challenge-comments-section');
-    const commentForm = document.querySelector('[data-comment-form]');
-    const commentSubmit = document.querySelector('[data-comment-submit]');
-    const commentSubmitSpinner = commentSubmit?.querySelector('.comment-submit__spinner');
-    const commentSubmitLabel = commentSubmit?.querySelector('[data-comment-submit-label]');
     const previewFrames = Array.from(document.querySelectorAll('.challenge-preview-frame'));
     const sourcePreviewFrames = Array.from(document.querySelectorAll('.challenge-preview-frame[data-html-source][data-css-source]'));
     const previewModal = document.getElementById('challenge-preview-modal');
-    const mobileQuery = window.matchMedia('(max-width: 768px)');
-    const shouldOpenComments = <?= $challengeCommentsShouldOpen ? 'true' : 'false' ?>;
-    const pageSize = 2;
-    let currentPage = 1;
-    const totalPages = Math.max(1, Math.ceil(rows.length / pageSize));
 
     const hidePreviewLoader = (frame) => {
         const loader = frame.closest('.challenge-preview-frame-shell')?.querySelector('[data-preview-loader]');
@@ -627,73 +516,6 @@ ${css}
             .forEach((frame) => hidePreviewLoader(frame));
     });
 
-    const renderPage = () => {
-        const start = (currentPage - 1) * pageSize;
-        const end = start + pageSize;
-
-        rows.forEach((row, index) => {
-            row.hidden = index < start || index >= end;
-        });
-
-        if (pageStatus) {
-            pageStatus.textContent = `Page ${currentPage} of ${totalPages}`;
-        }
-
-        if (previousButton) {
-            previousButton.disabled = currentPage === 1;
-        }
-
-        if (nextButton) {
-            nextButton.disabled = currentPage === totalPages;
-        }
-    };
-
-    previousButton?.addEventListener('click', () => {
-        currentPage = Math.max(1, currentPage - 1);
-        renderPage();
-    });
-
-    nextButton?.addEventListener('click', () => {
-        currentPage = Math.min(totalPages, currentPage + 1);
-        renderPage();
-    });
-
-    commentsToggle?.addEventListener('click', () => {
-        if (!commentsSection) {
-            return;
-        }
-
-        const isOpening = commentsSection.hidden;
-        commentsSection.hidden = !isOpening;
-        commentsToggle.setAttribute('aria-expanded', isOpening ? 'true' : 'false');
-
-        if (commentsToggleLabel) {
-            commentsToggleLabel.textContent = isOpening ? 'Hide Comments' : 'Comments';
-        }
-
-        if (isOpening && mobileQuery.matches) {
-            requestAnimationFrame(() => {
-                commentsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                commentsSection.focus({ preventScroll: true });
-            });
-        }
-    });
-
-    commentForm?.addEventListener('submit', () => {
-        if (!commentSubmit || !commentSubmitSpinner || !commentSubmitLabel) {
-            return;
-        }
-
-        commentSubmit.disabled = true;
-        commentSubmitSpinner.classList.remove('hidden');
-        commentSubmitLabel.textContent = 'Posting...';
-        commentSubmit.setAttribute('aria-busy', 'true');
-    });
-
-    if (shouldOpenComments && commentsToggle && commentsSection?.hidden) {
-        commentsToggle.click();
-    }
-
     const resizePreview = () => previewFrames.forEach((frame) => fitPreviewFrame(frame));
 
     if (previewFrames.length > 0 && 'ResizeObserver' in window) {
@@ -704,7 +526,6 @@ ${css}
     previewModal?.addEventListener('shown.bs.modal', () => requestAnimationFrame(resizePreview));
     window.addEventListener('resize', resizePreview);
     resizePreview();
-    renderPage();
 })();
 </script>
 <?php endif; ?>

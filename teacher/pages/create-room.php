@@ -139,18 +139,36 @@ $strictModeValue = (int) ($roomOld['strict_mode'] ?? $defaultStrictMode);
                                 <textarea id="room-description" name="room_description" rows="7" maxlength="255" placeholder="Describe the room focus, team reminders, or any warm-up instructions." required><?= htmlspecialchars($roomDescriptionValue, ENT_QUOTES, 'UTF-8') ?></textarea>
                             </label>
 
-                            <div class="grid gap-4 sm:grid-cols-2">
-                                <label class="create-room-field">
-                                    <span>Timer Limit (minutes)</span>
-                                    <input id="room-timer-limit" type="number" name="timer_limit" min="0" value="<?= htmlspecialchars($timerLimitValue, ENT_QUOTES, 'UTF-8') ?>" required>
-                                </label>
+                            <div class="grid gap-4">
+                                <fieldset class="create-room-field create-room-timer-field">
+                                    <legend>Timer Limit</legend>
+                                    <div class="create-room-timer-presets" aria-label="Quick timer choices">
+                                        <button type="button" data-timer-minutes="0">No timer</button>
+                                        <button type="button" data-timer-minutes="10">10 min</button>
+                                        <button type="button" data-timer-minutes="20">20 min</button>
+                                        <button type="button" data-timer-minutes="30">30 min</button>
+                                        <button type="button" data-timer-minutes="60">1 hour</button>
+                                    </div>
+                                    <label class="create-room-timer-custom" for="room-timer-limit">
+                                        <span>Custom minutes</span>
+                                        <div class="create-room-timer-input">
+                                            <input id="room-timer-limit" type="number" name="timer_limit" min="0" step="1" inputmode="numeric" value="<?= htmlspecialchars($timerLimitValue, ENT_QUOTES, 'UTF-8') ?>" placeholder="Enter minutes" required>
+                                            <span aria-hidden="true">min</span>
+                                        </div>
+                                    </label>
+                                </fieldset>
 
                                 <label class="create-room-field">
-                                    <span>Strict Mode</span>
+                                    <span>Room Mode</span>
                                     <select id="room-strict-mode" name="strict_mode" required>
-                                        <option value="0" <?= $strictModeValue === 0 ? 'selected' : '' ?>>Normal</option>
-                                        <option value="1" <?= $strictModeValue === 1 ? 'selected' : '' ?>>Strict</option>
+                                        <option value="0" <?= $strictModeValue === 0 ? 'selected' : '' ?>>Practice mode</option>
+                                        <option value="1" <?= $strictModeValue === 1 ? 'selected' : '' ?>>Strict mode</option>
                                     </select>
+                                    <small id="room-mode-description" class="create-room-mode-description">
+                                        <?= $strictModeValue === 1
+                                            ? 'Players receive no live error feedback and submit once for a final score.'
+                                            : 'Players receive live feedback while matching the challenge design.' ?>
+                                    </small>
                                 </label>
                             </div>
                         </div>
@@ -181,7 +199,7 @@ $strictModeValue = (int) ($roomOld['strict_mode'] ?? $defaultStrictMode);
                                 <span class="create-room-pill create-room-pill--host">
                                     Host: <?= htmlspecialchars($teacherName, ENT_QUOTES, 'UTF-8') ?>
                                 </span>
-                                <span id="room-preview-mode" class="create-room-pill">Normal mode</span>
+                                <span id="room-preview-mode" class="create-room-pill">Practice mode</span>
                                 <span id="room-preview-timer" class="create-room-pill">No timer</span>
                             </div>
 
@@ -291,7 +309,9 @@ $strictModeValue = (int) ($roomOld['strict_mode'] ?? $defaultStrictMode);
                 const roomNameInput = document.getElementById('room-name');
                 const roomDescriptionInput = document.getElementById('room-description');
                 const timerLimitInput = document.getElementById('room-timer-limit');
+                const timerPresetButtons = Array.from(document.querySelectorAll('[data-timer-minutes]'));
                 const strictModeInput = document.getElementById('room-strict-mode');
+                const roomModeDescription = document.getElementById('room-mode-description');
                 const roomPreviewName = document.getElementById('room-preview-name');
                 const roomPreviewDescription = document.getElementById('room-preview-description');
                 const roomPreviewMode = document.getElementById('room-preview-mode');
@@ -311,6 +331,30 @@ $strictModeValue = (int) ($roomOld['strict_mode'] ?? $defaultStrictMode);
                 const previewLoader = document.getElementById('room-preview-loader');
                 const modalPreviewLoader = document.getElementById('room-modal-preview-loader');
                 const challengePreviewModal = document.getElementById('create-room-challenge-preview-modal');
+
+                const syncTimerPreset = () => {
+                    const rawValue = timerLimitInput?.value.trim() || '';
+                    const numericValue = Number(rawValue);
+                    const currentValue = rawValue !== '' && Number.isInteger(numericValue) && numericValue >= 0
+                        ? String(numericValue)
+                        : null;
+                    timerPresetButtons.forEach((button) => {
+                        const isSelected = button.dataset.timerMinutes === currentValue;
+                        button.classList.toggle('is-selected', isSelected);
+                        button.setAttribute('aria-pressed', isSelected ? 'true' : 'false');
+                    });
+                };
+
+                timerPresetButtons.forEach((button) => {
+                    button.addEventListener('click', () => {
+                        if (!timerLimitInput) {
+                            return;
+                        }
+
+                        timerLimitInput.value = button.dataset.timerMinutes || '0';
+                        timerLimitInput.dispatchEvent(new Event('input', { bubbles: true }));
+                    });
+                });
 
                 const escapeHtml = (value) => String(value)
                     .replace(/&/g, '&amp;')
@@ -560,7 +604,13 @@ ${cssText}
                         roomPreviewTimer.textContent = timerValue > 0 ? `${timerValue} min timer` : 'No timer';
                     }
                     if (roomPreviewMode) {
-                        roomPreviewMode.textContent = strictModeInput.value === '1' ? 'Strict mode' : 'Normal mode';
+                        const strictModeEnabled = strictModeInput.value === '1';
+                        roomPreviewMode.textContent = strictModeEnabled ? 'Strict mode' : 'Practice mode';
+                        if (roomModeDescription) {
+                            roomModeDescription.textContent = strictModeEnabled
+                                ? 'Players receive no live error feedback and submit once for a final score.'
+                                : 'Players receive live feedback while matching the challenge design.';
+                        }
                     }
                 };
 
@@ -670,6 +720,9 @@ ${cssText}
                     }
                     field.addEventListener('input', () => {
                         updateRoomPreview();
+                        if (field === timerLimitInput) {
+                            syncTimerPreset();
+                        }
                         if (field === challengeSelect) {
                             updateChallengePreview();
                         }
@@ -683,6 +736,7 @@ ${cssText}
                 });
 
                 updateRoomPreview();
+                syncTimerPreset();
                 updateChallengePreview();
                 window.addEventListener('resize', () => {
                     fitPreviewFrame(previewFrame);

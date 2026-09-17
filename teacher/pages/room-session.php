@@ -157,7 +157,7 @@ foreach ($roomSessionPlayers as $roomSessionPlayer) {
                     <div class="mt-3 flex flex-wrap gap-2">
                         <span class="teacher-pill bg-arcade-yellow"><?= htmlspecialchars($roomCode, ENT_QUOTES, 'UTF-8') ?></span>
                         <span class="teacher-pill bg-arcade-cyan/25"><?= htmlspecialchars($challengeName, ENT_QUOTES, 'UTF-8') ?></span>
-                        <span class="teacher-pill <?= $strictModeEnabled ? 'bg-arcade-coral/25' : 'bg-arcade-mint/35' ?>"><?= $strictModeEnabled ? 'Strict' : 'Normal' ?></span>
+                        <span class="teacher-pill <?= $strictModeEnabled ? 'bg-arcade-coral/25' : 'bg-arcade-mint/35' ?>"><?= $strictModeEnabled ? 'Strict mode' : 'Practice mode' ?></span>
                         <span class="teacher-pill bg-white">Timer: <?= (int) ($roomSessionRoom['timer_limit'] ?? 0) > 0 ? (int) ($roomSessionRoom['timer_limit'] ?? 0) . ' min' : 'No timer' ?></span>
                         <span class="teacher-pill <?= $roomStateIsOpen ? 'bg-arcade-mint/40' : 'bg-arcade-coral/25' ?>"><?= $roomStateIsOpen ? 'Open' : 'Closed' ?></span>
                         <span id="room-session-started-pill" class="teacher-pill <?= $roomSessionIsEnded ? 'bg-arcade-coral text-white' : ($roomSessionIsStarted ? 'bg-arcade-orange text-white' : 'bg-white') ?>"><?= $roomSessionIsEnded ? 'Room Ended' : ($roomSessionIsStarted ? 'Room Started' : 'Waiting to Start') ?></span>

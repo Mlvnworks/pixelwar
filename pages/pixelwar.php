@@ -922,7 +922,7 @@ $gameUserChallengeId = $gameUserChallenge !== null ? (int) $gameUserChallenge['u
         }
 
         window.clearInterval(state.rocketTimerId);
-        const rocketInterval = 1 * 60 * 1000;
+        const rocketInterval = 5 * 60 * 1000;
         const nextRocketAt = Date.now() + (delay ?? rocketInterval);
         state.rocketTimerId = window.setInterval(() => {
             if (challengeConfig.strictMode || state.rocketActive || state.isCompleted || state.isCompletionSubmitting || state.isUnavailable || !state.challengeLoaded) {

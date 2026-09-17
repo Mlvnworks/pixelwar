@@ -40,10 +40,6 @@ body.pixelwar-dark-mode .challenge-detail-grid {
     overflow-wrap: anywhere;
 }
 
-.challenge-comment[hidden] {
-    display: none;
-}
-
 #preview-toggle.challenge-preview-toggle {
     display: none !important;
 }
@@ -248,8 +244,7 @@ body.pixelwar-dark-mode .challenge-preview-modal .modal-content {
     }
 
     .challenge-detail-layout,
-    .challenge-more-section .grid,
-    [data-comment-list] {
+    .challenge-more-section .grid {
         grid-template-columns: 1fr !important;
     }
 
@@ -274,19 +269,10 @@ body.pixelwar-dark-mode .challenge-preview-modal .modal-content {
         border-radius: 1rem !important;
     }
 
-    .challenge-actions #comments-toggle,
     .challenge-actions #preview-toggle,
     .challenge-actions a[href*="pixelwar"] {
         width: 100% !important;
         min-width: 0 !important;
-    }
-
-    .challenge-actions #comments-toggle {
-        padding-right: 2.5rem !important;
-    }
-
-    .comments-count-badge {
-        right: 0.6rem !important;
     }
 
     .challenge-preview-modal .modal-dialog {
@@ -302,20 +288,6 @@ body.pixelwar-dark-mode .challenge-preview-modal .modal-content {
     .challenge-preview-modal .modal-header {
         padding-left: 1rem !important;
         padding-right: 1rem !important;
-    }
-
-    #challenge-comments-section {
-        padding: 1rem !important;
-    }
-
-    #challenge-comment {
-        min-height: 7rem;
-    }
-
-    #comments-prev,
-    #comments-next {
-        min-width: 4.5rem;
-        border: 2px solid rgba(38, 25, 15, 0.12);
     }
 
     .challenge-more-section > .flex {

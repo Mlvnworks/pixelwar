@@ -7,40 +7,6 @@ $challenge = $challengeRepository instanceof ChallengeRepository
 $solvedPlayerCount = $userChallengeRepository instanceof UserChallengeRepository
     ? $userChallengeRepository->countCompletedByChallenge($challengeId)
     : 0;
-$challengeComments = [];
-
-if ($challenge !== null && isset($connection) && $connection instanceof mysqli) {
-    $commentStatement = $connection->prepare(
-        'SELECT
-            comments.comment_id,
-            comments.comment,
-            comments.date_created,
-            users.username,
-            user_details.firstname,
-            user_details.lastname
-         FROM comments
-         INNER JOIN users ON users.user_id = comments.user_id
-         LEFT JOIN user_details ON user_details.user_id = users.user_id
-         WHERE comments.challenge_id = ?
-         ORDER BY comments.date_created DESC, comments.comment_id DESC'
-    );
-    $commentStatement->bind_param('i', $challengeId);
-    $commentStatement->execute();
-    $commentRows = $commentStatement->get_result()->fetch_all(MYSQLI_ASSOC);
-    $commentStatement->close();
-
-    foreach ($commentRows as $commentRow) {
-        $commentFirstname = trim((string) ($commentRow['firstname'] ?? ''));
-        $commentLastname = trim((string) ($commentRow['lastname'] ?? ''));
-        $commentFullName = trim($commentFirstname . ' ' . $commentLastname);
-        $commentTimestamp = strtotime((string) ($commentRow['date_created'] ?? ''));
-        $challengeComments[] = [
-            'name' => $commentFullName !== '' ? $commentFullName : (string) ($commentRow['username'] ?? 'Player'),
-            'body' => (string) ($commentRow['comment'] ?? ''),
-            'time' => $commentTimestamp > 0 ? date('M j, Y g:i A', $commentTimestamp) : 'Recently',
-        ];
-    }
-}
 ?>
 
 <main class="teacher-shell relative overflow-hidden px-4 py-6 text-arcade-ink md:py-8">
@@ -165,36 +131,6 @@ if ($challenge !== null && isset($connection) && $connection instanceof mysqli) 
                 </div>
             </article>
 
-            <section class="grid items-start gap-5">
-                    <article class="teacher-panel rounded-[26px] border-4 border-arcade-ink bg-arcade-panel p-4 shadow-[7px_7px_0_#26190f] md:p-5">
-                        <div class="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-                            <div>
-                                <p class="font-arcade text-[10px] uppercase tracking-[0.22em] text-arcade-cyan">Player Notes</p>
-                                <h2 class="mt-2 text-2xl font-black">Comments</h2>
-                            </div>
-                            <span class="teacher-pill bg-arcade-yellow"><?= count($challengeComments) ?> comments</span>
-                        </div>
-                        <div class="mt-4 grid gap-3">
-                            <?php if ($challengeComments === []) : ?>
-                                <article class="rounded-2xl border-2 border-dashed border-arcade-ink/12 bg-white/80 p-4">
-                                    <p class="text-sm font-bold leading-6 text-arcade-ink/58">No player comments have been posted for this challenge yet.</p>
-                                </article>
-                            <?php else : ?>
-                                <?php foreach ($challengeComments as $comment) : ?>
-                                <article class="rounded-2xl border-2 border-arcade-ink/12 bg-white p-4">
-                                    <div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                                        <div>
-                                            <p class="text-sm font-black"><?= htmlspecialchars($comment['name'], ENT_QUOTES, 'UTF-8') ?></p>
-                                            <p class="mt-1 text-sm font-bold leading-6 text-arcade-ink/62"><?= htmlspecialchars($comment['body'], ENT_QUOTES, 'UTF-8') ?></p>
-                                        </div>
-                                        <p class="text-xs font-black uppercase tracking-[0.12em] text-arcade-orange"><?= htmlspecialchars($comment['time'], ENT_QUOTES, 'UTF-8') ?></p>
-                                    </div>
-                                </article>
-                                <?php endforeach; ?>
-                            <?php endif; ?>
-                        </div>
-                    </article>
-            </section>
         <?php endif; ?>
     </section>
 </main>
