@@ -114,7 +114,8 @@ $adminRoomViewBuildQuery = static function (array $overrides = []) use ($adminRo
             $difficultyClass = 'challenge-difficulty--' . preg_replace('/[^a-z]+/', '', strtolower($difficulty));
             $author = trim((string) ($adminRoomViewRoom['teacher_firstname'] ?? '') . ' ' . (string) ($adminRoomViewRoom['teacher_lastname'] ?? ''))
                 ?: (string) ($adminRoomViewRoom['teacher_username'] ?? 'Teacher');
-            $strictModeEnabled = (int) ($adminRoomViewRoom['strict_mode'] ?? 0) === 1;
+            $strictModeEnabled = (int) ($adminRoomViewRoom['mode'] ?? 0) === 1;
+            $hardCodeModeEnabled = (int) ($adminRoomViewRoom['mode'] ?? 0) === 3;
             $roomIsOpen = (int) ($adminRoomViewRoom['status'] ?? 1) === 1;
             $roomEnded = trim((string) ($adminRoomViewRoom['ended_at'] ?? '')) !== '';
             $roomCode = trim((string) ($adminRoomViewRoom['room_code'] ?? '')) ?: 'Not set';
@@ -179,7 +180,7 @@ $adminRoomViewBuildQuery = static function (array $overrides = []) use ($adminRo
                         <div class="mt-3 flex flex-wrap gap-2">
                             <span class="teacher-pill bg-white"><?= htmlspecialchars($roomCode, ENT_QUOTES, 'UTF-8') ?></span>
                             <span class="teacher-pill <?= $roomIsOpen ? 'bg-arcade-mint/40' : 'bg-arcade-coral/25' ?>"><?= $roomIsOpen ? 'Open' : 'Closed' ?></span>
-                            <span class="teacher-pill <?= $strictModeEnabled ? 'bg-arcade-coral/25' : 'bg-arcade-cyan/25' ?>"><?= $strictModeEnabled ? 'Strict mode' : 'Practice mode' ?></span>
+                            <span class="teacher-pill <?= ($strictModeEnabled || $hardCodeModeEnabled) ? 'bg-arcade-coral/25' : 'bg-arcade-cyan/25' ?>"><?= $hardCodeModeEnabled ? 'Hard code' : ($strictModeEnabled ? 'Strict mode' : 'Practice mode') ?></span>
                         </div>
                     </div>
                 <div class="admin-room-view-hero__actions">
@@ -205,8 +206,14 @@ $adminRoomViewBuildQuery = static function (array $overrides = []) use ($adminRo
                     </article>
                     <article class="admin-room-view-stat-card">
                         <small>Mode</small>
-                        <strong><?= $strictModeEnabled ? 'Strict mode' : 'Practice mode' ?></strong>
+                        <strong><?= $hardCodeModeEnabled ? 'Hard code' : ($strictModeEnabled ? 'Strict mode' : 'Practice mode') ?></strong>
                     </article>
+                    <?php if ($hardCodeModeEnabled) : ?>
+                        <article class="admin-room-view-stat-card">
+                            <small>Room Activity Points</small>
+                            <strong><?= (int) ($adminRoomViewRoom['room_points'] ?? 0) ?> pts</strong>
+                        </article>
+                    <?php endif; ?>
                     <article class="admin-room-view-stat-card">
                         <small>Created</small>
                         <strong><?= htmlspecialchars($formatTimestamp($adminRoomViewRoom['created_at'] ?? null), ENT_QUOTES, 'UTF-8') ?></strong>

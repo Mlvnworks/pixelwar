@@ -5,6 +5,7 @@ if (file_exists(__DIR__ . '/vendor/autoload.php')) {
 
 require_once __DIR__ . '/classes/page-meta.php';
 require_once __DIR__ . '/classes/tools.php';
+require_once __DIR__ . '/classes/password-policy.php';
 require_once __DIR__ . '/classes/teacher-account-service.php';
 require_once __DIR__ . '/classes/user-repository.php';
 require_once __DIR__ . '/classes/verification-repository.php';

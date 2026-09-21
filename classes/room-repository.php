@@ -12,14 +12,15 @@ final class RoomRepository
         string $roomName,
         string $roomDescription,
         int $timerLimit,
-        int $strictMode
+        int $mode,
+        int $roomPoints
     ): int {
         $roomCode = $this->generateUniqueRoomCode();
         $statement = $this->connection->prepare(
-            'INSERT INTO rooms (user_id, challenge_id, room_code, room_name, room_description, timer_limit, strict_mode)
-             VALUES (?, ?, ?, ?, ?, ?, ?)'
+            'INSERT INTO rooms (user_id, challenge_id, room_code, room_name, room_description, timer_limit, mode, room_points)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
         );
-        $statement->bind_param('iisssii', $userId, $challengeId, $roomCode, $roomName, $roomDescription, $timerLimit, $strictMode);
+        $statement->bind_param('iisssiii', $userId, $challengeId, $roomCode, $roomName, $roomDescription, $timerLimit, $mode, $roomPoints);
         $statement->execute();
         $roomId = (int) $statement->insert_id;
         $statement->close();
@@ -34,23 +35,25 @@ final class RoomRepository
         string $roomName,
         string $roomDescription,
         int $timerLimit,
-        int $strictMode
+        int $mode,
+        int $roomPoints
     ): bool {
         $statement = $this->connection->prepare(
             'UPDATE rooms
-             SET challenge_id = ?, room_name = ?, room_description = ?, timer_limit = ?, strict_mode = ?
+             SET challenge_id = ?, room_name = ?, room_description = ?, timer_limit = ?, mode = ?, room_points = ?
              WHERE room_id = ?
                 AND user_id = ?
                 AND date_deleted IS NULL
              LIMIT 1'
         );
         $statement->bind_param(
-            'issiiii',
+            'issiiiii',
             $challengeId,
             $roomName,
             $roomDescription,
             $timerLimit,
-            $strictMode,
+            $mode,
+            $roomPoints,
             $roomId,
             $ownerId
         );
@@ -177,7 +180,8 @@ final class RoomRepository
                 rooms.room_description,
                 rooms.status,
                 rooms.timer_limit,
-                rooms.strict_mode,
+                rooms.mode,
+                rooms.room_points,
                 rooms.started_at,
                 rooms.ended_at,
                 rooms.created_at,
@@ -313,7 +317,8 @@ final class RoomRepository
                 rooms.room_description,
                 rooms.status,
                 rooms.timer_limit,
-                rooms.strict_mode,
+                rooms.mode,
+                rooms.room_points,
                 rooms.started_at,
                 rooms.ended_at,
                 rooms.created_at,
@@ -349,7 +354,8 @@ final class RoomRepository
                 rooms.room_description,
                 rooms.status,
                 rooms.timer_limit,
-                rooms.strict_mode,
+                rooms.mode,
+                rooms.room_points,
                 rooms.started_at,
                 rooms.ended_at,
                 rooms.created_at,
@@ -397,7 +403,8 @@ final class RoomRepository
                 rooms.room_description,
                 rooms.status,
                 rooms.timer_limit,
-                rooms.strict_mode,
+                rooms.mode,
+                rooms.room_points,
                 rooms.started_at,
                 rooms.ended_at,
                 rooms.created_at,
@@ -444,7 +451,8 @@ final class RoomRepository
                 rooms.room_description,
                 rooms.status,
                 rooms.timer_limit,
-                rooms.strict_mode,
+                rooms.mode,
+                rooms.room_points,
                 rooms.started_at,
                 rooms.ended_at,
                 rooms.created_at,

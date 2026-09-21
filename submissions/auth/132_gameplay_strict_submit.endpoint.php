@@ -36,7 +36,7 @@ if ($requestMethod === 'POST' && $requestedPage === 'pixelwar' && (string) ($_PO
             throw new RuntimeException('This room is not linked to the selected challenge.');
         }
 
-        if ((int) ($room['strict_mode'] ?? 0) !== 1) {
+        if ((int) ($room['mode'] ?? 0) !== 1) {
             throw new RuntimeException('This room is not in strict mode.');
         }
 

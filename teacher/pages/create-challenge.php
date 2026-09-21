@@ -79,6 +79,8 @@ $defaultCssSource = '.target-card {
 $oldChallengeName = (string) ($createChallengeOld['name'] ?? ($editingChallenge['name'] ?? ''));
 $oldChallengeInstruction = (string) ($createChallengeOld['instruction'] ?? ($editingChallenge['instruction'] ?? ''));
 $oldChallengeDifficulty = (string) ($createChallengeOld['difficulty'] ?? ($editingChallenge['difficulty_name'] ?? ''));
+$oldChallengeVisibility = (string) ($createChallengeOld['visibility'] ?? ($editingChallenge['status'] ?? '1'));
+$oldChallengeVisibility = in_array($oldChallengeVisibility, ['0', '1'], true) ? $oldChallengeVisibility : '1';
 $oldHtmlSource = (string) ($createChallengeOld['html'] ?? ($editingChallenge['html_code'] ?? $defaultHtmlSource));
 $oldCssSource = (string) ($createChallengeOld['css'] ?? ($editingChallenge['css_code'] ?? $defaultCssSource));
 $modeLabel = $isEditing ? 'Edit Challenge' : 'Create Challenge';
@@ -205,6 +207,30 @@ foreach ($difficultyRows as $difficultyRow) {
                             </select>
                         </label>
 
+                        <fieldset class="create-field">
+                            <legend>Challenge Visibility</legend>
+                            <div class="mt-2 grid gap-3 sm:grid-cols-2">
+                                <label class="create-visibility-card">
+                                    <span class="create-visibility-card__layout">
+                                        <input type="radio" name="challenge_visibility" value="1" <?= $oldChallengeVisibility === '1' ? 'checked' : '' ?>>
+                                        <span class="create-visibility-card__copy">
+                                            <strong>Public</strong>
+                                            <small>Posted publicly and available for players to discover.</small>
+                                        </span>
+                                    </span>
+                                </label>
+                                <label class="create-visibility-card">
+                                    <span class="create-visibility-card__layout">
+                                        <input type="radio" name="challenge_visibility" value="0" <?= $oldChallengeVisibility === '0' ? 'checked' : '' ?>>
+                                        <span class="create-visibility-card__copy">
+                                            <strong>Only Me</strong>
+                                            <small>Not posted publicly, but you can still use it in your rooms.</small>
+                                        </span>
+                                    </span>
+                                </label>
+                            </div>
+                        </fieldset>
+
                         <div id="challenge-info-feedback" class="create-feedback create-feedback--warn" role="status">
                             <i data-lucide="triangle-alert" class="h-4 w-4" aria-hidden="true"></i>
                             <span>Complete the challenge details to continue.</span>
@@ -223,7 +249,7 @@ foreach ($difficultyRows as $difficultyRow) {
                     </div>
                     <div class="create-example-meta mt-4 grid gap-2 sm:grid-cols-2">
                         <span><strong>Difficulty</strong><em id="info-preview-difficulty">Not Set</em></span>
-                        <span><strong>Status</strong><em><?= $isEditing ? 'Editing' : 'Draft' ?></em></span>
+                        <span><strong>Visibility</strong><em id="info-preview-visibility"><?= $oldChallengeVisibility === '1' ? 'Public' : 'Only Me' ?></em></span>
                     </div>
                 </aside>
             </div>
@@ -332,6 +358,10 @@ foreach ($difficultyRows as $difficultyRow) {
                             <span id="confirm-difficulty">Not Set</span>
                         </div>
                         <div>
+                            <strong>Visibility</strong>
+                            <span id="confirm-visibility"><?= $oldChallengeVisibility === '1' ? 'Public' : 'Only Me' ?></span>
+                        </div>
+                        <div>
                             <strong>Instruction</strong>
                             <span id="confirm-instruction"><?= $tools->formatRichText($oldChallengeInstruction !== '' ? $oldChallengeInstruction : 'Add clear instructions so players know what visual details to match.') ?></span>
                         </div>
@@ -396,6 +426,7 @@ foreach ($difficultyRows as $difficultyRow) {
     const nameInput = document.getElementById('challenge-name');
     const instructionInput = document.getElementById('challenge-instruction');
     const difficultyInput = document.getElementById('challenge-difficulty');
+    const visibilityInputs = Array.from(document.querySelectorAll('input[name="challenge_visibility"]'));
     const infoFeedback = document.getElementById('challenge-info-feedback');
     const nextButton = document.getElementById('challenge-next-step');
     const backButton = document.getElementById('challenge-back-step');
@@ -455,7 +486,8 @@ foreach ($difficultyRows as $difficultyRow) {
     const getChallengeInfo = () => ({
         name: nameInput.value.trim(),
         instruction: instructionInput.value.trim(),
-        difficulty: difficultyInput.value.trim()
+        difficulty: difficultyInput.value.trim(),
+        visibility: visibilityInputs.find((input) => input.checked)?.value || ''
     });
 
     const validateInfo = () => {
@@ -473,6 +505,9 @@ foreach ($difficultyRows as $difficultyRow) {
         if (!validDifficulties.includes(info.difficulty)) {
             errors.push('Difficulty is required.');
         }
+        if (!['0', '1'].includes(info.visibility)) {
+            errors.push('Challenge visibility is required.');
+        }
         return errors;
     };
 
@@ -481,15 +516,18 @@ foreach ($difficultyRows as $difficultyRow) {
         const safeName = info.name || 'Challenge name pending';
         const safeInstruction = info.instruction || 'Add clear instructions so players know what visual details to match.';
         const safeDifficulty = info.difficulty || 'Not Set';
+        const visibilityLabel = info.visibility === '0' ? 'Only Me' : 'Public';
 
         document.getElementById('info-preview-name').textContent = safeName;
         document.getElementById('info-preview-instruction').innerHTML = formatRichTextHtml(safeInstruction);
         document.getElementById('info-preview-difficulty').textContent = safeDifficulty;
+        document.getElementById('info-preview-visibility').textContent = visibilityLabel;
         document.getElementById('source-summary-name').textContent = safeName;
         document.getElementById('source-summary-instruction').innerHTML = formatRichTextHtml(safeInstruction);
         document.getElementById('confirm-name').textContent = safeName;
         document.getElementById('confirm-instruction').innerHTML = formatRichTextHtml(safeInstruction);
         document.getElementById('confirm-difficulty').textContent = safeDifficulty;
+        document.getElementById('confirm-visibility').textContent = visibilityLabel;
 
         const difficultyBadge = document.getElementById('source-summary-difficulty');
         difficultyBadge.textContent = safeDifficulty;
@@ -841,6 +879,7 @@ ${html}
         input.addEventListener('input', updateNextButton);
         input.addEventListener('change', updateNextButton);
     });
+    visibilityInputs.forEach((input) => input.addEventListener('change', updateNextButton));
 
     htmlFile.addEventListener('change', () => readFileIntoEditor(htmlFile, htmlEditor, ['.html', '.htm']));
     cssFile.addEventListener('change', () => readFileIntoEditor(cssFile, cssEditor, ['.css']));

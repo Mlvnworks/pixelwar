@@ -155,7 +155,26 @@ function pixelwarStudentProfileComplete(UserRepository $userRepository, array $u
     return $firstname !== ''
         && $lastname !== ''
         && trim((string) ($details['student_number'] ?? '')) !== ''
-        && trim((string) ($details['id_picture_url'] ?? '')) !== ''
+        && trim((string) ($details['section'] ?? '')) !== ''
+        && trim((string) ($details['cor_file_url'] ?? '')) !== ''
+        && trim((string) ($details['avatar_url'] ?? '')) !== '';
+}
+
+function pixelwarStudentNeedsSectionOnlySetup(UserRepository $userRepository, array $user): bool
+{
+    if ((int) ($user['role_id'] ?? 0) !== pixelwarStudentRoleId()) {
+        return false;
+    }
+
+    $userId = (int) ($user['user_id'] ?? 0);
+    $details = $userId > 0 ? $userRepository->findUserDetailsAvatar($userId) : null;
+
+    return $details !== null
+        && trim((string) ($details['section'] ?? '')) === ''
+        && trim((string) ($user['firstname'] ?? '')) !== ''
+        && trim((string) ($user['lastname'] ?? '')) !== ''
+        && trim((string) ($details['student_number'] ?? '')) !== ''
+        && trim((string) ($details['cor_file_url'] ?? '')) !== ''
         && trim((string) ($details['avatar_url'] ?? '')) !== '';
 }
 

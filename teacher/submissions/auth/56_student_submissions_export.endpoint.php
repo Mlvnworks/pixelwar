@@ -109,7 +109,8 @@ if (
                 : null;
             $isRoomAttempt = (int) ($row['room_id'] ?? 0) > 0;
             $isPvpAttempt = (int) ($row['pvp_id'] ?? 0) > 0;
-            $isStrictRoomAttempt = $isRoomAttempt && (int) ($row['room_strict_mode'] ?? 0) === 1;
+            $isStrictRoomAttempt = $isRoomAttempt && (int) ($row['room_mode'] ?? 0) === 1;
+            $isHardCodeRoomAttempt = $isRoomAttempt && (int) ($row['room_mode'] ?? 0) === 3;
             $strictModeScore = max(0, min(100, (int) ($row['strict_mode_score'] ?? 0)));
             $attemptStatus = (string) ($row['attempt_status'] ?? ($completedAt instanceof DateTimeImmutable ? 'completed' : 'ongoing'));
             $typeLabel = $isPvpAttempt ? '1v1' : ($isRoomAttempt ? 'Room' : 'Solo');
@@ -125,6 +126,9 @@ if (
 
             if ($isStrictRoomAttempt && $attemptStatus !== 'ongoing') {
                 $outcomeLabel = $strictModeScore . '%';
+            }
+            if ($isHardCodeRoomAttempt && $completedAt instanceof DateTimeImmutable) {
+                $outcomeLabel = 'Submitted';
             }
 
             fputcsv($output, [

@@ -438,10 +438,12 @@ class UserRepository
             $sql .= ' AND (
                 users.username LIKE ?
                 OR users.email LIKE ?
+                OR user_details.section LIKE ?
                 OR CONCAT(COALESCE(user_details.firstname, \'\'), \' \', COALESCE(user_details.lastname, \'\')) LIKE ?
             )';
             $searchLike = '%' . $search . '%';
-            $types .= 'sss';
+            $types .= 'ssss';
+            $params[] = $searchLike;
             $params[] = $searchLike;
             $params[] = $searchLike;
             $params[] = $searchLike;
@@ -477,10 +479,12 @@ class UserRepository
             $sql .= ' AND (
                 users.username LIKE ?
                 OR users.email LIKE ?
+                OR user_details.section LIKE ?
                 OR CONCAT(COALESCE(user_details.firstname, \'\'), \' \', COALESCE(user_details.lastname, \'\')) LIKE ?
             )';
             $searchLike = '%' . $search . '%';
-            $types .= 'sss';
+            $types .= 'ssss';
+            $params[] = $searchLike;
             $params[] = $searchLike;
             $params[] = $searchLike;
             $params[] = $searchLike;
@@ -519,15 +523,16 @@ class UserRepository
                 FROM users
                 INNER JOIN user_details ON user_details.user_id = users.user_id
                 LEFT JOIN images AS avatar_images ON avatar_images.img_id = user_details.image_id
-                LEFT JOIN images AS id_images ON id_images.img_id = user_details.id_picture
+                LEFT JOIN images AS cor_files ON cor_files.img_id = user_details.cor_file
                 WHERE users.role_id = 3
                     AND users.date_deleted IS NULL
                     AND users.is_verified = 1
                     AND TRIM(COALESCE(user_details.firstname, \'\')) <> \'\'
                     AND TRIM(COALESCE(user_details.lastname, \'\')) <> \'\'
                     AND TRIM(COALESCE(user_details.student_number, \'\')) <> \'\'
+                    AND TRIM(COALESCE(user_details.section, \'\')) <> \'\'
                     AND user_details.image_id IS NOT NULL
-                    AND user_details.id_picture IS NOT NULL';
+                    AND user_details.cor_file IS NOT NULL';
         $types = '';
         $params = [];
 
@@ -542,10 +547,12 @@ class UserRepository
                 users.username LIKE ?
                 OR users.email LIKE ?
                 OR user_details.student_number LIKE ?
+                OR user_details.section LIKE ?
                 OR CONCAT(COALESCE(user_details.firstname, \'\'), \' \', COALESCE(user_details.lastname, \'\')) LIKE ?
             )';
             $searchLike = '%' . $search . '%';
-            $types .= 'ssss';
+            $types .= 'sssss';
+            $params[] = $searchLike;
             $params[] = $searchLike;
             $params[] = $searchLike;
             $params[] = $searchLike;
@@ -585,6 +592,7 @@ class UserRepository
                     user_details.firstname,
                     user_details.lastname,
                     user_details.student_number,
+                    user_details.section,
                     images.source AS avatar_url
                 FROM users
                 LEFT JOIN user_details ON user_details.user_id = users.user_id
@@ -604,10 +612,12 @@ class UserRepository
             $sql .= ' AND (
                 users.username LIKE ?
                 OR users.email LIKE ?
+                OR user_details.section LIKE ?
                 OR CONCAT(COALESCE(user_details.firstname, \'\'), \' \', COALESCE(user_details.lastname, \'\')) LIKE ?
             )';
             $searchLike = '%' . $search . '%';
-            $types .= 'sss';
+            $types .= 'ssss';
+            $params[] = $searchLike;
             $params[] = $searchLike;
             $params[] = $searchLike;
             $params[] = $searchLike;
@@ -868,20 +878,22 @@ class UserRepository
                     user_details.firstname,
                     user_details.lastname,
                     user_details.student_number,
+                    user_details.section,
                     avatar_images.source AS avatar_url,
-                    id_images.source AS id_picture_url
+                    cor_files.source AS cor_file_url
                 FROM users
                 INNER JOIN user_details ON user_details.user_id = users.user_id
                 LEFT JOIN images AS avatar_images ON avatar_images.img_id = user_details.image_id
-                LEFT JOIN images AS id_images ON id_images.img_id = user_details.id_picture
+                LEFT JOIN images AS cor_files ON cor_files.img_id = user_details.cor_file
                 WHERE users.role_id = 3
                     AND users.date_deleted IS NULL
                     AND users.is_verified = 1
                     AND TRIM(COALESCE(user_details.firstname, \'\')) <> \'\'
                     AND TRIM(COALESCE(user_details.lastname, \'\')) <> \'\'
                     AND TRIM(COALESCE(user_details.student_number, \'\')) <> \'\'
+                    AND TRIM(COALESCE(user_details.section, \'\')) <> \'\'
                     AND user_details.image_id IS NOT NULL
-                    AND user_details.id_picture IS NOT NULL';
+                    AND user_details.cor_file IS NOT NULL';
         $types = '';
         $params = [];
 
@@ -896,10 +908,12 @@ class UserRepository
                 users.username LIKE ?
                 OR users.email LIKE ?
                 OR user_details.student_number LIKE ?
+                OR user_details.section LIKE ?
                 OR CONCAT(COALESCE(user_details.firstname, \'\'), \' \', COALESCE(user_details.lastname, \'\')) LIKE ?
             )';
             $searchLike = '%' . $search . '%';
-            $types .= 'ssss';
+            $types .= 'sssss';
+            $params[] = $searchLike;
             $params[] = $searchLike;
             $params[] = $searchLike;
             $params[] = $searchLike;
@@ -979,6 +993,7 @@ class UserRepository
                 users.last_seen_at,
                 user_details.firstname,
                 user_details.lastname,
+                user_details.section,
                 images.source AS avatar_url
              FROM users
              LEFT JOIN user_details ON user_details.user_id = users.user_id
@@ -1149,13 +1164,86 @@ class UserRepository
 
     public function findUserForSettings(int $userId): ?array
     {
-        $statement = $this->connection->prepare('SELECT username, email, is_verified FROM users WHERE user_id = ? AND date_deleted IS NULL LIMIT 1');
+        $statement = $this->connection->prepare(
+            'SELECT users.username, users.email, users.is_verified, user_details.firstname, user_details.lastname
+             FROM users
+             LEFT JOIN user_details ON user_details.user_id = users.user_id
+             WHERE users.user_id = ? AND users.date_deleted IS NULL
+             LIMIT 1'
+        );
         $statement->bind_param('i', $userId);
         $statement->execute();
         $user = $statement->get_result()->fetch_assoc();
         $statement->close();
 
         return $user ?: null;
+    }
+
+    public function updateUsername(int $userId, string $username): void
+    {
+        $this->releaseDeletedCredentialConflicts($username, null, $userId);
+
+        $statement = $this->connection->prepare(
+            'UPDATE users SET username = ? WHERE user_id = ? AND date_deleted IS NULL'
+        );
+        $statement->bind_param('si', $username, $userId);
+        $statement->execute();
+        $statement->close();
+        $this->recordAccountChange($userId, 'username');
+    }
+
+    public function findAccountLastChange(int $userId): array
+    {
+        if ($userId <= 0) {
+            return ['username' => null, 'password' => null];
+        }
+
+        $statement = $this->connection->prepare(
+            'SELECT username, password
+             FROM acc_last_change
+             WHERE user_id = ?
+             LIMIT 1'
+        );
+        $statement->bind_param('i', $userId);
+        $statement->execute();
+        $row = $statement->get_result()->fetch_assoc();
+        $statement->close();
+
+        return $row ?: ['username' => null, 'password' => null];
+    }
+
+    public function accountChangeAvailableAt(int $userId, string $field, int $intervalDays = 15): int
+    {
+        if (!in_array($field, ['username', 'password'], true)) {
+            throw new InvalidArgumentException('Unsupported account change field.');
+        }
+
+        $lastChange = $this->findAccountLastChange($userId);
+        $changedAt = strtotime((string) ($lastChange[$field] ?? ''));
+
+        return $changedAt === false ? 0 : $changedAt + (max(1, $intervalDays) * 86400);
+    }
+
+    public function recordAccountChange(int $userId, string $field): void
+    {
+        if ($userId <= 0 || !in_array($field, ['username', 'password'], true)) {
+            throw new InvalidArgumentException('Invalid account change record.');
+        }
+
+        $statement = $field === 'username'
+            ? $this->connection->prepare(
+                'INSERT INTO acc_last_change (user_id, username, password)
+                 VALUES (?, CURRENT_TIMESTAMP, NULL)
+                 ON DUPLICATE KEY UPDATE username = CURRENT_TIMESTAMP'
+            )
+            : $this->connection->prepare(
+                'INSERT INTO acc_last_change (user_id, username, password)
+                 VALUES (?, NULL, CURRENT_TIMESTAMP)
+                 ON DUPLICATE KEY UPDATE password = CURRENT_TIMESTAMP'
+            );
+        $statement->bind_param('i', $userId);
+        $statement->execute();
+        $statement->close();
     }
 
     public function findBasicUser(int $userId): array
@@ -1260,6 +1348,7 @@ class UserRepository
         $statement->bind_param('si', $passwordHash, $userId);
         $statement->execute();
         $statement->close();
+        $this->recordAccountChange($userId, 'password');
     }
 
     /**
@@ -1446,13 +1535,14 @@ class UserRepository
         $statement = $this->connection->prepare(
             'SELECT
                 user_details.image_id,
-                user_details.id_picture,
+                user_details.cor_file,
                 user_details.student_number,
+                user_details.section,
                 images.source AS avatar_url,
-                id_images.source AS id_picture_url
+                cor_files.source AS cor_file_url
              FROM user_details
              LEFT JOIN images ON images.img_id = user_details.image_id
-             LEFT JOIN images AS id_images ON id_images.img_id = user_details.id_picture
+             LEFT JOIN images AS cor_files ON cor_files.img_id = user_details.cor_file
              WHERE user_details.user_id = ?
              LIMIT 1'
         );
@@ -1475,12 +1565,12 @@ class UserRepository
         return $imageId;
     }
 
-    public function clearStudentIdPicture(int $userId): ?string
+    public function clearStudentCorFile(int $userId): ?string
     {
         $statement = $this->connection->prepare(
-            'SELECT user_details.id_picture, images.source AS id_picture_url
+            'SELECT user_details.cor_file, images.source AS cor_file_url
              FROM user_details
-             LEFT JOIN images ON images.img_id = user_details.id_picture
+             LEFT JOIN images ON images.img_id = user_details.cor_file
              WHERE user_details.user_id = ?
              LIMIT 1'
         );
@@ -1493,12 +1583,12 @@ class UserRepository
             return null;
         }
 
-        $imageId = (int) ($details['id_picture'] ?? 0);
-        $idPictureUrl = trim((string) ($details['id_picture_url'] ?? ''));
+        $imageId = (int) ($details['cor_file'] ?? 0);
+        $corFileUrl = trim((string) ($details['cor_file_url'] ?? ''));
 
         $statement = $this->connection->prepare(
             'UPDATE user_details
-             SET id_picture = NULL
+             SET cor_file = NULL
              WHERE user_id = ?'
         );
         $statement->bind_param('i', $userId);
@@ -1512,7 +1602,7 @@ class UserRepository
             $statement->close();
         }
 
-        return $idPictureUrl !== '' ? $idPictureUrl : null;
+        return $corFileUrl !== '' ? $corFileUrl : null;
     }
 
     public function upsertUserDetails(
@@ -1520,21 +1610,33 @@ class UserRepository
         int $imageId,
         string $firstname,
         string $lastname,
-        ?int $idPicture = null,
-        ?string $studentNumber = null
+        ?int $corFile = null,
+        ?string $studentNumber = null,
+        ?string $section = null
     ): void
     {
         $statement = $this->connection->prepare(
-            'INSERT INTO user_details (user_id, image_id, id_picture, firstname, lastname, student_number)
-             VALUES (?, ?, ?, ?, ?, ?)
+            'INSERT INTO user_details (user_id, image_id, cor_file, firstname, lastname, student_number, section)
+             VALUES (?, ?, ?, ?, ?, ?, ?)
              ON DUPLICATE KEY UPDATE
                 image_id = VALUES(image_id),
-                id_picture = VALUES(id_picture),
+                cor_file = VALUES(cor_file),
                 firstname = VALUES(firstname),
                 lastname = VALUES(lastname),
-                student_number = VALUES(student_number)'
+                student_number = VALUES(student_number),
+                section = COALESCE(VALUES(section), section)'
         );
-        $statement->bind_param('iiisss', $userId, $imageId, $idPicture, $firstname, $lastname, $studentNumber);
+        $statement->bind_param('iiissss', $userId, $imageId, $corFile, $firstname, $lastname, $studentNumber, $section);
+        $statement->execute();
+        $statement->close();
+    }
+
+    public function updateStudentSection(int $userId, string $section): void
+    {
+        $statement = $this->connection->prepare(
+            'UPDATE user_details SET section = ? WHERE user_id = ? LIMIT 1'
+        );
+        $statement->bind_param('si', $section, $userId);
         $statement->execute();
         $statement->close();
     }

@@ -1,11 +1,14 @@
 <?php
 $profileName = trim((string) ($_SESSION['username'] ?? 'Pixel Rookie'));
+$profileUsername = trim((string) ($_SESSION['username'] ?? ''));
 $profileEmail = trim((string) ($_SESSION['email'] ?? 'player@example.com'));
 $profileAvatarInitials = strtoupper(substr(preg_replace('/[^a-z0-9]+/i', '', (string) ($_SESSION['avatar_initials'] ?? $profileName)) ?: 'PR', 0, 2));
 $profileAvatarUrl = function_exists('pixelwarAvatarUrl') ? pixelwarAvatarUrl(trim((string) ($_SESSION['avatar_url'] ?? '')), 160) : trim((string) ($_SESSION['avatar_url'] ?? ''));
 $profileFirstname = trim((string) ($_SESSION['firstname'] ?? ''));
 $profileLastname = trim((string) ($_SESSION['lastname'] ?? ''));
 $profileStudentNumber = '';
+$profileSection = '';
+$accountUsernameChangeAvailableAt = 0;
 $settingsPasswordResetAvailableAt = function_exists('pixelwarForgotPasswordCooldownAvailableAt')
     ? pixelwarForgotPasswordCooldownAvailableAt()
     : 0;
@@ -13,8 +16,11 @@ $settingsPasswordResetSecondsLeft = max(0, $settingsPasswordResetAvailableAt - t
 
 if (isset($connection) && $connection instanceof mysqli && isset($_SESSION['user_id'])) {
     $settingsUserId = (int) $_SESSION['user_id'];
+    if (isset($userRepository) && $userRepository instanceof UserRepository) {
+        $accountUsernameChangeAvailableAt = $userRepository->accountChangeAvailableAt($settingsUserId, 'username');
+    }
     $settingsProfile = $connection->prepare(
-        'SELECT users.username, users.email, user_details.firstname, user_details.lastname, user_details.student_number, images.source AS avatar_url
+        'SELECT users.username, users.email, user_details.firstname, user_details.lastname, user_details.student_number, user_details.section, images.source AS avatar_url
          FROM users
          LEFT JOIN user_details ON user_details.user_id = users.user_id
          LEFT JOIN images ON images.img_id = user_details.image_id
@@ -32,13 +38,16 @@ if (isset($connection) && $connection instanceof mysqli && isset($_SESSION['user
         $settingsFullName = trim($settingsFirstname . ' ' . $settingsLastname);
         $profileFirstname = $settingsFirstname;
         $profileLastname = $settingsLastname;
+        $profileUsername = trim((string) ($settingsProfileRow['username'] ?? ''));
         $profileName = $settingsFullName !== '' ? $settingsFullName : trim((string) $settingsProfileRow['username']);
         $profileEmail = trim((string) $settingsProfileRow['email']);
         $profileStudentNumber = trim((string) ($settingsProfileRow['student_number'] ?? ''));
+        $profileSection = trim((string) ($settingsProfileRow['section'] ?? ''));
         $profileAvatarUrl = function_exists('pixelwarAvatarUrl') ? pixelwarAvatarUrl(trim((string) ($settingsProfileRow['avatar_url'] ?? '')), 160) : trim((string) ($settingsProfileRow['avatar_url'] ?? ''));
         $profileAvatarInitials = strtoupper(substr($settingsFirstname, 0, 1) . substr($settingsLastname, 0, 1)) ?: $profileAvatarInitials;
     }
 }
+$accountUsernameChangeLocked = $accountUsernameChangeAvailableAt > time();
 ?>
 
 <main class="settings-page relative overflow-hidden bg-arcade-cream px-4 py-8 text-arcade-ink md:py-10">
@@ -130,31 +139,59 @@ if (isset($connection) && $connection instanceof mysqli && isset($_SESSION['user
 
                     <label class="settings-field" for="settings-firstname">
                         <span>First Name</span>
-                        <input id="settings-firstname" name="firstname" type="text" autocomplete="given-name"
-                            maxlength="80" value="<?= htmlspecialchars($profileFirstname, ENT_QUOTES, 'UTF-8') ?>"
-                            placeholder="Melvin" required>
+                        <input id="settings-firstname" type="text"
+                            value="<?= htmlspecialchars($profileFirstname, ENT_QUOTES, 'UTF-8') ?>" readonly
+                            class="cursor-not-allowed bg-black/[0.03] text-arcade-ink/72">
                     </label>
 
                     <label class="settings-field" for="settings-lastname">
                         <span>Last Name</span>
-                        <input id="settings-lastname" name="lastname" type="text" autocomplete="family-name"
-                            maxlength="80" value="<?= htmlspecialchars($profileLastname, ENT_QUOTES, 'UTF-8') ?>"
-                            placeholder="Agustin" required>
+                        <input id="settings-lastname" type="text"
+                            value="<?= htmlspecialchars($profileLastname, ENT_QUOTES, 'UTF-8') ?>" readonly
+                            class="cursor-not-allowed bg-black/[0.03] text-arcade-ink/72">
                     </label>
+
+                    <p class="-mt-2 text-xs font-bold text-arcade-ink/55 sm:col-span-2">Your registered name cannot be changed.</p>
+
+                    <label class="settings-field sm:col-span-2" for="settings-username">
+                        <span>Username</span>
+                        <input id="settings-username" name="username" type="text" autocomplete="username"
+                            minlength="3" maxlength="32" pattern="[A-Za-z0-9_]{3,32}"
+                            value="<?= htmlspecialchars($profileUsername, ENT_QUOTES, 'UTF-8') ?>"
+                            data-current-username="<?= htmlspecialchars($profileUsername, ENT_QUOTES, 'UTF-8') ?>"
+                            placeholder="pixel_player" required
+                            <?= $accountUsernameChangeLocked ? 'readonly aria-readonly="true" class="cursor-not-allowed bg-black/[0.03] text-arcade-ink/72"' : '' ?>>
+                        <small id="settings-username-message" class="settings-field-message" aria-live="polite"></small>
+                    </label>
+
+                    <p class="-mt-2 text-xs font-bold text-arcade-ink/55 sm:col-span-2">
+                        <?= $accountUsernameChangeLocked
+                            ? 'Username changes are available again on ' . htmlspecialchars(date('M j, Y g:i A', $accountUsernameChangeAvailableAt), ENT_QUOTES, 'UTF-8') . '.'
+                            : 'Username can be changed once every 15 days.' ?>
+                    </p>
 
                     <label class="settings-field sm:col-span-2" for="settings-email">
                         <span>Email</span>
-                        <input id="settings-email" name="email" type="email" autocomplete="email"
+                        <input id="settings-email" type="email" autocomplete="email"
                             value="<?= htmlspecialchars($profileEmail, ENT_QUOTES, 'UTF-8') ?>"
-                            data-current-email="<?= htmlspecialchars($profileEmail, ENT_QUOTES, 'UTF-8') ?>"
-                            placeholder="player@example.com" required>
-                        <small id="settings-email-message" class="settings-field-message" aria-live="polite"></small>
+                            readonly aria-readonly="true"
+                            class="cursor-not-allowed bg-black/[0.03] text-arcade-ink/72">
                     </label>
+
+                    <p class="-mt-2 text-xs font-bold text-arcade-ink/55 sm:col-span-2">Your registered email cannot be changed.</p>
 
                     <label class="settings-field sm:col-span-2" for="settings-student-number">
                         <span>Student ID</span>
                         <input id="settings-student-number" type="text"
                             value="<?= htmlspecialchars($profileStudentNumber !== '' ? $profileStudentNumber : 'Not assigned yet', ENT_QUOTES, 'UTF-8') ?>"
+                            readonly
+                            class="cursor-not-allowed bg-black/[0.03] text-arcade-ink/72">
+                    </label>
+
+                    <label class="settings-field sm:col-span-2" for="settings-section">
+                        <span>Section</span>
+                        <input id="settings-section" type="text"
+                            value="<?= htmlspecialchars($profileSection !== '' ? $profileSection : 'Not assigned yet', ENT_QUOTES, 'UTF-8') ?>"
                             readonly
                             class="cursor-not-allowed bg-black/[0.03] text-arcade-ink/72">
                     </label>
@@ -194,9 +231,7 @@ if (isset($connection) && $connection instanceof mysqli && isset($_SESSION['user
                     </div>
                 </section>
 
-                <div class="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <p class="text-sm font-bold leading-6 text-arcade-ink/62">Leave the file empty if you want to keep
-                        your current avatar.</p>
+                <div class="mt-6 flex justify-end">
                     <button type="submit"
                         class="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl border-2 border-arcade-ink bg-arcade-yellow px-5 py-2.5 text-sm font-bold text-arcade-ink shadow-[0_4px_0_#26190f] transition hover:-translate-y-0.5 hover:bg-arcade-orange hover:text-white disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:translate-y-0 disabled:hover:bg-arcade-yellow disabled:hover:text-arcade-ink"
                         data-settings-save-button>
@@ -221,8 +256,8 @@ if (isset($connection) && $connection instanceof mysqli && isset($_SESSION['user
         const initials = document.querySelector('#settings-avatar-preview-initials');
         const fileName = document.querySelector('#settings-avatar-file-name');
         const form = document.querySelector('.settings-form');
-        const emailInput = document.querySelector('#settings-email');
-        const emailMessage = document.querySelector('#settings-email-message');
+        const usernameInput = document.querySelector('#settings-username');
+        const usernameMessage = document.querySelector('#settings-username-message');
         const saveButton = document.querySelector('[data-settings-save-button]');
         const saveButtonSpinner = saveButton?.querySelector('.settings-save-button__spinner');
         const saveButtonText = saveButton?.querySelector('.settings-save-button__text');
@@ -233,9 +268,9 @@ if (isset($connection) && $connection instanceof mysqli && isset($_SESSION['user
         const passwordResetIcon = passwordResetButton?.querySelector('.settings-password-reset-button__icon');
         const passwordResetText = passwordResetButton?.querySelector('.settings-password-reset-button__text');
         const passwordResetCountdown = document.querySelector('[data-settings-password-reset-countdown]');
-        let emailIsAvailable = true;
+        let usernameIsAvailable = true;
 
-        if (!input || !preview || !fileName || !form || !emailInput || !emailMessage) {
+        if (!input || !preview || !fileName || !form || !usernameInput || !usernameMessage) {
             return;
         }
 
@@ -306,11 +341,11 @@ if (isset($connection) && $connection instanceof mysqli && isset($_SESSION['user
             }
         });
 
-        const setEmailState = (message, isValid = false) => {
-            emailMessage.textContent = message;
-            emailMessage.classList.toggle('is-valid', isValid);
-            emailInput.classList.toggle('is-invalid', message !== '' && !isValid);
-            emailInput.classList.toggle('is-valid', message !== '' && isValid);
+        const setUsernameState = (message, isValid = false) => {
+            usernameMessage.textContent = message;
+            usernameMessage.classList.toggle('is-valid', isValid);
+            usernameInput.classList.toggle('is-invalid', message !== '' && !isValid);
+            usernameInput.classList.toggle('is-valid', message !== '' && isValid);
         };
 
         const debounce = (callback, delay = 350) => {
@@ -322,59 +357,55 @@ if (isset($connection) && $connection instanceof mysqli && isset($_SESSION['user
             };
         };
 
-        const checkEmail = async () => {
-            const email = emailInput.value.trim();
-            const currentEmail = emailInput.dataset.currentEmail || '';
+        const checkUsername = async () => {
+            const username = usernameInput.value.trim();
+            const currentUsername = usernameInput.dataset.currentUsername || '';
 
-            if (email === '') {
-                emailIsAvailable = false;
-                setEmailState('');
+            if (username === '') {
+                usernameIsAvailable = false;
+                setUsernameState('');
                 return false;
             }
 
-            if (!emailInput.validity.valid) {
-                emailIsAvailable = false;
-                setEmailState('Enter a valid email address.');
+            if (!/^[A-Za-z0-9_]{3,32}$/.test(username)) {
+                usernameIsAvailable = false;
+                setUsernameState('Use 3-32 letters, numbers, or underscores.');
                 return false;
             }
 
-            if (email.toLowerCase() === currentEmail.toLowerCase()) {
-                emailIsAvailable = true;
-                setEmailState('Current email.', true);
+            if (username.toLowerCase() === currentUsername.toLowerCase()) {
+                usernameIsAvailable = true;
+                setUsernameState('Current username.', true);
                 return true;
             }
 
-            setEmailState('Checking email...', true);
+            setUsernameState('Checking username...', true);
 
             try {
-                const response = await fetch(`./?c=settings&check_email=1&email=${encodeURIComponent(email)}`, {
-                    headers: {
-                        Accept: 'application/json',
-                    },
+                const response = await fetch(`./?c=settings&check_username=1&username=${encodeURIComponent(username)}`, {
+                    headers: { Accept: 'application/json' },
                 });
                 const result = await response.json();
-
-                emailIsAvailable = Boolean(result.available);
-                setEmailState(result.message || '', emailIsAvailable);
-
-                return emailIsAvailable;
+                usernameIsAvailable = Boolean(result.available);
+                setUsernameState(result.message || '', usernameIsAvailable);
+                return usernameIsAvailable;
             } catch (error) {
-                emailIsAvailable = false;
-                setEmailState('Unable to check email right now.');
+                usernameIsAvailable = false;
+                setUsernameState('Unable to check username right now.');
                 return false;
             }
         };
 
-        emailInput.addEventListener('input', debounce(checkEmail));
-        emailInput.addEventListener('blur', checkEmail);
+        usernameInput.addEventListener('input', debounce(checkUsername));
+        usernameInput.addEventListener('blur', checkUsername);
 
         form.addEventListener('submit', async (event) => {
             event.preventDefault();
 
-            const canUseEmail = await checkEmail();
+            const canUseUsername = await checkUsername();
 
-            if (!canUseEmail || !emailIsAvailable) {
-                emailInput.focus();
+            if (!canUseUsername || !usernameIsAvailable) {
+                usernameInput.focus();
                 return;
             }
 

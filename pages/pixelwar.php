@@ -9,6 +9,7 @@ $gameRoom = null;
 $gameRoomDeadlineIso = '';
 $gameRoomTimerLimit = 0;
 $gameRoomStrictMode = false;
+$gameRoomHardCodeMode = false;
 $gamePusherEnabled = isset($pusherService) && $pusherService instanceof PusherService && $pusherService->isConfigured();
 $gameShouldPlayOpening = (string) ($_GET['intro'] ?? '') === '1' || $gameRoomId > 0 || $gamePvpId > 0;
 
@@ -128,7 +129,8 @@ if ($gameChallengeId > 0) {
             if ($gameRoom !== null) {
                 $startedAtTs = strtotime((string) ($gameRoom['started_at'] ?? ''));
                 $gameRoomTimerLimit = max(0, (int) ($gameRoom['timer_limit'] ?? 0));
-                $gameRoomStrictMode = (int) ($gameRoom['strict_mode'] ?? 0) === 1;
+                $gameRoomStrictMode = (int) ($gameRoom['mode'] ?? 0) === 1;
+                $gameRoomHardCodeMode = (int) ($gameRoom['mode'] ?? 0) === 3;
                 if ($startedAtTs !== false && $gameRoomTimerLimit > 0) {
                     $gameRoomDeadlineIso = date(DATE_ATOM, $startedAtTs + ($gameRoomTimerLimit * 60));
                 }
@@ -211,8 +213,8 @@ $gameUserChallengeId = $gameUserChallenge !== null ? (int) $gameUserChallenge['u
                         <?php if ($gameRoomDeadlineIso !== '') : ?>
                             <span class="gameplay-time" id="room-session-timer" data-deadline-at="<?= htmlspecialchars($gameRoomDeadlineIso, ENT_QUOTES, 'UTF-8') ?>">00:00</span>
                         <?php endif; ?>
-                        <?php if ($gameRoomStrictMode && $gameRoomId > 0) : ?>
-                            <button type="button" id="strict-mode-submit-button" class="give-up-button give-up-button--submit">Submit</button>
+                        <?php if (($gameRoomStrictMode || $gameRoomHardCodeMode) && $gameRoomId > 0) : ?>
+                            <button type="button" id="strict-mode-submit-button" class="give-up-button give-up-button--submit"><?= $gameRoomHardCodeMode ? 'Submit Code' : 'Submit' ?></button>
                         <?php endif; ?>
                         <form id="give-up-form" class="give-up-form" action="./?c=pixelwar" method="post">
                             <?= pixelwarCsrfField() ?>
@@ -228,7 +230,7 @@ $gameUserChallengeId = $gameUserChallenge !== null ? (int) $gameUserChallenge['u
             </aside>
 
             <div class="challenge-grid" id="challenge-grid">
-                <section class="builder-pane rounded-[26px] border-4 border-arcade-ink/10 bg-white/70 p-4 md:p-5">
+                <section class="builder-pane<?= $gameRoomHardCodeMode ? ' builder-pane--hard-code' : '' ?> rounded-[26px] border-4 border-arcade-ink/10 bg-white/70 p-4 md:p-5">
                     <section class="panel-card panel-card--preview rounded-[20px] border-2 border-arcade-ink/10 bg-white p-4">
                         <div class="preview-card-header mb-3">
                             <h2 class="font-arcade text-[10px] uppercase tracking-[0.22em] text-arcade-orange">1. Live Preview</h2>
@@ -253,8 +255,8 @@ $gameUserChallengeId = $gameUserChallenge !== null ? (int) $gameUserChallenge['u
 
                     <section class="panel-card panel-card--identifiers rounded-[20px] border-2 border-arcade-ink/10 bg-white p-4">
                         <div class="identifiers-header mb-3">
-                            <h2 class="font-arcade text-[10px] uppercase tracking-[0.22em] text-arcade-orange">2. Identifier Containers</h2>
-                            <div class="progress-inline" aria-label="Challenge progress">
+                            <h2 class="font-arcade text-[10px] uppercase tracking-[0.22em] text-arcade-orange"><?= $gameRoomHardCodeMode ? '2. CSS Editors' : '2. Identifier Containers' ?></h2>
+                            <div class="progress-inline<?= $gameRoomHardCodeMode ? ' hidden' : '' ?>" aria-label="Challenge progress">
                                 <span class="progress-inline__track">
                                     <span id="progress-bar-fill" class="progress-inline__fill"></span>
                                 </span>
@@ -265,7 +267,7 @@ $gameUserChallengeId = $gameUserChallenge !== null ? (int) $gameUserChallenge['u
                         </div>
                     </section>
 
-                    <section class="panel-card panel-card--properties rounded-[20px] border-2 border-arcade-ink/10 bg-white p-4">
+                    <section class="panel-card panel-card--properties rounded-[20px] border-2 border-arcade-ink/10 bg-white p-4<?= $gameRoomHardCodeMode ? ' hidden' : '' ?>">
                         <h2 class="mb-2 font-arcade text-[10px] uppercase tracking-[0.22em] text-arcade-orange">3. Properties Panel</h2>
                         <div class="property-controls mb-2">
                             <div class="property-search-wrap">
@@ -332,6 +334,30 @@ $gameUserChallengeId = $gameUserChallenge !== null ? (int) $gameUserChallenge['u
                 <div class="mt-4 flex flex-col gap-3 sm:flex-row sm:justify-end">
                     <button type="button" class="rounded-xl border-2 border-arcade-ink/15 bg-white px-4 py-2 text-sm font-bold text-arcade-ink transition hover:bg-arcade-peach/60" data-bs-dismiss="modal">Cancel</button>
                     <button type="button" id="confirm-reset-layout-button" class="rounded-xl border-2 border-arcade-ink bg-arcade-orange px-5 py-2 text-sm font-bold text-white shadow-[0_4px_0_#26190f] transition hover:-translate-y-0.5 hover:bg-arcade-coral">Reset Placement</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade gameplay-hard-code-submit-modal" id="gameplay-hard-code-submit-modal" tabindex="-1" aria-labelledby="gameplay-hard-code-submit-modal-title" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-[24px] border-4 border-arcade-ink bg-arcade-panel p-0 text-arcade-ink shadow-[8px_8px_0_#26190f]">
+            <div class="modal-header border-0 px-4 pb-2 pt-4">
+                <div>
+                    <p class="font-arcade text-[10px] uppercase tracking-[0.22em] text-arcade-orange">Submit Hard Code</p>
+                    <h2 id="gameplay-hard-code-submit-modal-title" class="modal-title mt-2 text-xl font-bold">Submit your coded design?</h2>
+                </div>
+                <button type="button" class="btn-close opacity-100" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body px-4 pb-4 pt-2">
+                <p class="text-sm font-semibold leading-7 text-arcade-ink/70">
+                    Your CSS will be sent to your teacher for review. Submitting will finish this run, and you cannot edit it afterward.
+                </p>
+                <p id="hard-code-submit-error" class="mt-3 hidden rounded-xl border-2 border-arcade-coral/40 bg-arcade-coral/10 px-3 py-2 text-sm font-bold text-arcade-coral" role="alert"></p>
+                <div class="mt-4 flex flex-col gap-3 sm:flex-row sm:justify-end">
+                    <button type="button" class="rounded-xl border-2 border-arcade-ink/15 bg-white px-4 py-2 text-sm font-bold text-arcade-ink transition hover:bg-arcade-peach/60" data-bs-dismiss="modal">Keep Editing</button>
+                    <button type="button" id="confirm-hard-code-submit-button" class="rounded-xl border-2 border-arcade-ink bg-arcade-orange px-5 py-2 text-sm font-bold text-white shadow-[0_4px_0_#26190f] transition hover:-translate-y-0.5 hover:bg-arcade-coral disabled:cursor-not-allowed disabled:opacity-60">Submit Design</button>
                 </div>
             </div>
         </div>
@@ -548,6 +574,7 @@ $gameUserChallengeId = $gameUserChallenge !== null ? (int) $gameUserChallenge['u
         roomDeadlineAt: <?= json_encode($gameRoomDeadlineIso, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?: "''" ?>,
         roomTimerLimit: <?= (int) $gameRoomTimerLimit ?>,
         strictMode: <?= $gameRoomStrictMode ? 'true' : 'false' ?>,
+        hardCodeMode: <?= $gameRoomHardCodeMode ? 'true' : 'false' ?>,
         userChallengeId: <?= (int) $gameUserChallengeId ?>,
         challengeTitle: <?= json_encode($gameChallengeTitle, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?: "''" ?>,
         csrfToken: <?= json_encode(pixelwarCsrfToken(), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?: "''" ?>,
@@ -595,9 +622,13 @@ $gameUserChallengeId = $gameUserChallenge !== null ? (int) $gameUserChallenge['u
     const strictResultModal = strictResultModalElement ? new bootstrap.Modal(strictResultModalElement) : null;
     const resetModalElement = document.getElementById('gameplay-reset-modal');
     const resetModal = resetModalElement ? new bootstrap.Modal(resetModalElement) : null;
+    const hardCodeSubmitModalElement = document.getElementById('gameplay-hard-code-submit-modal');
+    const hardCodeSubmitModal = hardCodeSubmitModalElement ? new bootstrap.Modal(hardCodeSubmitModalElement) : null;
     const exitModalElement = document.getElementById('gameplay-exit-modal');
     const exitModal = exitModalElement ? new bootstrap.Modal(exitModalElement) : null;
     const confirmResetButton = document.getElementById('confirm-reset-layout-button');
+    const confirmHardCodeSubmitButton = document.getElementById('confirm-hard-code-submit-button');
+    const hardCodeSubmitError = document.getElementById('hard-code-submit-error');
     const confirmGiveUpButton = document.getElementById('confirm-give-up-button');
     const targetGrid = document.getElementById('challenge-grid');
     const splitHandle = document.getElementById('split-handle');
@@ -634,6 +665,7 @@ $gameUserChallengeId = $gameUserChallenge !== null ? (int) $gameUserChallenge['u
         skipUnloadWarning: false,
         isUnavailable: false,
         strictProgressPercent: null,
+        hardCodeBySelector: {},
         streakCount: 0,
         streakTimerId: null,
         completedSelectorKeys: new Set(),
@@ -788,7 +820,7 @@ $gameUserChallengeId = $gameUserChallenge !== null ? (int) $gameUserChallenge['u
     };
 
     const playPropertyDropSound = (isCorrect) => {
-        if (!gameplaySoundIsOn() || challengeConfig.strictMode) {
+        if (!gameplaySoundIsOn() || challengeConfig.strictMode || challengeConfig.hardCodeMode) {
             return;
         }
 
@@ -917,7 +949,7 @@ $gameUserChallengeId = $gameUserChallenge !== null ? (int) $gameUserChallenge['u
     };
 
     const scheduleRocketHazard = (delay = null) => {
-        if (challengeConfig.strictMode || !rocketLayer || state.rocketActive || state.isCompleted || state.isCompletionSubmitting || state.isUnavailable || !state.challengeLoaded) {
+        if (challengeConfig.strictMode || challengeConfig.hardCodeMode || !rocketLayer || state.rocketActive || state.isCompleted || state.isCompletionSubmitting || state.isUnavailable || !state.challengeLoaded) {
             return;
         }
 
@@ -925,7 +957,7 @@ $gameUserChallengeId = $gameUserChallenge !== null ? (int) $gameUserChallenge['u
         const rocketInterval = 5 * 60 * 1000;
         const nextRocketAt = Date.now() + (delay ?? rocketInterval);
         state.rocketTimerId = window.setInterval(() => {
-            if (challengeConfig.strictMode || state.rocketActive || state.isCompleted || state.isCompletionSubmitting || state.isUnavailable || !state.challengeLoaded) {
+            if (challengeConfig.strictMode || challengeConfig.hardCodeMode || state.rocketActive || state.isCompleted || state.isCompletionSubmitting || state.isUnavailable || !state.challengeLoaded) {
                 return;
             }
 
@@ -1426,7 +1458,7 @@ $gameUserChallengeId = $gameUserChallenge !== null ? (int) $gameUserChallenge['u
     };
 
     function triggerRocketHazard() {
-        if (challengeConfig.strictMode || !rocketLayer || state.rocketActive || state.isCompleted || state.isCompletionSubmitting || state.isUnavailable) {
+        if (challengeConfig.strictMode || challengeConfig.hardCodeMode || !rocketLayer || state.rocketActive || state.isCompleted || state.isCompletionSubmitting || state.isUnavailable) {
             return;
         }
 
@@ -2214,6 +2246,12 @@ ${css}
                 return;
             }
 
+            if (payload?.removed_from_room) {
+                state.isUnavailable = true;
+                window.location.href = payload.redirect_url || './?c=home&room_notice=removed';
+                return;
+            }
+
             if (!response.ok || !payload?.success || payload?.available === false) {
                 handleChallengeUnavailable(payload?.message || 'This challenge is no longer available.');
             }
@@ -2433,7 +2471,16 @@ ${css}
             const card = document.createElement('article');
             card.className = 'selector-card rounded-2xl border-2 border-arcade-ink/10 bg-arcade-cream/60 p-3';
             card.dataset.selectorCard = selectorDefinition.key;
-            card.innerHTML = `
+            card.innerHTML = challengeConfig.hardCodeMode ? `
+                <div class="selector-head">
+                    <p class="mb-2 font-mono text-xs font-semibold text-arcade-ink/80">${escapeHtml(selectorDefinition.selector)}</p>
+                    <span class="selector-meta">CSS declarations</span>
+                </div>
+                <label class="block">
+                    <span class="sr-only">CSS declarations for ${escapeHtml(selectorDefinition.selector)}</span>
+                    <textarea class="hard-code-editor mt-2 min-h-36 w-full resize-y rounded-xl border-2 p-3 font-mono text-sm leading-6 outline-none transition" data-hard-code-editor="${selectorDefinition.key}" spellcheck="false" placeholder="color: #26190f;\nbackground: #ffd166;"></textarea>
+                </label>
+            ` : `
                 <div class="selector-head">
                     <p class="mb-2 font-mono text-xs font-semibold text-arcade-ink/80">${escapeHtml(selectorDefinition.selector)}</p>
                     <span class="selector-meta" data-selector-meta="${selectorDefinition.key}"></span>
@@ -2446,6 +2493,14 @@ ${css}
             state.selectorCardLookup[selectorDefinition.key] = card;
             state.selectorMetaLookup[selectorDefinition.key] = card.querySelector('[data-selector-meta]');
             state.listNodes[selectorDefinition.key] = card.querySelector('[data-property-list]');
+            if (challengeConfig.hardCodeMode) {
+                const editor = card.querySelector('[data-hard-code-editor]');
+                editor?.addEventListener('input', () => {
+                    state.hardCodeBySelector[selectorDefinition.key] = editor.value;
+                    renderPreviewStyles();
+                    setStatus('Hard code: submit your design for teacher review.');
+                });
+            }
         });
     };
 
@@ -2507,7 +2562,7 @@ ${css}
     };
 
     const showStreakFeedback = (isCorrect) => {
-        if (!streakPop || challengeConfig.strictMode) {
+        if (!streakPop || challengeConfig.strictMode || challengeConfig.hardCodeMode) {
             return;
         }
 
@@ -2556,7 +2611,7 @@ ${css}
     };
 
     const showIdentifierCompleteFeedback = (selectorKey) => {
-        if (!identifierCompletePop || challengeConfig.strictMode) {
+        if (!identifierCompletePop || challengeConfig.strictMode || challengeConfig.hardCodeMode) {
             return;
         }
 
@@ -2740,6 +2795,9 @@ ${css}
     };
 
     const currentPlayerCss = () => state.selectorDefinitions.map((selectorDefinition) => {
+        if (challengeConfig.hardCodeMode) {
+            return `${state.selectorLookup[selectorDefinition.key]} {\n${state.hardCodeBySelector[selectorDefinition.key] || ''}\n}`;
+        }
         const rules = Object.keys(state.placements[selectorDefinition.key] || {})
             .map((propertyKey) => Array.from({ length: getCount(selectorDefinition.key, propertyKey) }, () => state.propertyCatalog[propertyKey].rule).join(' '))
             .join(' ');
@@ -2790,6 +2848,9 @@ ${css}
     const requiredTotalBySelector = (selectorKey) => Object.values(state.requiredBySelector[selectorKey] || {}).reduce((sum, value) => sum + value, 0);
 
     const renderSelectorStates = () => {
+        if (challengeConfig.hardCodeMode) {
+            return;
+        }
         state.selectorKeys.forEach((selectorKey) => {
             const card = state.selectorCardLookup[selectorKey];
             if (!card) {
@@ -2825,6 +2886,13 @@ ${css}
     };
 
     const renderProgress = () => {
+        if (challengeConfig.hardCodeMode) {
+            if (progressBarFill) {
+                progressBarFill.style.width = '0%';
+            }
+            setStatus('Hard code: submit your design for teacher review.');
+            return { correctCount: 0, hasMismatch: false, allComplete: false, progressPercent: 0 };
+        }
         let correctCount = 0;
         let hasMismatch = false;
         let allComplete = state.selectorKeys.length > 0;
@@ -2867,7 +2935,9 @@ ${css}
     };
 
     const render = () => {
-        renderLists();
+        if (!challengeConfig.hardCodeMode) {
+            renderLists();
+        }
         renderPreviewStyles();
         renderSelectorStates();
         renderProgress();
@@ -2906,7 +2976,21 @@ ${css}
     };
 
     const handleStrictModeSubmit = async () => {
-        if (!challengeConfig.strictMode || state.isCompleted || state.isCompletionSubmitting || state.isUnavailable) {
+        if ((!challengeConfig.strictMode && !challengeConfig.hardCodeMode) || state.isCompleted || state.isCompletionSubmitting || state.isUnavailable) {
+            return;
+        }
+
+        if (challengeConfig.hardCodeMode) {
+            const cssCode = currentPlayerCss();
+            if (!cssCode.replace(/[^{}]/g, '').length || !Object.values(state.hardCodeBySelector).some((value) => String(value).trim() !== '')) {
+                setStatus('Write CSS before submitting your design.');
+                return;
+            }
+            if (hardCodeSubmitError) {
+                hardCodeSubmitError.textContent = '';
+                hardCodeSubmitError.classList.add('hidden');
+            }
+            hardCodeSubmitModal?.show();
             return;
         }
 
@@ -2939,6 +3023,69 @@ ${css}
             console.error(error);
             state.isCompletionSubmitting = false;
             setStatus(error instanceof Error ? error.message : 'Unable to submit strict mode progress right now.');
+        }
+    };
+
+    const submitHardCodeSolution = async () => {
+        if (!challengeConfig.hardCodeMode || state.isCompleted || state.isCompletionSubmitting || state.isUnavailable) {
+            return;
+        }
+
+        const cssCode = currentPlayerCss();
+        if (!cssCode.replace(/[^{}]/g, '').length || !Object.values(state.hardCodeBySelector).some((value) => String(value).trim() !== '')) {
+            hardCodeSubmitModal?.hide();
+            setStatus('Write CSS before submitting your design.');
+            return;
+        }
+
+        state.isCompletionSubmitting = true;
+        if (confirmHardCodeSubmitButton) {
+            confirmHardCodeSubmitButton.disabled = true;
+            confirmHardCodeSubmitButton.textContent = 'Submitting...';
+        }
+        if (hardCodeSubmitError) {
+            hardCodeSubmitError.textContent = '';
+            hardCodeSubmitError.classList.add('hidden');
+        }
+
+        try {
+            const body = new URLSearchParams({
+                _csrf_token: challengeConfig.csrfToken,
+                gameplay_action: 'hard_code_submit',
+                room_id: String(challengeConfig.roomId),
+                challenge_id: String(challengeConfig.challengeId),
+                user_challenge_id: String(challengeConfig.userChallengeId),
+                css_code: cssCode,
+            });
+            const response = await fetch('./?c=pixelwar', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                body: body.toString(),
+            });
+            const payload = await response.json().catch(() => null);
+            if (!response.ok || !payload?.success) {
+                throw new Error(payload?.message || 'Unable to submit your coded design.');
+            }
+            state.skipUnloadWarning = true;
+            state.isCompleted = true;
+            stopBackgroundMusic();
+            setStatus('Coded design submitted.');
+            window.location.href = payload.redirect_url || './?c=home&room_notice=hard_code_submitted';
+        } catch (error) {
+            const message = error instanceof Error ? error.message : 'Unable to submit your coded design.';
+            state.isCompletionSubmitting = false;
+            setStatus(message);
+            if (hardCodeSubmitError) {
+                hardCodeSubmitError.textContent = message;
+                hardCodeSubmitError.classList.remove('hidden');
+            }
+            if (confirmHardCodeSubmitButton) {
+                confirmHardCodeSubmitButton.disabled = false;
+                confirmHardCodeSubmitButton.textContent = 'Submit Design';
+            }
         }
     };
 
@@ -3256,16 +3403,20 @@ ${css}
             state.css = css;
             initializeChallengeData(css);
             renderSelectorCards();
-            attachDropHandlers();
+            if (!challengeConfig.hardCodeMode) {
+                attachDropHandlers();
+            }
             loadTargetPreviews();
             render();
             state.challengeLoaded = true;
             startBackgroundMusic();
-            if (challengeConfig.strictMode) {
+            if (challengeConfig.strictMode || challengeConfig.hardCodeMode) {
                 stopRocketHazard();
             }
             scheduleRocketHazard();
-            setStatus(challengeConfig.strictMode ? 'Strict mode: submit to record your progress.' : 'In progress');
+            setStatus(challengeConfig.hardCodeMode
+                ? 'Hard code: submit your design for teacher review.'
+                : (challengeConfig.strictMode ? 'Strict mode: submit to record your progress.' : 'In progress'));
         } catch (error) {
             console.error(error);
             setStatus('Challenge load failed');
@@ -3309,6 +3460,7 @@ ${css}
     });
     propertySearchInput?.addEventListener('input', renderLists);
     strictModeSubmitButton?.addEventListener('click', handleStrictModeSubmit);
+    confirmHardCodeSubmitButton?.addEventListener('click', submitHardCodeSolution);
     liveCompareButton?.addEventListener('click', () => {
         renderPreviewStyles();
         liveCompareModal?.show();
@@ -3368,6 +3520,12 @@ ${css}
                     payload?.message || 'The room was ended. Your challenge run was not completed.',
                     payload?.redirect_url || challengeConfig.endedRedirectUrl
                 );
+            });
+            roomChannel.bind('player-removed', (payload) => {
+                if (Number(payload?.user_id || 0) === challengeConfig.currentUserId) {
+                    state.isUnavailable = true;
+                    window.location.href = payload?.redirect_url || './?c=home&room_notice=removed';
+                }
             });
         }
 

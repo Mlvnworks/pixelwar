@@ -7,6 +7,7 @@ if (file_exists($rootPath . '/vendor/autoload.php')) {
 
 require_once $rootPath . '/classes/page-meta.php';
 require_once $rootPath . '/classes/tools.php';
+require_once $rootPath . '/classes/password-policy.php';
 require_once $rootPath . '/classes/challenge-catalog.php';
 require_once $rootPath . '/classes/challenge-repository.php';
 require_once $rootPath . '/classes/room-repository.php';

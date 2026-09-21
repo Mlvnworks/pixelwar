@@ -58,7 +58,8 @@ $completedRooms = count(array_filter($teacherRooms, static fn(array $room): bool
                 <div class="teacher-rooms-card-grid teacher-created-grid teacher-created-grid--compact mt-4">
                     <?php foreach ($teacherRooms as $room) : ?>
                         <?php
-                        $strictModeEnabled = (int) ($room['strict_mode'] ?? 0) === 1;
+                        $strictModeEnabled = (int) ($room['mode'] ?? 0) === 1;
+                        $hardCodeModeEnabled = (int) ($room['mode'] ?? 0) === 3;
                         $roomIsOpen = (int) ($room['status'] ?? 1) === 1;
                         ?>
                         <article class="teacher-created-challenge teacher-created-challenge--library teacher-room-card rounded-[18px] border-2 border-arcade-ink/12 bg-white p-4 transition hover:-translate-y-1 hover:border-arcade-orange hover:shadow-[0_6px_0_rgba(38,25,15,0.18)]">
@@ -69,7 +70,7 @@ $completedRooms = count(array_filter($teacherRooms, static fn(array $room): bool
                                             <?= $roomIsOpen ? 'Open' : 'Closed' ?>
                                         </span>
                                         <span class="teacher-pill <?= $strictModeEnabled ? 'bg-arcade-coral/25' : 'bg-arcade-cyan/25' ?>">
-                                            <?= $strictModeEnabled ? 'Strict mode' : 'Practice mode' ?>
+                                            <?= $hardCodeModeEnabled ? 'Hard code' : ($strictModeEnabled ? 'Strict mode' : 'Practice mode') ?>
                                         </span>
                                         <span class="teacher-pill bg-arcade-yellow">
                                             <?= (int) ($room['timer_limit'] ?? 0) ?> min

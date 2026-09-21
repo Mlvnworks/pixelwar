@@ -75,9 +75,13 @@ $strictScoreForPlayer = static function (array $player): int {
     return max(0, min(100, (int) ($player['strict_mode_score'] ?? 0)));
 };
 
-$displayStatusForPlayer = static function (array $player, bool $roomEnded = false, bool $strictModeEnabled = false) use ($statusForPlayer, $strictScoreForPlayer): array {
+$displayStatusForPlayer = static function (array $player, bool $roomEnded = false, bool $strictModeEnabled = false, bool $hardCodeModeEnabled = false) use ($statusForPlayer, $strictScoreForPlayer): array {
     $statusMeta = $statusForPlayer($player, $roomEnded);
     $status = (int) ($player['status'] ?? 0);
+
+    if ($hardCodeModeEnabled && $status === 2) {
+        return ['label' => 'Submitted', 'class' => 'room-session-pill--completed'];
+    }
 
     if ($strictModeEnabled && in_array($status, [2, 3], true)) {
         $score = $strictScoreForPlayer($player);
@@ -96,7 +100,7 @@ $displayStatusForPlayer = static function (array $player, bool $roomEnded = fals
     return $statusMeta;
 };
 
-$formatPlayerDuration = static function (array $player, bool $roomEnded = false, bool $strictModeEnabled = false) use ($statusForPlayer, $displayStatusForPlayer): string {
+$formatPlayerDuration = static function (array $player, bool $roomEnded = false, bool $strictModeEnabled = false, bool $hardCodeModeEnabled = false) use ($statusForPlayer, $displayStatusForPlayer): string {
     $startedAt = trim((string) ($player['started_at'] ?? ''));
     $completedAt = trim((string) ($player['completed_at'] ?? ''));
 
@@ -123,7 +127,7 @@ $formatPlayerDuration = static function (array $player, bool $roomEnded = false,
     }
 
     $statusMeta = $strictModeEnabled
-        ? $displayStatusForPlayer($player, $roomEnded, $strictModeEnabled)
+        ? $displayStatusForPlayer($player, $roomEnded, $strictModeEnabled, $hardCodeModeEnabled)
         : $statusForPlayer($player, $roomEnded);
     return $statusMeta['label'];
 };
@@ -145,7 +149,8 @@ foreach ($roomSessionPlayers as $roomSessionPlayer) {
         $roomCode = trim((string) ($roomSessionRoom['room_code'] ?? '')) ?: 'Not set';
         $roomName = trim((string) ($roomSessionRoom['room_name'] ?? 'Untitled Room')) ?: 'Untitled Room';
         $challengeName = trim((string) ($roomSessionRoom['challenge_name'] ?? 'Unknown Challenge')) ?: 'Unknown Challenge';
-        $strictModeEnabled = (int) ($roomSessionRoom['strict_mode'] ?? 0) === 1;
+        $strictModeEnabled = (int) ($roomSessionRoom['mode'] ?? 0) === 1;
+        $hardCodeModeEnabled = (int) ($roomSessionRoom['mode'] ?? 0) === 3;
         $roomStateIsOpen = (int) ($roomSessionRoom['status'] ?? 1) === 1;
         ?>
 
@@ -153,11 +158,16 @@ foreach ($roomSessionPlayers as $roomSessionPlayer) {
             <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
                 <div>
                     <p class="font-arcade text-[10px] uppercase tracking-[0.26em] text-arcade-orange">Room Session</p>
-                    <h1 class="mt-3 text-3xl font-black leading-tight md:text-5xl"><?= htmlspecialchars($roomName, ENT_QUOTES, 'UTF-8') ?></h1>
+                    <div class="mt-3 flex flex-wrap items-center gap-3">
+                        <h1 class="text-3xl font-black leading-tight md:text-5xl"><?= htmlspecialchars($roomName, ENT_QUOTES, 'UTF-8') ?></h1>
+                        <?php if ($hardCodeModeEnabled) : ?>
+                            <span class="teacher-pill shrink-0 bg-arcade-yellow"><?= (int) ($roomSessionRoom['room_points'] ?? 0) ?> activity pts</span>
+                        <?php endif; ?>
+                    </div>
                     <div class="mt-3 flex flex-wrap gap-2">
                         <span class="teacher-pill bg-arcade-yellow"><?= htmlspecialchars($roomCode, ENT_QUOTES, 'UTF-8') ?></span>
                         <span class="teacher-pill bg-arcade-cyan/25"><?= htmlspecialchars($challengeName, ENT_QUOTES, 'UTF-8') ?></span>
-                        <span class="teacher-pill <?= $strictModeEnabled ? 'bg-arcade-coral/25' : 'bg-arcade-mint/35' ?>"><?= $strictModeEnabled ? 'Strict mode' : 'Practice mode' ?></span>
+                        <span class="teacher-pill <?= ($strictModeEnabled || $hardCodeModeEnabled) ? 'bg-arcade-coral/25' : 'bg-arcade-mint/35' ?>"><?= $hardCodeModeEnabled ? 'Hard code' : ($strictModeEnabled ? 'Strict mode' : 'Practice mode') ?></span>
                         <span class="teacher-pill bg-white">Timer: <?= (int) ($roomSessionRoom['timer_limit'] ?? 0) > 0 ? (int) ($roomSessionRoom['timer_limit'] ?? 0) . ' min' : 'No timer' ?></span>
                         <span class="teacher-pill <?= $roomStateIsOpen ? 'bg-arcade-mint/40' : 'bg-arcade-coral/25' ?>"><?= $roomStateIsOpen ? 'Open' : 'Closed' ?></span>
                         <span id="room-session-started-pill" class="teacher-pill <?= $roomSessionIsEnded ? 'bg-arcade-coral text-white' : ($roomSessionIsStarted ? 'bg-arcade-orange text-white' : 'bg-white') ?>"><?= $roomSessionIsEnded ? 'Room Ended' : ($roomSessionIsStarted ? 'Room Started' : 'Waiting to Start') ?></span>
@@ -250,21 +260,28 @@ foreach ($roomSessionPlayers as $roomSessionPlayer) {
             <div id="room-session-player-list" class="room-session-player-list mt-4 grid gap-3<?= $roomSessionPlayers === [] ? ' hidden' : '' ?>">
                 <?php foreach ($roomSessionPlayers as $roomSessionPlayer) : ?>
                     <?php
-                    $playerStatus = $displayStatusForPlayer($roomSessionPlayer, $roomSessionIsEnded, $strictModeEnabled);
-                    $playerDuration = $formatPlayerDuration($roomSessionPlayer, $roomSessionIsEnded, $strictModeEnabled);
+                    $playerStatus = $displayStatusForPlayer($roomSessionPlayer, $roomSessionIsEnded, $strictModeEnabled, $hardCodeModeEnabled);
+                    $playerDuration = $formatPlayerDuration($roomSessionPlayer, $roomSessionIsEnded, $strictModeEnabled, $hardCodeModeEnabled);
                     $displayName = trim((string) ($roomSessionPlayer['firstname'] ?? '') . ' ' . (string) ($roomSessionPlayer['lastname'] ?? ''))
                         ?: trim((string) ($roomSessionPlayer['username'] ?? 'Student'))
                         ?: 'Student';
                     $playerInitials = strtoupper(substr(preg_replace('/[^a-z0-9]+/i', '', $displayName) ?: 'ST', 0, 2));
                     $avatarUrl = trim((string) ($roomSessionPlayer['avatar_url'] ?? ''));
                     $studentNumber = trim((string) ($roomSessionPlayer['student_number'] ?? ''));
+                    $studentSection = trim((string) ($roomSessionPlayer['section'] ?? ''));
+                    $rawCodeSolutionGrade = $roomSessionPlayer['code_solution_grade'] ?? null;
+                    $codeSolutionGrade = $rawCodeSolutionGrade === null
+                        ? null
+                        : max(0, (int) $rawCodeSolutionGrade);
                     ?>
                     <article
                         class="room-session-card rounded-[22px] border-2 border-arcade-ink/12 bg-white p-4"
+                        data-room-player-id="<?= (int) ($roomSessionPlayer['rp_id'] ?? 0) ?>"
                         data-room-player-user-id="<?= (int) ($roomSessionPlayer['user_id'] ?? 0) ?>"
                         data-player-name="<?= htmlspecialchars(strtolower($displayName), ENT_QUOTES, 'UTF-8') ?>"
                         data-player-started-at="<?= htmlspecialchars((string) ($roomSessionPlayer['started_at'] ?? ''), ENT_QUOTES, 'UTF-8') ?>"
                         data-player-completed-at="<?= htmlspecialchars((string) ($roomSessionPlayer['completed_at'] ?? ''), ENT_QUOTES, 'UTF-8') ?>"
+                        data-code-solution-url="<?= htmlspecialchars((string) ($roomSessionPlayer['code_solution_url'] ?? ''), ENT_QUOTES, 'UTF-8') ?>"
                         data-player-score="<?= (int) ($roomSessionPlayer['strict_mode_score'] ?? 0) ?>">
                         <div class="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
                             <div class="flex min-w-0 items-start gap-3">
@@ -281,17 +298,49 @@ foreach ($roomSessionPlayers as $roomSessionPlayer) {
                                     <p class="truncate text-sm font-bold text-arcade-ink/60"><?= htmlspecialchars((string) ($roomSessionPlayer['email'] ?? 'No email'), ENT_QUOTES, 'UTF-8') ?></p>
                                 </div>
                             </div>
-                            <span
-                                class="teacher-pill room-session-pill <?= htmlspecialchars($playerStatus['class'], ENT_QUOTES, 'UTF-8') ?>"
-                                data-room-player-status-pill>
-                                <?= htmlspecialchars($playerStatus['label'], ENT_QUOTES, 'UTF-8') ?>
-                            </span>
+                            <div class="flex shrink-0 flex-wrap items-center gap-2">
+                                <span
+                                    class="teacher-pill room-session-pill <?= htmlspecialchars($playerStatus['class'], ENT_QUOTES, 'UTF-8') ?>"
+                                    data-room-player-status-pill>
+                                    <?= htmlspecialchars($playerStatus['label'], ENT_QUOTES, 'UTF-8') ?>
+                                </span>
+                                <?php if (!$roomSessionIsEnded) : ?>
+                                    <button type="button"
+                                        class="grid h-10 w-10 place-items-center rounded-xl border-2 border-arcade-coral bg-arcade-coral/10 text-arcade-coral transition hover:bg-arcade-coral hover:text-white disabled:cursor-wait disabled:opacity-60"
+                                        data-remove-room-player
+                                        data-player-user-id="<?= (int) ($roomSessionPlayer['user_id'] ?? 0) ?>"
+                                        data-player-name="<?= htmlspecialchars($displayName, ENT_QUOTES, 'UTF-8') ?>"
+                                        aria-label="Remove <?= htmlspecialchars($displayName, ENT_QUOTES, 'UTF-8') ?> from room"
+                                        title="Remove player">
+                                        <i data-lucide="user-round-x" class="h-5 w-5" aria-hidden="true"></i>
+                                    </button>
+                                <?php endif; ?>
+                                <?php if ($hardCodeModeEnabled && trim((string) ($roomSessionPlayer['code_solution_url'] ?? '')) !== '') : ?>
+                                    <button type="button" class="teacher-button teacher-button--light gap-2" data-view-code-solution data-solution-url="<?= htmlspecialchars((string) $roomSessionPlayer['code_solution_url'], ENT_QUOTES, 'UTF-8') ?>">
+                                        <i data-lucide="code-2" class="h-4 w-4" aria-hidden="true"></i>
+                                        <span>View Design</span>
+                                    </button>
+                                    <button type="button"
+                                        class="teacher-button teacher-button--primary gap-2"
+                                        data-add-hard-code-grade
+                                        data-room-player-id="<?= (int) ($roomSessionPlayer['rp_id'] ?? 0) ?>"
+                                        data-player-name="<?= htmlspecialchars($displayName, ENT_QUOTES, 'UTF-8') ?>"
+                                        data-current-grade="<?= $codeSolutionGrade === null ? '' : $codeSolutionGrade ?>">
+                                        <i data-lucide="clipboard-check" class="h-4 w-4" aria-hidden="true"></i>
+                                        <span data-grade-button-label><?= $codeSolutionGrade === null ? 'Add Grade' : 'Edit Grade (' . $codeSolutionGrade . ')' ?></span>
+                                    </button>
+                                <?php endif; ?>
+                            </div>
                         </div>
 
                         <div class="room-session-info-grid mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
                             <div class="room-session-info-card">
                                 <p>Student ID</p>
                                 <strong><?= htmlspecialchars($studentNumber !== '' ? $studentNumber : 'Not set', ENT_QUOTES, 'UTF-8') ?></strong>
+                            </div>
+                            <div class="room-session-info-card">
+                                <p>Section</p>
+                                <strong><?= htmlspecialchars($studentSection !== '' ? $studentSection : 'Not set', ENT_QUOTES, 'UTF-8') ?></strong>
                             </div>
                             <div class="room-session-info-card">
                                 <p>Record ID</p>
@@ -342,9 +391,156 @@ foreach ($roomSessionPlayers as $roomSessionPlayer) {
     </div>
 <?php endif; ?>
 
+<div class="modal fade" id="room-player-remove-modal" tabindex="-1" aria-labelledby="room-player-remove-modal-title" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-[24px] border-4 border-arcade-ink bg-arcade-panel p-0 text-arcade-ink shadow-[8px_8px_0_#26190f]">
+            <div class="modal-header border-0 px-4 pb-2 pt-4">
+                <div>
+                    <p class="font-arcade text-[10px] uppercase tracking-[0.22em] text-arcade-coral">Remove Player</p>
+                    <h2 id="room-player-remove-modal-title" class="modal-title mt-2 text-xl font-bold">Remove this player?</h2>
+                </div>
+                <button type="button" class="btn-close opacity-100" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body px-4 pb-4 pt-2">
+                <p class="text-sm font-semibold leading-7 text-arcade-ink/70">
+                    <strong data-remove-player-name>Player</strong> will be removed immediately and redirected to the dashboard.
+                </p>
+                <p class="mt-3 hidden rounded-xl border-2 border-arcade-coral/30 bg-arcade-coral/10 px-3 py-2 text-sm font-bold text-arcade-coral" data-remove-player-error></p>
+                <div class="mt-4 flex flex-col gap-3 sm:flex-row sm:justify-end">
+                    <button type="button" class="rounded-xl border-2 border-arcade-ink/15 bg-white px-4 py-2 text-sm font-bold text-arcade-ink transition hover:bg-arcade-peach/60" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="teacher-button teacher-button--danger gap-2" data-confirm-remove-player>
+                        <i data-lucide="user-round-x" class="h-4 w-4" aria-hidden="true"></i>
+                        <span data-remove-player-button-text>Remove Player</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<?php if ($hardCodeModeEnabled) : ?>
+<div class="modal fade" id="hard-code-grade-modal" tabindex="-1" aria-labelledby="hard-code-grade-modal-title" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-[24px] border-4 border-arcade-ink bg-arcade-panel p-0 text-arcade-ink shadow-[8px_8px_0_#26190f]">
+            <div class="modal-header border-0 px-4 pb-2 pt-4">
+                <div>
+                    <p class="font-arcade text-[10px] uppercase tracking-[0.22em] text-arcade-orange">Hard Code Grade</p>
+                    <h2 id="hard-code-grade-modal-title" class="modal-title mt-2 text-xl font-bold">Grade submitted design</h2>
+                </div>
+                <button type="button" class="btn-close opacity-100" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body px-4 pb-4 pt-2">
+                <p class="text-sm font-semibold leading-6 text-arcade-ink/70">
+                    Enter the grade for <strong data-grade-player-name>this student</strong>, then confirm to save it.
+                </p>
+                <label class="mt-4 block text-sm font-bold" for="hard-code-grade-input">
+                    Grade
+                    <span class="mt-2 flex w-full overflow-hidden rounded-xl border-2 border-arcade-ink/15 bg-white transition focus-within:border-arcade-orange">
+                        <input id="hard-code-grade-input" type="number" min="0" step="1" inputmode="numeric" class="min-w-0 flex-1 border-0 bg-transparent px-3 py-3 text-lg font-black outline-none" placeholder="Enter grade" aria-describedby="hard-code-grade-total" data-hard-code-grade-input>
+                        <span id="hard-code-grade-total" class="flex shrink-0 items-center border-l-2 border-arcade-ink/10 bg-arcade-cream px-4 text-lg font-black text-arcade-ink/70" aria-label="out of <?= (int) ($roomSessionRoom['room_points'] ?? 0) ?> points">
+                            / <?= (int) ($roomSessionRoom['room_points'] ?? 0) ?>
+                        </span>
+                    </span>
+                </label>
+                <p class="mt-3 hidden rounded-xl border-2 border-arcade-coral/30 bg-arcade-coral/10 px-3 py-2 text-sm font-bold text-arcade-coral" data-hard-code-grade-error></p>
+                <div class="mt-5 flex flex-col gap-3 sm:flex-row sm:justify-end">
+                    <button type="button" class="teacher-button teacher-button--light" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="teacher-button teacher-button--primary gap-2" data-confirm-hard-code-grade>
+                        <span class="hidden h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" aria-hidden="true" data-grade-submit-spinner></span>
+                        <i data-lucide="check" class="h-4 w-4" aria-hidden="true" data-grade-submit-icon></i>
+                        <span data-grade-submit-label>Save Grade</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<?php endif; ?>
+
+<?php if ($hardCodeModeEnabled) : ?>
+<div class="modal fade" id="hard-code-preview-modal" tabindex="-1" aria-labelledby="hard-code-preview-title" aria-hidden="true">
+    <div class="modal-dialog modal-fullscreen">
+        <div class="modal-content bg-arcade-panel text-arcade-ink">
+            <div class="modal-header border-b-2 border-arcade-ink/10">
+                <div>
+                    <p class="font-arcade text-[10px] uppercase tracking-[0.22em] text-arcade-orange">Hard Code Submission</p>
+                    <h2 id="hard-code-preview-title" class="modal-title mt-2 text-xl font-bold">Submitted design</h2>
+                </div>
+                <button type="button" class="btn-close opacity-100" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body flex min-h-0 flex-col">
+                <div class="hard-code-preview-layout grid min-h-0 flex-1 gap-4 lg:grid-cols-[minmax(280px,0.7fr)_minmax(0,1.3fr)]" data-hard-code-preview-layout>
+                    <section class="hard-code-submission-source flex min-h-[420px] flex-col rounded-2xl border-2 p-3" data-hard-code-source-panel>
+                        <p class="mb-2 font-arcade text-[10px] uppercase tracking-[0.18em] text-arcade-orange">Submitted CSS</p>
+                        <pre class="min-h-0 flex-1 overflow-auto whitespace-pre-wrap font-mono text-sm leading-6" data-hard-code-source>Loading...</pre>
+                    </section>
+                    <section class="flex min-h-[420px] flex-col rounded-2xl border-2 border-arcade-ink/10 bg-white p-3">
+                        <div class="mb-2 flex min-h-10 items-center justify-between gap-3">
+                            <p class="font-arcade text-[10px] uppercase tracking-[0.18em] text-arcade-orange">Student Design</p>
+                            <button type="button" class="teacher-button teacher-button--light shrink-0 gap-2" data-hard-code-compare-toggle disabled>
+                                <i data-lucide="columns-2" class="h-4 w-4" aria-hidden="true"></i>
+                                <span data-hard-code-compare-label>Compare Target</span>
+                            </button>
+                        </div>
+                        <div class="hard-code-submission-frame min-h-0 flex-1 rounded-xl border-2 border-dashed border-arcade-ink/15 bg-[#f7efe1] p-3" data-hard-code-preview-frame>
+                            <iframe class="hard-code-submission-preview" title="Submitted hard code design" sandbox="allow-same-origin" data-hard-code-preview></iframe>
+                        </div>
+                    </section>
+                    <section class="hidden min-h-[420px] flex-col rounded-2xl border-2 border-arcade-ink/10 bg-white p-3" data-hard-code-target-panel>
+                        <p class="mb-2 font-arcade text-[10px] uppercase tracking-[0.18em] text-arcade-cyan">Target Design</p>
+                        <div class="hard-code-submission-frame min-h-0 flex-1 rounded-xl border-2 border-dashed border-arcade-ink/15 bg-[#f7efe1] p-3">
+                            <iframe class="hard-code-submission-preview" title="Target challenge design" sandbox="allow-same-origin" data-hard-code-target-preview></iframe>
+                        </div>
+                    </section>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<?php endif; ?>
+
 <style>
 .room-session-card {
     box-shadow: 0 10px 26px rgba(38, 25, 15, 0.08);
+}
+
+.hard-code-submission-frame {
+    position: relative;
+    overflow: hidden;
+}
+
+.hard-code-submission-source {
+    border-color: rgba(38, 25, 15, 0.28);
+    background:
+        linear-gradient(rgba(255, 255, 255, 0.42), rgba(255, 255, 255, 0.08)),
+        #fff0bd;
+    color: #26190f;
+    box-shadow: inset 0 0 0 2px rgba(255, 209, 102, 0.28), inset 0 3px 0 rgba(255, 255, 255, 0.5);
+}
+
+body.pixelwar-dark-mode .hard-code-submission-source {
+    border-color: rgba(255, 209, 102, 0.5);
+    background:
+        linear-gradient(145deg, rgba(255, 140, 66, 0.12), rgba(255, 209, 102, 0.04)),
+        #2d1d12;
+    color: #fff1cb;
+    box-shadow: inset 0 0 0 2px rgba(255, 209, 102, 0.08);
+}
+
+.hard-code-submission-preview {
+    display: block;
+    width: 100%;
+    height: 100%;
+    min-height: 100%;
+    border: 0;
+    border-radius: 0.75rem;
+    background: #f7efe1;
+}
+
+@media (min-width: 1024px) {
+    .hard-code-preview-layout.is-comparing {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    }
 }
 
 .room-session-pill--joined {
@@ -472,6 +668,9 @@ foreach ($roomSessionPlayers as $roomSessionPlayer) {
         const pusherKey = <?= json_encode($pusherEnabled ? (string) PUSHER_KEY : '', JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?>;
         const pusherCluster = <?= json_encode($pusherEnabled ? (string) PUSHER_CLUSTER : '', JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?>;
         const strictModeEnabled = <?= $strictModeEnabled ? 'true' : 'false' ?>;
+        const hardCodeModeEnabled = <?= $hardCodeModeEnabled ? 'true' : 'false' ?>;
+        const hardCodeHtmlUrl = <?= json_encode((string) ($roomSessionRoom['html_source'] ?? ''), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?>;
+        const hardCodeTargetCssUrl = <?= json_encode((string) ($roomSessionRoom['css_source'] ?? ''), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?>;
         const playerList = document.getElementById('room-session-player-list');
         const playerSort = document.getElementById('room-session-player-sort');
         const emptyState = document.getElementById('room-session-empty-state');
@@ -481,6 +680,28 @@ foreach ($roomSessionPlayers as $roomSessionPlayer) {
         const joinedCount = document.getElementById('room-session-joined-count');
         const solvingCount = document.getElementById('room-session-solving-count');
         const completedCount = document.getElementById('room-session-completed-count');
+        const removePlayerModalElement = document.getElementById('room-player-remove-modal');
+        const removePlayerModal = removePlayerModalElement && window.bootstrap?.Modal
+            ? window.bootstrap.Modal.getOrCreateInstance(removePlayerModalElement)
+            : null;
+        const removePlayerName = removePlayerModalElement?.querySelector('[data-remove-player-name]');
+        const removePlayerError = removePlayerModalElement?.querySelector('[data-remove-player-error]');
+        const confirmRemovePlayer = removePlayerModalElement?.querySelector('[data-confirm-remove-player]');
+        const removePlayerButtonText = removePlayerModalElement?.querySelector('[data-remove-player-button-text]');
+        let selectedPlayerUserId = 0;
+        const gradeModalElement = document.getElementById('hard-code-grade-modal');
+        const gradeModal = gradeModalElement && window.bootstrap?.Modal
+            ? window.bootstrap.Modal.getOrCreateInstance(gradeModalElement)
+            : null;
+        const gradePlayerName = gradeModalElement?.querySelector('[data-grade-player-name]');
+        const gradeInput = gradeModalElement?.querySelector('[data-hard-code-grade-input]');
+        const gradeError = gradeModalElement?.querySelector('[data-hard-code-grade-error]');
+        const confirmGradeButton = gradeModalElement?.querySelector('[data-confirm-hard-code-grade]');
+        const gradeSubmitLabel = gradeModalElement?.querySelector('[data-grade-submit-label]');
+        const gradeSubmitSpinner = gradeModalElement?.querySelector('[data-grade-submit-spinner]');
+        const gradeSubmitIcon = gradeModalElement?.querySelector('[data-grade-submit-icon]');
+        let selectedGradeRoomPlayerId = 0;
+        let selectedGradeTrigger = null;
         let roomEndSubmitting = false;
         let roomEnded = <?= $roomSessionIsEnded ? 'true' : 'false' ?>;
 
@@ -508,6 +729,9 @@ foreach ($roomSessionPlayers as $roomSessionPlayer) {
             }
             if (normalized === 'completed') {
                 return { label: 'Completed', className: statusClassMap.completed };
+            }
+            if (normalized === 'submitted') {
+                return { label: 'Submitted', className: statusClassMap.completed };
             }
             if (normalized === 'solving') {
                 return { label: 'Solving', className: statusClassMap.solving };
@@ -646,7 +870,7 @@ foreach ($roomSessionPlayers as $roomSessionPlayer) {
                 const statusText = (pill?.textContent || '').trim().toLowerCase();
                 if (statusText === 'solving') {
                     solving++;
-                } else if (statusText === 'completed' || statusText === '100%') {
+                } else if (statusText === 'completed' || statusText === 'submitted' || statusText === '100%') {
                     completed++;
                 }
             });
@@ -692,6 +916,7 @@ foreach ($roomSessionPlayers as $roomSessionPlayer) {
 
             const article = document.createElement('article');
             article.className = 'room-session-card rounded-[22px] border-2 border-arcade-ink/12 bg-white p-4';
+            article.setAttribute('data-room-player-id', String(payload.rp_id || 0));
             article.setAttribute('data-room-player-user-id', String(payload.user_id || 0));
             article.dataset.playerName = String(payload.name || payload.username || 'Student').toLowerCase();
             article.dataset.playerStartedAt = String(payload.started_at || '');
@@ -712,12 +937,23 @@ foreach ($roomSessionPlayers as $roomSessionPlayer) {
                             <p class="truncate text-sm font-bold text-arcade-ink/60">${payload.email || 'No email'}</p>
                         </div>
                     </div>
-                    <span class="teacher-pill room-session-pill room-session-pill--joined" data-room-player-status-pill>Waiting</span>
+                    <div class="flex shrink-0 flex-wrap items-center gap-2">
+                        <span class="teacher-pill room-session-pill room-session-pill--joined" data-room-player-status-pill>Waiting</span>
+                        ${hardCodeModeEnabled && payload.code_solution_url ? `<button type="button" class="teacher-button teacher-button--light gap-2" data-view-code-solution data-solution-url="${payload.code_solution_url}"><i data-lucide="code-2" class="h-4 w-4" aria-hidden="true"></i><span>View Design</span></button>` : ''}
+                        ${hardCodeModeEnabled && payload.code_solution_url ? `<button type="button" class="teacher-button teacher-button--primary gap-2" data-add-hard-code-grade data-room-player-id="${payload.rp_id || 0}" data-player-name="${payload.name || 'Student'}" data-current-grade="${payload.code_solution_grade ?? ''}"><i data-lucide="clipboard-check" class="h-4 w-4" aria-hidden="true"></i><span data-grade-button-label>${payload.code_solution_grade == null ? 'Add Grade' : `Edit Grade (${payload.code_solution_grade})`}</span></button>` : ''}
+                        ${roomEnded ? '' : `<button type="button" class="grid h-10 w-10 place-items-center rounded-xl border-2 border-arcade-coral bg-arcade-coral/10 text-arcade-coral transition hover:bg-arcade-coral hover:text-white disabled:cursor-wait disabled:opacity-60" data-remove-room-player data-player-user-id="${payload.user_id || 0}" data-player-name="${payload.name || 'Student'}" aria-label="Remove player from room" title="Remove player">
+                            <i data-lucide="user-round-x" class="h-5 w-5" aria-hidden="true"></i>
+                        </button>`}
+                    </div>
                 </div>
                 <div class="room-session-info-grid mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
                     <div class="room-session-info-card">
                         <p>Student ID</p>
                         <strong>${payload.student_number || 'Not set'}</strong>
+                    </div>
+                    <div class="room-session-info-card">
+                        <p>Section</p>
+                        <strong>${payload.section || 'Not set'}</strong>
                     </div>
                     <div class="room-session-info-card">
                         <p>Record ID</p>
@@ -731,9 +967,183 @@ foreach ($roomSessionPlayers as $roomSessionPlayer) {
             `;
 
             playerList.appendChild(article);
+            window.lucide?.createIcons();
             updateCount();
             sortPlayerCards();
         };
+
+        playerList?.addEventListener('click', (event) => {
+            const gradeButton = event.target.closest('[data-add-hard-code-grade]');
+            if (!gradeButton || !gradeModal || !(gradeInput instanceof HTMLInputElement)) {
+                return;
+            }
+
+            selectedGradeRoomPlayerId = Number(gradeButton.dataset.roomPlayerId || 0);
+            if (selectedGradeRoomPlayerId <= 0) {
+                return;
+            }
+
+            selectedGradeTrigger = gradeButton;
+            gradeInput.value = gradeButton.dataset.currentGrade || '';
+            if (gradePlayerName) {
+                gradePlayerName.textContent = gradeButton.dataset.playerName || 'this student';
+            }
+            if (gradeError) {
+                gradeError.textContent = '';
+                gradeError.classList.add('hidden');
+            }
+            gradeModal.show();
+            gradeModalElement?.addEventListener('shown.bs.modal', () => gradeInput.focus(), { once: true });
+        });
+
+        confirmGradeButton?.addEventListener('click', () => {
+            if (!(gradeInput instanceof HTMLInputElement) || selectedGradeRoomPlayerId <= 0 || confirmGradeButton.disabled) {
+                return;
+            }
+
+            const grade = Number(gradeInput.value);
+            if (gradeInput.value.trim() === '' || !Number.isSafeInteger(grade) || grade < 0 || grade > 2147483647) {
+                if (gradeError) {
+                    gradeError.textContent = 'Enter a non-negative whole-number grade.';
+                    gradeError.classList.remove('hidden');
+                }
+                gradeInput.focus();
+                return;
+            }
+
+            confirmGradeButton.disabled = true;
+            confirmGradeButton.setAttribute('aria-busy', 'true');
+            gradeSubmitSpinner?.classList.remove('hidden');
+            gradeSubmitIcon?.classList.add('hidden');
+            if (gradeSubmitLabel) {
+                gradeSubmitLabel.textContent = 'Saving...';
+            }
+
+            const payload = new URLSearchParams();
+            payload.set('room_action', 'grade_hard_code');
+            payload.set('room_id', String(roomId));
+            payload.set('rp_id', String(selectedGradeRoomPlayerId));
+            payload.set('grade', String(grade));
+            payload.set('_csrf_token', sessionCsrfToken || '');
+
+            fetch(syncUrl, {
+                method: 'POST',
+                body: payload.toString(),
+                credentials: 'same-origin',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+                    Accept: 'application/json',
+                },
+            })
+                .then(async (response) => {
+                    const result = await response.json().catch(() => ({}));
+                    if (!response.ok || result.ok !== true) {
+                        throw new Error(result.message || 'The grade could not be saved.');
+                    }
+
+                    if (selectedGradeTrigger instanceof HTMLElement) {
+                        selectedGradeTrigger.dataset.currentGrade = String(result.grade);
+                        const label = selectedGradeTrigger.querySelector('[data-grade-button-label]');
+                        if (label) {
+                            label.textContent = `Edit Grade (${result.grade})`;
+                        }
+                    }
+                    gradeModal?.hide();
+                })
+                .catch((error) => {
+                    if (gradeError) {
+                        gradeError.textContent = error.message || 'The grade could not be saved.';
+                        gradeError.classList.remove('hidden');
+                    }
+                })
+                .finally(() => {
+                    confirmGradeButton.disabled = false;
+                    confirmGradeButton.removeAttribute('aria-busy');
+                    gradeSubmitSpinner?.classList.add('hidden');
+                    gradeSubmitIcon?.classList.remove('hidden');
+                    if (gradeSubmitLabel) {
+                        gradeSubmitLabel.textContent = 'Save Grade';
+                    }
+                });
+        });
+
+        gradeInput?.addEventListener('input', () => {
+            if (gradeError) {
+                gradeError.textContent = '';
+                gradeError.classList.add('hidden');
+            }
+        });
+
+        playerList?.addEventListener('click', (event) => {
+            const button = event.target.closest('[data-remove-room-player]');
+            if (!button) {
+                return;
+            }
+
+            selectedPlayerUserId = Number(button.dataset.playerUserId || 0);
+            if (selectedPlayerUserId <= 0) {
+                return;
+            }
+
+            if (removePlayerName) {
+                removePlayerName.textContent = button.dataset.playerName || 'This player';
+            }
+            if (removePlayerError) {
+                removePlayerError.textContent = '';
+                removePlayerError.classList.add('hidden');
+            }
+            removePlayerModal?.show();
+        });
+
+        confirmRemovePlayer?.addEventListener('click', () => {
+            if (selectedPlayerUserId <= 0 || confirmRemovePlayer.disabled) {
+                return;
+            }
+
+            confirmRemovePlayer.disabled = true;
+            if (removePlayerButtonText) {
+                removePlayerButtonText.textContent = 'Removing...';
+            }
+
+            const payload = new URLSearchParams();
+            payload.set('room_action', 'remove_player');
+            payload.set('room_id', String(roomId));
+            payload.set('player_user_id', String(selectedPlayerUserId));
+            payload.set('_csrf_token', sessionCsrfToken || '');
+
+            fetch(syncUrl, {
+                method: 'POST',
+                body: payload.toString(),
+                credentials: 'same-origin',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+                    Accept: 'application/json',
+                },
+            })
+                .then(async (response) => {
+                    const result = await response.json().catch(() => ({}));
+                    if (!response.ok || result.ok !== true) {
+                        throw new Error(result.message || 'The player could not be removed.');
+                    }
+
+                    playerList?.querySelector(`[data-room-player-user-id="${selectedPlayerUserId}"]`)?.remove();
+                    selectedPlayerUserId = 0;
+                    updateCount();
+                    removePlayerModal?.hide();
+                })
+                .catch((error) => {
+                    if (removePlayerError) {
+                        removePlayerError.textContent = error.message || 'The player could not be removed.';
+                        removePlayerError.classList.remove('hidden');
+                    }
+                })
+                .finally(() => {
+                    confirmRemovePlayer.disabled = false;
+                    if (removePlayerButtonText) {
+                        removePlayerButtonText.textContent = 'Remove Player';
+                    }
+                });
+        });
 
         const upsertCard = (payload) => {
             if (!playerList || !payload?.user_id) {
@@ -755,7 +1165,8 @@ foreach ($roomSessionPlayers as $roomSessionPlayer) {
             const email = card.querySelector('p:nth-of-type(2)');
             const avatarWrap = card.querySelector('span.grid');
             const studentNumber = card.querySelector('.room-session-info-card:nth-child(1) strong');
-            const recordId = card.querySelector('.room-session-info-card:nth-child(2) strong');
+            const studentSection = card.querySelector('.room-session-info-card:nth-child(2) strong');
+            const recordId = card.querySelector('.room-session-info-card:nth-child(3) strong');
 
             if (name) {
                 name.textContent = payload.name || 'Student';
@@ -774,6 +1185,9 @@ foreach ($roomSessionPlayers as $roomSessionPlayer) {
             if (studentNumber) {
                 studentNumber.textContent = payload.student_number || 'Not set';
             }
+            if (studentSection) {
+                studentSection.textContent = payload.section || 'Not set';
+            }
             if (recordId) {
                 recordId.textContent = `#${payload.rp_id || 0}`;
             }
@@ -782,11 +1196,248 @@ foreach ($roomSessionPlayers as $roomSessionPlayer) {
             card.dataset.playerStartedAt = String(payload.started_at || card.dataset.playerStartedAt || '');
             card.dataset.playerCompletedAt = String(payload.completed_at || card.dataset.playerCompletedAt || '');
             card.dataset.playerScore = String(payload.strict_mode_score ?? card.dataset.playerScore ?? 0);
+            card.dataset.codeSolutionUrl = String(payload.code_solution_url ?? card.dataset.codeSolutionUrl ?? '');
+            card.dataset.roomPlayerId = String(payload.rp_id || card.dataset.roomPlayerId || 0);
+
+            if (hardCodeModeEnabled && payload.code_solution_url && !card.querySelector('[data-view-code-solution]')) {
+                const actionWrap = card.querySelector('.flex.shrink-0');
+                if (actionWrap) {
+                    const previewButton = document.createElement('button');
+                    previewButton.type = 'button';
+                    previewButton.className = 'teacher-button teacher-button--light gap-2';
+                    previewButton.dataset.viewCodeSolution = '';
+                    previewButton.dataset.solutionUrl = payload.code_solution_url;
+                    previewButton.innerHTML = '<i data-lucide="code-2" class="h-4 w-4" aria-hidden="true"></i><span>View Design</span>';
+                    actionWrap.appendChild(previewButton);
+                    window.lucide?.createIcons();
+                }
+            }
+
+            if (hardCodeModeEnabled && payload.code_solution_url) {
+                let gradeButton = card.querySelector('[data-add-hard-code-grade]');
+                if (!gradeButton) {
+                    const actionWrap = card.querySelector('.flex.shrink-0');
+                    if (actionWrap) {
+                        gradeButton = document.createElement('button');
+                        gradeButton.type = 'button';
+                        gradeButton.className = 'teacher-button teacher-button--primary gap-2';
+                        gradeButton.dataset.addHardCodeGrade = '';
+                        gradeButton.innerHTML = '<i data-lucide="clipboard-check" class="h-4 w-4" aria-hidden="true"></i><span data-grade-button-label>Add Grade</span>';
+                        actionWrap.appendChild(gradeButton);
+                        window.lucide?.createIcons();
+                    }
+                }
+
+                if (gradeButton instanceof HTMLElement) {
+                    gradeButton.dataset.roomPlayerId = String(payload.rp_id || card.dataset.roomPlayerId || 0);
+                    gradeButton.dataset.playerName = String(payload.name || name?.textContent || payload.username || 'Student');
+                    gradeButton.dataset.currentGrade = payload.code_solution_grade == null ? '' : String(payload.code_solution_grade);
+                    const gradeLabel = gradeButton.querySelector('[data-grade-button-label]');
+                    if (gradeLabel) {
+                        gradeLabel.textContent = payload.code_solution_grade == null
+                            ? 'Add Grade'
+                            : `Edit Grade (${payload.code_solution_grade})`;
+                    }
+                }
+            }
 
             applyStatus(card, payload.status_label || 'waiting', payload.started_at || '', payload.completed_at || '', payload.duration_label || '');
             updateCount();
             sortPlayerCards();
         };
+
+        const hardCodeModalElement = document.getElementById('hard-code-preview-modal');
+        const hardCodeModal = hardCodeModalElement && window.bootstrap?.Modal
+            ? window.bootstrap.Modal.getOrCreateInstance(hardCodeModalElement)
+            : null;
+        const hardCodeSource = hardCodeModalElement?.querySelector('[data-hard-code-source]');
+        const hardCodePreview = hardCodeModalElement?.querySelector('[data-hard-code-preview]');
+        const hardCodeTargetPreview = hardCodeModalElement?.querySelector('[data-hard-code-target-preview]');
+        const hardCodePreviewLayout = hardCodeModalElement?.querySelector('[data-hard-code-preview-layout]');
+        const hardCodeSourcePanel = hardCodeModalElement?.querySelector('[data-hard-code-source-panel]');
+        const hardCodeTargetPanel = hardCodeModalElement?.querySelector('[data-hard-code-target-panel]');
+        const hardCodeCompareToggle = hardCodeModalElement?.querySelector('[data-hard-code-compare-toggle]');
+        const hardCodeCompareLabel = hardCodeModalElement?.querySelector('[data-hard-code-compare-label]');
+        let hardCodeIsComparing = false;
+        const buildHardCodePreviewDocument = (html, css) => `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+* { box-sizing: border-box; }
+html, body { width: 100%; min-height: 100%; margin: 0; }
+body { display: grid; min-height: 100vh; place-items: center; background: #f7efe1; font-family: Arial, sans-serif; padding: 24px; overflow: auto; }
+a, area { cursor: default !important; }
+${css}
+</style>
+</head>
+<body>${html}</body>
+</html>`;
+
+        const disableHardCodePreviewActions = (frame) => {
+            if (!(frame instanceof HTMLIFrameElement) || !frame.contentDocument) {
+                return;
+            }
+
+            const doc = frame.contentDocument;
+            const style = doc.createElement('style');
+            style.textContent = 'a, area, button, [role="button"], input, select, textarea { cursor: default !important; }';
+            doc.head?.appendChild(style);
+            doc.querySelectorAll('a, area').forEach((link) => {
+                link.removeAttribute('href');
+                link.removeAttribute('target');
+                link.setAttribute('tabindex', '-1');
+                link.setAttribute('aria-disabled', 'true');
+            });
+
+            const blockActivation = (event) => {
+                if (event.target?.closest?.('a, area, form, button[type="submit"], input[type="submit"], input[type="image"]')) {
+                    event.preventDefault();
+                }
+            };
+            doc.addEventListener('click', blockActivation, true);
+            doc.addEventListener('auxclick', blockActivation, true);
+            doc.addEventListener('pointerup', blockActivation, true);
+            doc.addEventListener('touchend', blockActivation, true);
+            doc.addEventListener('submit', blockActivation, true);
+        };
+
+        const fitHardCodePreview = (frame) => {
+            if (!(frame instanceof HTMLIFrameElement)) {
+                return;
+            }
+
+            const doc = frame.contentDocument;
+            const body = doc?.body;
+            const html = doc?.documentElement;
+            const shell = frame.parentElement;
+            if (!doc || !body || !html || !(shell instanceof HTMLElement)) {
+                return;
+            }
+
+            const shellStyle = window.getComputedStyle(shell);
+            const paddingLeft = parseFloat(shellStyle.paddingLeft) || 0;
+            const paddingRight = parseFloat(shellStyle.paddingRight) || 0;
+            const paddingTop = parseFloat(shellStyle.paddingTop) || 0;
+            const paddingBottom = parseFloat(shellStyle.paddingBottom) || 0;
+            const shellWidth = Math.max(1, shell.clientWidth - paddingLeft - paddingRight);
+            const shellHeight = Math.max(1, shell.clientHeight - paddingTop - paddingBottom);
+
+            frame.style.width = `${shellWidth}px`;
+            frame.style.height = `${shellHeight}px`;
+            frame.style.maxWidth = 'none';
+            frame.style.maxHeight = 'none';
+            frame.style.position = 'absolute';
+            frame.style.left = `${paddingLeft}px`;
+            frame.style.top = `${paddingTop}px`;
+            frame.style.transform = 'none';
+            frame.style.transformOrigin = 'top left';
+
+            const viewportWidth = Math.max(frame.clientWidth, shellWidth, 1);
+            const viewportHeight = Math.max(frame.clientHeight, shellHeight, 1);
+            const naturalWidth = Math.max(body.scrollWidth, body.offsetWidth, html.scrollWidth, html.offsetWidth, viewportWidth, 1);
+            const naturalHeight = Math.max(body.scrollHeight, body.offsetHeight, html.scrollHeight, html.offsetHeight, viewportHeight, 1);
+            const scale = Math.min(shellWidth / naturalWidth, shellHeight / naturalHeight);
+            const centeredLeft = paddingLeft + Math.max(0, (shellWidth - (naturalWidth * scale)) / 2);
+            const centeredTop = paddingTop + Math.max(0, (shellHeight - (naturalHeight * scale)) / 2);
+
+            frame.style.width = `${naturalWidth}px`;
+            frame.style.height = `${naturalHeight}px`;
+            frame.style.left = `${centeredLeft}px`;
+            frame.style.top = `${centeredTop}px`;
+            frame.style.transform = `scale(${scale})`;
+        };
+
+        hardCodePreview?.addEventListener('load', () => {
+            disableHardCodePreviewActions(hardCodePreview);
+            requestAnimationFrame(() => fitHardCodePreview(hardCodePreview));
+        });
+        hardCodeTargetPreview?.addEventListener('load', () => {
+            disableHardCodePreviewActions(hardCodeTargetPreview);
+            requestAnimationFrame(() => fitHardCodePreview(hardCodeTargetPreview));
+        });
+        hardCodeModalElement?.addEventListener('shown.bs.modal', () => {
+            requestAnimationFrame(() => fitHardCodePreview(hardCodePreview));
+            if (hardCodeIsComparing) {
+                requestAnimationFrame(() => fitHardCodePreview(hardCodeTargetPreview));
+            }
+        });
+        if (hardCodePreview?.parentElement && 'ResizeObserver' in window) {
+            const hardCodePreviewObserver = new ResizeObserver(() => fitHardCodePreview(hardCodePreview));
+            hardCodePreviewObserver.observe(hardCodePreview.parentElement);
+        }
+        if (hardCodeTargetPreview?.parentElement && 'ResizeObserver' in window) {
+            const hardCodeTargetObserver = new ResizeObserver(() => fitHardCodePreview(hardCodeTargetPreview));
+            hardCodeTargetObserver.observe(hardCodeTargetPreview.parentElement);
+        }
+
+        const setHardCodeCompareMode = (enabled) => {
+            hardCodeIsComparing = Boolean(enabled);
+            hardCodePreviewLayout?.classList.toggle('is-comparing', hardCodeIsComparing);
+            hardCodeSourcePanel?.classList.toggle('hidden', hardCodeIsComparing);
+            hardCodeTargetPanel?.classList.toggle('hidden', !hardCodeIsComparing);
+            hardCodeTargetPanel?.classList.toggle('flex', hardCodeIsComparing);
+            if (hardCodeCompareLabel) {
+                hardCodeCompareLabel.textContent = hardCodeIsComparing ? 'Show Code' : 'Compare Target';
+            }
+            requestAnimationFrame(() => {
+                fitHardCodePreview(hardCodePreview);
+                if (hardCodeIsComparing) {
+                    fitHardCodePreview(hardCodeTargetPreview);
+                }
+            });
+        };
+
+        hardCodeCompareToggle?.addEventListener('click', () => {
+            setHardCodeCompareMode(!hardCodeIsComparing);
+        });
+
+        playerList?.addEventListener('click', async (event) => {
+            const button = event.target.closest('[data-view-code-solution]');
+            if (!button || !hardCodeModal || !hardCodeSource || !(hardCodePreview instanceof HTMLIFrameElement)) {
+                return;
+            }
+
+            hardCodeSource.textContent = 'Loading submitted code...';
+            hardCodePreview.srcdoc = '';
+            if (hardCodeTargetPreview instanceof HTMLIFrameElement) {
+                hardCodeTargetPreview.srcdoc = '';
+            }
+            setHardCodeCompareMode(false);
+            if (hardCodeCompareToggle) {
+                hardCodeCompareToggle.disabled = true;
+            }
+            hardCodeModal.show();
+
+            try {
+                if (!hardCodeHtmlUrl || !hardCodeTargetCssUrl || !button.dataset.solutionUrl) {
+                    throw new Error('The submitted or target design source is unavailable.');
+                }
+
+                const [htmlResponse, cssResponse, targetCssResponse] = await Promise.all([
+                    fetch(hardCodeHtmlUrl, { cache: 'no-store' }),
+                    fetch(button.dataset.solutionUrl, { cache: 'no-store' }),
+                    fetch(hardCodeTargetCssUrl, { cache: 'no-store' }),
+                ]);
+                if (!htmlResponse.ok || !cssResponse.ok || !targetCssResponse.ok) {
+                    throw new Error('Submitted design could not be loaded.');
+                }
+                const [html, css, targetCss] = await Promise.all([htmlResponse.text(), cssResponse.text(), targetCssResponse.text()]);
+                const safeCss = css.replace(/<\/style/gi, '<\\/style');
+                const safeTargetCss = targetCss.replace(/<\/style/gi, '<\\/style');
+                hardCodeSource.textContent = css;
+                hardCodePreview.srcdoc = buildHardCodePreviewDocument(html, safeCss);
+                if (hardCodeTargetPreview instanceof HTMLIFrameElement) {
+                    hardCodeTargetPreview.srcdoc = buildHardCodePreviewDocument(html, safeTargetCss);
+                }
+                if (hardCodeCompareToggle) {
+                    hardCodeCompareToggle.disabled = false;
+                }
+            } catch (error) {
+                hardCodeSource.textContent = error instanceof Error ? error.message : 'Submitted design could not be loaded.';
+            }
+        });
 
         const syncPresenceSnapshot = () => {
             const payload = new URLSearchParams();
@@ -879,6 +1530,13 @@ foreach ($roomSessionPlayers as $roomSessionPlayer) {
 
             channel.bind('player-left', () => {
                 syncPresenceSnapshot();
+            });
+
+            channel.bind('player-removed', (payload) => {
+                if (payload?.user_id) {
+                    playerList?.querySelector(`[data-room-player-user-id="${payload.user_id}"]`)?.remove();
+                    updateCount();
+                }
             });
 
             channel.bind('player-status', (payload) => {

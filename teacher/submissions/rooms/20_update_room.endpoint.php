@@ -24,7 +24,12 @@ if ($teacherRequestMethod === 'POST' && $teacherRequestedPage === 'edit-room') {
         $roomName = trim((string) ($_POST['room_name'] ?? ''));
         $roomDescription = trim((string) ($_POST['room_description'] ?? ''));
         $timerLimit = max(0, (int) ($_POST['timer_limit'] ?? 0));
-        $strictMode = (int) ($_POST['strict_mode'] ?? 0) === 1 ? 1 : 0;
+        $mode = (int) ($_POST['mode'] ?? 0);
+        $mode = in_array($mode, [0, 1, 3], true) ? $mode : 0;
+        $roomPointsInput = trim((string) ($_POST['room_points'] ?? ''));
+        $roomPoints = $mode === 3 && filter_var($roomPointsInput, FILTER_VALIDATE_INT) !== false
+            ? (int) $roomPointsInput
+            : 0;
 
         $_SESSION['teacher_rooms_old'] = [
             'room_id' => $roomId,
@@ -32,7 +37,8 @@ if ($teacherRequestMethod === 'POST' && $teacherRequestedPage === 'edit-room') {
             'room_name' => $roomName,
             'room_description' => $roomDescription,
             'timer_limit' => $timerLimit,
-            'strict_mode' => $strictMode,
+            'mode' => $mode,
+            'room_points' => $roomPointsInput,
         ];
 
         if ($roomId <= 0) {
@@ -73,6 +79,14 @@ if ($teacherRequestMethod === 'POST' && $teacherRequestedPage === 'edit-room') {
             throw new InvalidArgumentException('Timer limit must be zero or greater.');
         }
 
+        if ($mode === 3 && ($roomPointsInput === '' || filter_var($roomPointsInput, FILTER_VALIDATE_INT) === false || $roomPoints <= 0)) {
+            throw new InvalidArgumentException('Enter a room activity point value greater than zero for Hard Code mode.');
+        }
+
+        if ($roomPoints > 2147483647) {
+            throw new InvalidArgumentException('Room activity points are too large.');
+        }
+
         $roomRepo->updateForOwner(
             $roomId,
             $teacherId,
@@ -80,7 +94,8 @@ if ($teacherRequestMethod === 'POST' && $teacherRequestedPage === 'edit-room') {
             $roomName,
             $roomDescription,
             $timerLimit,
-            $strictMode
+            $mode,
+            $roomPoints
         );
 
         teacherPanelLogActivity(

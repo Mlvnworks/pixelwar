@@ -91,6 +91,13 @@ final class DatabaseInitializer
                 KEY `users_role_id_index` (`role_id`),
                 CONSTRAINT `users_role_id_foreign` FOREIGN KEY (`role_id`) REFERENCES `roles` (`role_id`)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci',
+            'CREATE TABLE IF NOT EXISTS `acc_last_change` (
+                `user_id` INT NOT NULL,
+                `username` TIMESTAMP NULL DEFAULT NULL,
+                `password` TIMESTAMP NULL DEFAULT NULL,
+                PRIMARY KEY (`user_id`),
+                CONSTRAINT `acc_last_change_user_id_foreign` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci',
             'CREATE TABLE IF NOT EXISTS `verifications` (
                 `ev_id` INT NOT NULL AUTO_INCREMENT,
                 `user_id` INT NOT NULL,
@@ -107,17 +114,18 @@ final class DatabaseInitializer
                 `ud_id` INT NOT NULL AUTO_INCREMENT,
                 `user_id` INT NOT NULL,
                 `image_id` INT NOT NULL,
-                `id_picture` INT NULL DEFAULT NULL,
+                `cor_file` INT NULL DEFAULT NULL,
                 `firstname` VARCHAR(100) NOT NULL,
                 `lastname` VARCHAR(100) NOT NULL,
                 `student_number` VARCHAR(100) NULL DEFAULT NULL,
+                `section` VARCHAR(100) NULL DEFAULT NULL,
                 PRIMARY KEY (`ud_id`),
                 UNIQUE KEY `user_details_user_id_unique` (`user_id`),
                 KEY `user_details_image_id_index` (`image_id`),
-                KEY `user_details_id_picture_index` (`id_picture`),
+                KEY `user_details_cor_file_index` (`cor_file`),
                 CONSTRAINT `user_details_user_id_foreign` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`),
                 CONSTRAINT `user_details_image_id_foreign` FOREIGN KEY (`image_id`) REFERENCES `images` (`img_id`),
-                CONSTRAINT `user_details_id_picture_foreign` FOREIGN KEY (`id_picture`) REFERENCES `images` (`img_id`)
+                CONSTRAINT `user_details_cor_file_foreign` FOREIGN KEY (`cor_file`) REFERENCES `images` (`img_id`)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci',
             'CREATE TABLE IF NOT EXISTS `difficulties` (
                 `difficulty_id` INT NOT NULL AUTO_INCREMENT,
@@ -183,7 +191,8 @@ final class DatabaseInitializer
                 `room_description` VARCHAR(255) NOT NULL,
                 `status` INT NOT NULL DEFAULT 1,
                 `timer_limit` INT NOT NULL DEFAULT 0,
-                `strict_mode` INT NOT NULL DEFAULT 0,
+                `mode` INT NOT NULL DEFAULT 0 COMMENT \'0 = Practice mode, 1 = Strict mode, 3 = Hard code\',
+                `room_points` INT NOT NULL DEFAULT 0,
                 `started_at` TIMESTAMP NULL DEFAULT NULL,
                 `ended_at` TIMESTAMP NULL DEFAULT NULL,
                 `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -202,7 +211,7 @@ final class DatabaseInitializer
                 `room_id` INT NOT NULL,
                 `status` INT NOT NULL DEFAULT 0,
                 `strict_mode_score` INT NOT NULL DEFAULT 0,
-                `last_seen_at` TIMESTAMP NULL NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                `last_seen_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 `started_at` TIMESTAMP NULL DEFAULT NULL,
                 `completed_at` TIMESTAMP NULL DEFAULT NULL,
                 PRIMARY KEY (`rp_id`),
@@ -211,6 +220,13 @@ final class DatabaseInitializer
                 KEY `room_players_status_index` (`status`),
                 CONSTRAINT `room_players_user_id_foreign` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`),
                 CONSTRAINT `room_players_room_id_foreign` FOREIGN KEY (`room_id`) REFERENCES `rooms` (`room_id`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci',
+            'CREATE TABLE IF NOT EXISTS `code_solution` (
+                `rp_id` INT NOT NULL,
+                `css_code` TEXT NOT NULL,
+                `grade` INT NULL DEFAULT NULL,
+                PRIMARY KEY (`rp_id`),
+                CONSTRAINT `code_solution_rp_id_foreign` FOREIGN KEY (`rp_id`) REFERENCES `room_players` (`rp_id`)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci',
             'CREATE TABLE IF NOT EXISTS `pvp_matches` (
                 `pvp_id` INT NOT NULL AUTO_INCREMENT,
@@ -344,12 +360,33 @@ final class DatabaseInitializer
             $connection->query('ALTER TABLE `rooms` ADD `timer_limit` INT NOT NULL DEFAULT 0 AFTER `status`');
         }
 
-        if ($this->tableExists($connection, 'rooms') && !$this->columnExists($connection, 'rooms', 'strict_mode')) {
-            $connection->query('ALTER TABLE `rooms` ADD `strict_mode` INT NOT NULL DEFAULT 0 AFTER `timer_limit`');
+        if (
+            $this->tableExists($connection, 'rooms')
+            && $this->columnExists($connection, 'rooms', 'strict_mode')
+            && !$this->columnExists($connection, 'rooms', 'mode')
+        ) {
+            $connection->query("ALTER TABLE `rooms` CHANGE COLUMN `strict_mode` `mode` INT NOT NULL DEFAULT 0 COMMENT '0 = Practice mode, 1 = Strict mode, 3 = Hard code'");
+        }
+
+        if ($this->tableExists($connection, 'rooms') && !$this->columnExists($connection, 'rooms', 'mode')) {
+            $connection->query("ALTER TABLE `rooms` ADD `mode` INT NOT NULL DEFAULT 0 COMMENT '0 = Practice mode, 1 = Strict mode, 3 = Hard code' AFTER `timer_limit`");
+        }
+
+        if (
+            $this->tableExists($connection, 'rooms')
+            && $this->columnExists($connection, 'rooms', 'strict_mode')
+            && $this->columnExists($connection, 'rooms', 'mode')
+        ) {
+            $connection->query('UPDATE `rooms` SET `mode` = `strict_mode`');
+            $connection->query('ALTER TABLE `rooms` DROP COLUMN `strict_mode`');
+        }
+
+        if ($this->tableExists($connection, 'rooms') && !$this->columnExists($connection, 'rooms', 'room_points')) {
+            $connection->query('ALTER TABLE `rooms` ADD `room_points` INT NOT NULL DEFAULT 0 AFTER `mode`');
         }
 
         if ($this->tableExists($connection, 'rooms') && !$this->columnExists($connection, 'rooms', 'started_at')) {
-            $connection->query('ALTER TABLE `rooms` ADD `started_at` TIMESTAMP NULL DEFAULT NULL AFTER `strict_mode`');
+            $connection->query('ALTER TABLE `rooms` ADD `started_at` TIMESTAMP NULL DEFAULT NULL AFTER `room_points`');
         }
 
         if ($this->tableExists($connection, 'rooms') && !$this->columnExists($connection, 'rooms', 'ended_at')) {
@@ -425,7 +462,7 @@ final class DatabaseInitializer
         }
 
         if ($this->tableExists($connection, 'room_players') && !$this->columnExists($connection, 'room_players', 'last_seen_at')) {
-            $connection->query('ALTER TABLE `room_players` ADD `last_seen_at` TIMESTAMP NULL NOT NULL DEFAULT CURRENT_TIMESTAMP AFTER `strict_mode_score`');
+            $connection->query('ALTER TABLE `room_players` ADD `last_seen_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP AFTER `strict_mode_score`');
         }
 
         if ($this->tableExists($connection, 'room_players') && !$this->columnExists($connection, 'room_players', 'started_at')) {
@@ -474,6 +511,10 @@ final class DatabaseInitializer
             && !$this->constraintExists($connection, 'room_players', 'room_players_room_id_foreign')
         ) {
             $connection->query('ALTER TABLE `room_players` ADD CONSTRAINT `room_players_room_id_foreign` FOREIGN KEY (`room_id`) REFERENCES `rooms` (`room_id`)');
+        }
+
+        if ($this->tableExists($connection, 'code_solution') && !$this->columnExists($connection, 'code_solution', 'grade')) {
+            $connection->query('ALTER TABLE `code_solution` ADD `grade` INT NULL DEFAULT NULL AFTER `css_code`');
         }
 
         if ($this->tableExists($connection, 'pvp_matches') && !$this->columnExists($connection, 'pvp_matches', 'user_id')) {
@@ -759,42 +800,160 @@ final class DatabaseInitializer
             $connection->query('ALTER TABLE `users` DROP COLUMN `is_online`');
         }
 
-        if ($this->tableExists($connection, 'user_details') && !$this->columnExists($connection, 'user_details', 'id_picture')) {
-            $connection->query('ALTER TABLE `user_details` ADD `id_picture` INT NULL DEFAULT NULL AFTER `image_id`');
+        if (
+            $this->tableExists($connection, 'user_details')
+            && $this->columnExists($connection, 'user_details', 'cor_picture')
+            && !$this->columnExists($connection, 'user_details', 'cor_file')
+        ) {
+            if ($this->constraintExists($connection, 'user_details', 'user_details_cor_picture_foreign')) {
+                $connection->query('ALTER TABLE `user_details` DROP FOREIGN KEY `user_details_cor_picture_foreign`');
+            }
+
+            if ($this->indexExists($connection, 'user_details', 'user_details_cor_picture_index')) {
+                $connection->query('ALTER TABLE `user_details` DROP INDEX `user_details_cor_picture_index`');
+            }
+
+            $connection->query('ALTER TABLE `user_details` CHANGE COLUMN `cor_picture` `cor_file` INT NULL DEFAULT NULL');
+        }
+
+        if (
+            $this->tableExists($connection, 'user_details')
+            && $this->columnExists($connection, 'user_details', 'cor_image')
+            && !$this->columnExists($connection, 'user_details', 'cor_file')
+        ) {
+            if ($this->constraintExists($connection, 'user_details', 'user_details_cor_image_foreign')) {
+                $connection->query('ALTER TABLE `user_details` DROP FOREIGN KEY `user_details_cor_image_foreign`');
+            }
+
+            if ($this->indexExists($connection, 'user_details', 'user_details_cor_image_index')) {
+                $connection->query('ALTER TABLE `user_details` DROP INDEX `user_details_cor_image_index`');
+            }
+
+            $connection->query('ALTER TABLE `user_details` CHANGE COLUMN `cor_image` `cor_file` INT NULL DEFAULT NULL');
+        }
+
+        if (
+            $this->tableExists($connection, 'user_details')
+            && $this->columnExists($connection, 'user_details', 'id_picture')
+            && !$this->columnExists($connection, 'user_details', 'cor_file')
+        ) {
+            if ($this->constraintExists($connection, 'user_details', 'user_details_id_picture_foreign')) {
+                $connection->query('ALTER TABLE `user_details` DROP FOREIGN KEY `user_details_id_picture_foreign`');
+            }
+
+            if ($this->indexExists($connection, 'user_details', 'user_details_id_picture_index')) {
+                $connection->query('ALTER TABLE `user_details` DROP INDEX `user_details_id_picture_index`');
+            }
+
+            $connection->query('ALTER TABLE `user_details` CHANGE COLUMN `id_picture` `cor_file` INT NULL DEFAULT NULL');
+        }
+
+        if ($this->tableExists($connection, 'user_details') && !$this->columnExists($connection, 'user_details', 'cor_file')) {
+            $connection->query('ALTER TABLE `user_details` ADD `cor_file` INT NULL DEFAULT NULL AFTER `image_id`');
+        }
+
+        if (
+            $this->tableExists($connection, 'user_details')
+            && $this->columnExists($connection, 'user_details', 'cor_picture')
+            && $this->columnExists($connection, 'user_details', 'cor_file')
+        ) {
+            $connection->query(
+                'UPDATE `user_details`
+                 SET `cor_file` = COALESCE(`cor_file`, `cor_picture`)
+                 WHERE `cor_picture` IS NOT NULL'
+            );
+
+            if ($this->constraintExists($connection, 'user_details', 'user_details_cor_picture_foreign')) {
+                $connection->query('ALTER TABLE `user_details` DROP FOREIGN KEY `user_details_cor_picture_foreign`');
+            }
+
+            if ($this->indexExists($connection, 'user_details', 'user_details_cor_picture_index')) {
+                $connection->query('ALTER TABLE `user_details` DROP INDEX `user_details_cor_picture_index`');
+            }
+
+            $connection->query('ALTER TABLE `user_details` DROP COLUMN `cor_picture`');
+        }
+
+        if (
+            $this->tableExists($connection, 'user_details')
+            && $this->columnExists($connection, 'user_details', 'cor_image')
+            && $this->columnExists($connection, 'user_details', 'cor_file')
+        ) {
+            $connection->query(
+                'UPDATE `user_details`
+                 SET `cor_file` = COALESCE(`cor_file`, `cor_image`)
+                 WHERE `cor_image` IS NOT NULL'
+            );
+
+            if ($this->constraintExists($connection, 'user_details', 'user_details_cor_image_foreign')) {
+                $connection->query('ALTER TABLE `user_details` DROP FOREIGN KEY `user_details_cor_image_foreign`');
+            }
+
+            if ($this->indexExists($connection, 'user_details', 'user_details_cor_image_index')) {
+                $connection->query('ALTER TABLE `user_details` DROP INDEX `user_details_cor_image_index`');
+            }
+
+            $connection->query('ALTER TABLE `user_details` DROP COLUMN `cor_image`');
+        }
+
+        if (
+            $this->tableExists($connection, 'user_details')
+            && $this->columnExists($connection, 'user_details', 'id_picture')
+            && $this->columnExists($connection, 'user_details', 'cor_file')
+        ) {
+            $connection->query(
+                'UPDATE `user_details`
+                 SET `cor_file` = COALESCE(`cor_file`, `id_picture`)
+                 WHERE `id_picture` IS NOT NULL'
+            );
+
+            if ($this->constraintExists($connection, 'user_details', 'user_details_id_picture_foreign')) {
+                $connection->query('ALTER TABLE `user_details` DROP FOREIGN KEY `user_details_id_picture_foreign`');
+            }
+
+            if ($this->indexExists($connection, 'user_details', 'user_details_id_picture_index')) {
+                $connection->query('ALTER TABLE `user_details` DROP INDEX `user_details_id_picture_index`');
+            }
+
+            $connection->query('ALTER TABLE `user_details` DROP COLUMN `id_picture`');
         }
 
         if ($this->tableExists($connection, 'user_details') && !$this->columnExists($connection, 'user_details', 'student_number')) {
             $connection->query('ALTER TABLE `user_details` ADD `student_number` VARCHAR(100) NULL DEFAULT NULL AFTER `lastname`');
         }
 
-        if (
-            $this->tableExists($connection, 'user_details')
-            && $this->columnExists($connection, 'user_details', 'id_picture')
-            && !$this->indexExists($connection, 'user_details', 'user_details_id_picture_index')
-        ) {
-            $connection->query('ALTER TABLE `user_details` ADD KEY `user_details_id_picture_index` (`id_picture`)');
+        if ($this->tableExists($connection, 'user_details') && !$this->columnExists($connection, 'user_details', 'section')) {
+            $connection->query('ALTER TABLE `user_details` ADD `section` VARCHAR(100) NULL DEFAULT NULL AFTER `student_number`');
         }
 
         if (
             $this->tableExists($connection, 'user_details')
-            && $this->columnExists($connection, 'user_details', 'id_picture')
-            && !$this->constraintExists($connection, 'user_details', 'user_details_id_picture_foreign')
+            && $this->columnExists($connection, 'user_details', 'cor_file')
+            && !$this->indexExists($connection, 'user_details', 'user_details_cor_file_index')
         ) {
-            $connection->query('ALTER TABLE `user_details` ADD CONSTRAINT `user_details_id_picture_foreign` FOREIGN KEY (`id_picture`) REFERENCES `images` (`img_id`)');
+            $connection->query('ALTER TABLE `user_details` ADD KEY `user_details_cor_file_index` (`cor_file`)');
+        }
+
+        if (
+            $this->tableExists($connection, 'user_details')
+            && $this->columnExists($connection, 'user_details', 'cor_file')
+            && !$this->constraintExists($connection, 'user_details', 'user_details_cor_file_foreign')
+        ) {
+            $connection->query('ALTER TABLE `user_details` ADD CONSTRAINT `user_details_cor_file_foreign` FOREIGN KEY (`cor_file`) REFERENCES `images` (`img_id`)');
         }
 
         if (
             $this->tableExists($connection, 'users')
             && $this->tableExists($connection, 'user_details')
             && $this->columnExists($connection, 'users', 'id_picture')
-            && $this->columnExists($connection, 'user_details', 'id_picture')
+            && $this->columnExists($connection, 'user_details', 'cor_file')
         ) {
             $connection->query(
                 'UPDATE `user_details`
                  INNER JOIN `users` ON `users`.`user_id` = `user_details`.`user_id`
-                 SET `user_details`.`id_picture` = `users`.`id_picture`
+                 SET `user_details`.`cor_file` = `users`.`id_picture`
                  WHERE `users`.`id_picture` IS NOT NULL
-                    AND `user_details`.`id_picture` IS NULL'
+                    AND `user_details`.`cor_file` IS NULL'
             );
         }
 

@@ -22,6 +22,7 @@ if ($teacherRequestMethod === 'POST' && $teacherRequestedPage === 'create-challe
             'name' => (string) ($_POST['challenge_name'] ?? ''),
             'instruction' => (string) ($_POST['challenge_instruction'] ?? ''),
             'difficulty' => (string) ($_POST['challenge_difficulty'] ?? ''),
+            'visibility' => (string) ($_POST['challenge_visibility'] ?? ''),
             'html' => (string) ($_POST['html_source_code'] ?? ''),
             'css' => (string) ($_POST['css_source_code'] ?? ''),
         ];
@@ -43,6 +44,7 @@ if ($teacherRequestMethod === 'POST' && $teacherRequestedPage === 'create-challe
             'name' => (string) ($_POST['challenge_name'] ?? ''),
             'instruction' => (string) ($_POST['challenge_instruction'] ?? ''),
             'difficulty' => (string) ($_POST['challenge_difficulty'] ?? ''),
+            'visibility' => (string) ($_POST['challenge_visibility'] ?? ''),
             'html' => (string) ($_POST['html_source_code'] ?? ''),
             'css' => (string) ($_POST['css_source_code'] ?? ''),
         ];
@@ -61,6 +63,7 @@ if ($teacherRequestMethod === 'POST' && $teacherRequestedPage === 'create-challe
             'name' => (string) ($_POST['challenge_name'] ?? ''),
             'instruction' => (string) ($_POST['challenge_instruction'] ?? ''),
             'difficulty' => (string) ($_POST['challenge_difficulty'] ?? ''),
+            'visibility' => (string) ($_POST['challenge_visibility'] ?? ''),
             'html' => (string) ($_POST['html_source_code'] ?? ''),
             'css' => (string) ($_POST['css_source_code'] ?? ''),
         ];

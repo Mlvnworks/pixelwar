@@ -33,6 +33,13 @@ if ($requestMethod === 'POST' && $requestedPage === 'update-pass') {
             $errors[] = 'Password reset link is invalid. Request a new one.';
         }
 
+        if ($errors === [] && (int) ($user['role_id'] ?? 0) === pixelwarStudentRoleId()) {
+            $passwordAvailableAt = $users->accountChangeAvailableAt($userId, 'password');
+            if ($passwordAvailableAt > time()) {
+                $errors[] = 'Password can only be changed every 15 days. Try again on ' . date('M j, Y g:i A', $passwordAvailableAt) . '.';
+            }
+        }
+
         $verification = $errors === [] ? $verifications->findLatest($userId, 'password change') : null;
         if ($errors === [] && !$verification) {
             $errors[] = 'Password reset link is invalid. Request a new one.';

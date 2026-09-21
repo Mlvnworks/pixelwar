@@ -14,6 +14,8 @@ if (isset($roomRepository) && $roomRepository instanceof RoomRepository) {
 }
 
 $isRealRoom = $roomRecord !== null;
+$isHardCodeRoom = $isRealRoom && (int) ($roomRecord['mode'] ?? 0) === 3;
+$roomActivityPoints = $isHardCodeRoom ? max(0, (int) ($roomRecord['room_points'] ?? 0)) : 0;
 $sessionUserId = (int) ($_SESSION['user_id'] ?? 0);
 $sessionRoleId = (int) ($_SESSION['role_id'] ?? 0);
 $currentPlayerJoinedRoom = false;
@@ -63,6 +65,9 @@ if (
         && $pusherService->isConfigured()
     ) {
         try {
+            $playerDetails = isset($userRepository) && $userRepository instanceof UserRepository
+                ? $userRepository->findUserDetailsAvatar($sessionUserId)
+                : null;
             $fullName = trim((string) ($_SESSION['firstname'] ?? '') . ' ' . (string) ($_SESSION['lastname'] ?? ''))
                 ?: trim((string) ($_SESSION['username'] ?? 'Student'))
                 ?: 'Student';
@@ -76,7 +81,8 @@ if (
                     'name' => $fullName,
                     'username' => (string) ($_SESSION['username'] ?? ''),
                     'email' => (string) ($_SESSION['email'] ?? ''),
-                    'student_number' => (string) ($_SESSION['student_number'] ?? ''),
+                    'student_number' => (string) ($playerDetails['student_number'] ?? ''),
+                    'section' => (string) ($playerDetails['section'] ?? ''),
                     'avatar_url' => (string) ($_SESSION['avatar_url'] ?? ''),
                     'initials' => $initials,
                 ]
@@ -99,14 +105,17 @@ $playerName = $playerName !== '' ? $playerName : 'Pixel Rookie';
 
 if ($isRealRoom) {
     $challengeDifficulty = ucfirst(strtolower((string) ($roomRecord['difficulty_name'] ?? 'Unknown')));
-    $challengePoints = (int) ($roomRecord['points'] ?? 0);
     $challenge = [
         'title' => (string) ($roomRecord['challenge_name'] ?? 'Challenge'),
         'objective' => (string) ($roomRecord['challenge_instruction'] ?? ''),
         'author' => trim((string) ($roomRecord['teacher_firstname'] ?? '') . ' ' . (string) ($roomRecord['teacher_lastname'] ?? '')) ?: (string) ($roomRecord['teacher_username'] ?? 'Teacher'),
-        'focus' => (int) ($roomRecord['strict_mode'] ?? 0) === 1 ? 'Strict mode' : 'Practice mode',
+        'focus' => (int) ($roomRecord['mode'] ?? 0) === 3
+            ? 'Hard code'
+            : ((int) ($roomRecord['mode'] ?? 0) === 1 ? 'Strict mode' : 'Practice mode'),
         'estimate' => (int) ($roomRecord['timer_limit'] ?? 0) > 0 ? ((int) ($roomRecord['timer_limit'] ?? 0)) . ' min timer' : 'No timer',
-        'reward' => $challengePoints . ' pts',
+        'reward' => (int) ($roomRecord['mode'] ?? 0) === 3
+            ? (int) ($roomRecord['room_points'] ?? 0) . ' activity pts'
+            : '0 rank pts',
         'level' => $challengeDifficulty,
         'levelClass' => 'challenge-difficulty--' . preg_replace('/[^a-z]+/', '', strtolower($challengeDifficulty)),
     ];
@@ -229,7 +238,12 @@ HTML;
                 <h1 class="room-title mt-3 text-4xl font-bold leading-tight md:text-6xl">Room <?= htmlspecialchars($roomCode, ENT_QUOTES, 'UTF-8') ?></h1>
                 <div class="room-summary mt-5 rounded-[22px] border-2 border-arcade-ink/15 bg-white/75 p-4">
                     <p class="text-xs font-black uppercase tracking-[0.18em] text-arcade-ink/55">Room Name</p>
-                    <h2 class="mt-2 text-2xl font-black"><?= htmlspecialchars($roomName, ENT_QUOTES, 'UTF-8') ?></h2>
+                    <div class="mt-2 flex flex-wrap items-center gap-3">
+                        <h2 class="text-2xl font-black"><?= htmlspecialchars($roomName, ENT_QUOTES, 'UTF-8') ?></h2>
+                        <?php if ($isHardCodeRoom) : ?>
+                            <span class="room-meta-pill shrink-0 bg-arcade-yellow"><?= (int) $roomActivityPoints ?> activity pts</span>
+                        <?php endif; ?>
+                    </div>
                     <div class="mt-3 text-sm leading-7 text-arcade-ink/70"><?= $tools->formatRichText($roomDescription) ?></div>
                     <div class="mt-4 flex flex-wrap gap-2">
                         <span class="room-meta-pill">
@@ -280,7 +294,7 @@ HTML;
                             <div class="flex flex-wrap items-center gap-2">
                                 <span class="challenge-difficulty <?= htmlspecialchars($challenge['levelClass'], ENT_QUOTES, 'UTF-8') ?> rounded-full px-3 py-1 text-xs font-bold"><?= htmlspecialchars($challenge['level'], ENT_QUOTES, 'UTF-8') ?></span>
                                 <span class="rounded-full bg-arcade-cyan/30 px-3 py-1 text-xs font-bold"><?= htmlspecialchars($challenge['estimate'], ENT_QUOTES, 'UTF-8') ?></span>
-                                <span class="rounded-full bg-arcade-coral/20 px-3 py-1 text-xs font-bold"><?= htmlspecialchars($challenge['reward'], ENT_QUOTES, 'UTF-8') ?></span>
+                                <span class="rounded-full bg-arcade-coral/20 px-3 py-1 text-xs font-bold"<?= (int) ($roomRecord['mode'] ?? 0) === 3 ? ' title="Teacher-assigned activity value; does not affect rank points."' : '' ?>><?= htmlspecialchars($challenge['reward'], ENT_QUOTES, 'UTF-8') ?></span>
                             </div>
 
                             <p class="mt-6 font-arcade text-[10px] uppercase tracking-[0.24em] text-arcade-orange">Challenge Info</p>
@@ -402,6 +416,7 @@ HTML;
 (() => {
     const roomRealtimeConfig = {
         roomId: <?= (int) ($roomRecord['room_id'] ?? 0) ?>,
+        currentUserId: <?= (int) $sessionUserId ?>,
         roomStarted: <?= $roomSessionStarted ? 'true' : 'false' ?>,
         canAutoStart: <?= ($isRealRoom && !$roomIsClosedForStudent && $sessionUserId > 0 && $sessionRoleId === pixelwarStudentRoleId() && $roomGameUrl !== '') ? 'true' : 'false' ?>,
         gameUrl: <?= json_encode($roomGameUrl, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?: "''" ?>,
@@ -661,6 +676,15 @@ ${css}
 
         channel.bind('session-ended', (payload) => {
             window.location.href = payload?.redirect_url || './?c=home&room_notice=ended_incomplete';
+        });
+
+        channel.bind('player-removed', (payload) => {
+            if (Number(payload?.user_id || 0) === roomRealtimeConfig.currentUserId) {
+                window.location.href = payload?.redirect_url || './?c=home&room_notice=removed';
+                return;
+            }
+
+            syncRoomPresence();
         });
 
         ['player-joined', 'player-left', 'player-status'].forEach((eventName) => {

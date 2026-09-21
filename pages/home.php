@@ -92,7 +92,8 @@ foreach ($attemptHistoryRows as $attemptRow) {
         : null;
     $isRoomAttempt = (int) ($attemptRow['room_id'] ?? 0) > 0;
     $isPvpAttempt = (int) ($attemptRow['pvp_id'] ?? 0) > 0;
-    $isStrictRoomAttempt = $isRoomAttempt && (int) ($attemptRow['room_strict_mode'] ?? 0) === 1;
+    $isStrictRoomAttempt = $isRoomAttempt && (int) ($attemptRow['room_mode'] ?? 0) === 1;
+    $isHardCodeRoomAttempt = $isRoomAttempt && (int) ($attemptRow['room_mode'] ?? 0) === 3;
     $strictModeScore = max(0, min(100, (int) ($attemptRow['strict_mode_score'] ?? 0)));
     $attemptStatus = (string) ($attemptRow['attempt_status'] ?? '');
     $modeLabel = $isPvpAttempt ? '1v1' : ($isRoomAttempt ? 'Room' : 'Solo');
@@ -107,6 +108,9 @@ foreach ($attemptHistoryRows as $attemptRow) {
 
     if ($isStrictRoomAttempt && $resultLabel !== 'Ongoing') {
         $resultLabel = $strictModeScore . '%';
+    }
+    if ($isHardCodeRoomAttempt && $completedAt instanceof DateTimeImmutable) {
+        $resultLabel = 'Submitted';
     }
 
     $latestSubmissionRows[] = [
@@ -632,20 +636,24 @@ $pvpResultMessage = $pvpNotice === 'win'
     </div>
 </div>
 
-<?php if ($roomNotice === 'ended_incomplete'): ?>
+<?php if (in_array($roomNotice, ['ended_incomplete', 'removed', 'hard_code_submitted'], true)): ?>
+    <?php
+    $roomWasRemoved = $roomNotice === 'removed';
+    $hardCodeWasSubmitted = $roomNotice === 'hard_code_submitted';
+    ?>
     <div class="modal fade" id="room-ended-modal" tabindex="-1" aria-labelledby="room-ended-modal-title" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div
                 class="modal-content rounded-[28px] border-4 border-arcade-ink bg-arcade-panel p-0 text-arcade-ink shadow-[8px_8px_0_#26190f]">
                 <div class="modal-header border-0 px-5 pb-2 pt-5">
                     <div>
-                        <p class="font-arcade text-[10px] uppercase tracking-[0.24em] text-arcade-coral">Room Ended</p>
-                        <h2 class="modal-title mt-2 text-2xl font-bold" id="room-ended-modal-title">The room was ended.</h2>
+                        <p class="font-arcade text-[10px] uppercase tracking-[0.24em] <?= $hardCodeWasSubmitted ? 'text-arcade-orange' : 'text-arcade-coral' ?>"><?= $hardCodeWasSubmitted ? 'Design Submitted' : ($roomWasRemoved ? 'Room Update' : 'Room Ended') ?></p>
+                        <h2 class="modal-title mt-2 text-2xl font-bold" id="room-ended-modal-title"><?= $hardCodeWasSubmitted ? 'Submission received.' : ($roomWasRemoved ? 'Removed from room' : 'The room was ended.') ?></h2>
                     </div>
                     <button type="button" class="btn-close opacity-100" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body px-5 pb-5 pt-2">
-                    <p class="text-sm font-semibold leading-7 text-arcade-ink/75">Your challenge run was not completed.</p>
+                    <p class="text-sm font-semibold leading-7 text-arcade-ink/75"><?= $hardCodeWasSubmitted ? 'Your coded design was sent to your teacher for review.' : ($roomWasRemoved ? 'Your teacher removed you from the room session.' : 'Your challenge run was not completed.') ?></p>
                     <div class="mt-5 flex justify-end">
                         <button type="button"
                             class="rounded-xl border-2 border-arcade-ink bg-arcade-yellow px-5 py-2 text-sm font-bold text-arcade-ink shadow-[0_4px_0_#26190f] transition hover:-translate-y-0.5 hover:bg-arcade-orange hover:text-white"
@@ -662,7 +670,7 @@ $pvpResultMessage = $pvpNotice === 'win'
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.min.js"></script>
 <script>
     (() => {
-        <?php if ($roomNotice === 'ended_incomplete'): ?>
+        <?php if (in_array($roomNotice, ['ended_incomplete', 'removed', 'hard_code_submitted'], true)): ?>
             const roomEndedModalElement = document.getElementById('room-ended-modal');
             if (roomEndedModalElement && window.bootstrap?.Modal) {
                 window.bootstrap.Modal.getOrCreateInstance(roomEndedModalElement).show();

@@ -34,7 +34,7 @@ unset($_SESSION['signup_errors'], $_SESSION['signup_old']);
             <p id="signup-email-message" class="signup-field-message mt-1 text-xs font-bold" aria-live="polite"></p>
 
             <label class="mt-2.5 block text-sm font-bold" for="signup-password">Password</label>
-            <input id="signup-password" name="password" type="password" autocomplete="new-password" required minlength="8" class="signup-input mt-1 w-full rounded-xl border-2 border-arcade-ink/15 bg-white px-3 py-2 outline-none transition focus:border-arcade-orange" placeholder="********">
+            <input id="signup-password" name="password" type="password" autocomplete="new-password" required minlength="8" class="signup-input mt-1 w-full rounded-xl border-2 border-arcade-ink/15 bg-white px-3 py-2 outline-none transition focus:border-arcade-orange" placeholder="Upper, lower, number, symbol">
             <p id="signup-password-message" class="signup-field-message mt-1 text-xs font-bold" aria-live="polite"></p>
 
             <label class="mt-2.5 block text-sm font-bold" for="signup-confirm-password">Confirm Password</label>
@@ -358,18 +358,24 @@ unset($_SESSION['signup_errors'], $_SESSION['signup_old']);
         const confirmPassword = fields.confirmPassword.value;
         let isValid = true;
 
-        if (password !== '' && password.length < 8) {
-            setFieldState('password', 'Password must be at least 8 characters.');
+        const passwordIsStrong = password.length >= 8
+            && /[A-Z]/.test(password)
+            && /[a-z]/.test(password)
+            && /[0-9]/.test(password)
+            && /[^A-Za-z0-9]/.test(password);
+
+        if (!passwordIsStrong) {
+            setFieldState('password', password === '' ? 'Enter a password.' : 'Use 8+ characters with uppercase, lowercase, number, and symbol.');
             isValid = false;
         } else {
-            setFieldState('password', password === '' ? '' : 'Password length looks good.', password !== '');
+            setFieldState('password', 'Password meets all requirements.', true);
         }
 
-        if (confirmPassword !== '' && password !== confirmPassword) {
-            setFieldState('confirmPassword', 'Password confirmation does not match.');
+        if (confirmPassword === '' || password !== confirmPassword) {
+            setFieldState('confirmPassword', confirmPassword === '' ? 'Confirm your password.' : 'Password confirmation does not match.');
             isValid = false;
         } else {
-            setFieldState('confirmPassword', confirmPassword === '' ? '' : 'Passwords match.', confirmPassword !== '');
+            setFieldState('confirmPassword', 'Passwords match.', true);
         }
 
         return isValid;

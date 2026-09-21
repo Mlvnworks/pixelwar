@@ -38,7 +38,8 @@ $formatTimestamp = static function (?string $value): string {
             $difficultyClass = 'challenge-difficulty--' . preg_replace('/[^a-z]+/', '', strtolower($difficulty));
             $author = trim((string) ($room['teacher_firstname'] ?? '') . ' ' . (string) ($room['teacher_lastname'] ?? ''))
                 ?: (string) ($room['teacher_username'] ?? 'Teacher');
-            $strictModeEnabled = (int) ($room['strict_mode'] ?? 0) === 1;
+            $strictModeEnabled = (int) ($room['mode'] ?? 0) === 1;
+            $hardCodeModeEnabled = (int) ($room['mode'] ?? 0) === 3;
             $roomIsOpen = (int) ($room['status'] ?? 1) === 1;
             $roomCode = trim((string) ($room['room_code'] ?? '')) ?: 'Not set';
             $roomDescription = trim((string) ($room['room_description'] ?? ''));
@@ -59,7 +60,7 @@ $formatTimestamp = static function (?string $value): string {
                                 <?= $roomIsOpen ? 'Open' : 'Closed' ?>
                             </span>
                             <span class="teacher-pill <?= $strictModeEnabled ? 'bg-arcade-coral/25' : 'bg-arcade-cyan/25' ?>">
-                                <?= $strictModeEnabled ? 'Strict mode' : 'Practice mode' ?>
+                                <?= $hardCodeModeEnabled ? 'Hard code' : ($strictModeEnabled ? 'Strict mode' : 'Practice mode') ?>
                             </span>
                         </div>
                         <?php if ($roomDescription !== '') : ?>
@@ -106,16 +107,22 @@ $formatTimestamp = static function (?string $value): string {
                                 <strong class="challenge-difficulty <?= htmlspecialchars($difficultyClass, ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars($difficulty, ENT_QUOTES, 'UTF-8') ?></strong>
                             </span>
                             <span>
-                                <small>Points</small>
+                                <small>Challenge Points</small>
                                 <strong><?= (int) ($room['points'] ?? 0) ?> pts</strong>
                             </span>
+                            <?php if ($hardCodeModeEnabled) : ?>
+                                <span>
+                                    <small>Room Activity Points</small>
+                                    <strong><?= (int) ($room['room_points'] ?? 0) ?> pts</strong>
+                                </span>
+                            <?php endif; ?>
                             <span>
                                 <small>Timer</small>
                                 <strong><?= (int) ($room['timer_limit'] ?? 0) > 0 ? (int) ($room['timer_limit'] ?? 0) . ' min' : 'No timer' ?></strong>
                             </span>
                             <span>
                                 <small>Mode</small>
-                                <strong><?= $strictModeEnabled ? 'Strict mode' : 'Practice mode' ?></strong>
+                                <strong><?= $hardCodeModeEnabled ? 'Hard code' : ($strictModeEnabled ? 'Strict mode' : 'Practice mode') ?></strong>
                             </span>
                             <span>
                                 <small>State</small>

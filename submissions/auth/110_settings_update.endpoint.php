@@ -11,36 +11,12 @@ if ($requestMethod === 'POST' && $requestedPage === 'settings') {
     $users = pixelwarRequireUserRepository($userRepository);
     $accounts = pixelwarRequireUserAccountService($userAccountService);
     $userId = (int) ($_SESSION['user_id'] ?? 0);
-    $firstname = trim((string) ($_POST['firstname'] ?? ''));
-    $lastname = trim((string) ($_POST['lastname'] ?? ''));
-    $email = trim((string) ($_POST['email'] ?? ''));
+    $username = trim((string) ($_POST['username'] ?? ''));
     $profileImageFile = $_FILES['profile_image'] ?? [];
     $errors = [];
 
     if ($userId <= 0) {
         pixelwarRedirect('login');
-    }
-
-    if (!preg_match('/^[A-Za-z][A-Za-z .\'-]{1,79}$/', $firstname)) {
-        $errors[] = 'Enter a valid first name.';
-    }
-
-    if (!preg_match('/^[A-Za-z][A-Za-z .\'-]{1,79}$/', $lastname)) {
-        $errors[] = 'Enter a valid last name.';
-    }
-
-    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        $errors[] = 'Enter a valid email address.';
-    }
-
-    if ($email !== '' && $users->emailExistsForOtherUser($email, $userId)) {
-        $errors[] = 'Email is already registered.';
-    }
-
-    $uploadError = (int) ($profileImageFile['error'] ?? UPLOAD_ERR_NO_FILE);
-
-    if ($uploadError !== UPLOAD_ERR_OK && $uploadError !== UPLOAD_ERR_NO_FILE) {
-        $errors[] = 'Profile image upload failed. Please choose another file.';
     }
 
     $currentUser = $users->findUserForSettings($userId);
@@ -49,8 +25,30 @@ if ($requestMethod === 'POST' && $requestedPage === 'settings') {
         pixelwarRedirect('login');
     }
 
-    $currentEmail = trim((string) ($currentUser['email'] ?? ''));
-    $emailChanged = strcasecmp($currentEmail, $email) !== 0;
+    $firstname = trim((string) ($currentUser['firstname'] ?? ''));
+    $lastname = trim((string) ($currentUser['lastname'] ?? ''));
+    $email = trim((string) ($currentUser['email'] ?? ''));
+    $currentUsername = trim((string) ($currentUser['username'] ?? ''));
+    $usernameChanged = strcmp($currentUsername, $username) !== 0;
+
+    if (!preg_match('/^[A-Za-z0-9_]{3,32}$/', $username)) {
+        $errors[] = 'Username must contain 3-32 letters, numbers, or underscores.';
+    } elseif ($users->usernameExistsForOtherUser($username, $userId)) {
+        $errors[] = 'Username is already taken.';
+    }
+
+    if ($usernameChanged) {
+        $usernameAvailableAt = $users->accountChangeAvailableAt($userId, 'username');
+        if ($usernameAvailableAt > time()) {
+            $errors[] = 'Username can only be changed every 15 days. Try again on ' . date('M j, Y g:i A', $usernameAvailableAt) . '.';
+        }
+    }
+
+    $uploadError = (int) ($profileImageFile['error'] ?? UPLOAD_ERR_NO_FILE);
+
+    if ($uploadError !== UPLOAD_ERR_OK && $uploadError !== UPLOAD_ERR_NO_FILE) {
+        $errors[] = 'Profile image upload failed. Please choose another file.';
+    }
 
     if ($errors !== []) {
         $_SESSION['alert'] = [
@@ -83,7 +81,7 @@ if ($requestMethod === 'POST' && $requestedPage === 'settings') {
             throw new RuntimeException('Profile image is required before updating settings.');
         }
 
-        $isVerified = $emailChanged ? 0 : (int) ($currentUser['is_verified'] ?? 1);
+        $isVerified = (int) ($currentUser['is_verified'] ?? 1);
         $imageId = $accounts->saveSettingsProfile(
             $userId,
             $firstname,
@@ -92,7 +90,8 @@ if ($requestMethod === 'POST' && $requestedPage === 'settings') {
             $isVerified,
             $imageId,
             $newAvatarUrl,
-            $emailChanged
+            false,
+            $usernameChanged ? $username : null
         );
     } catch (Throwable $err) {
         error_log('Pixelwar settings update error: ' . $err->getMessage());
@@ -117,26 +116,11 @@ if ($requestMethod === 'POST' && $requestedPage === 'settings') {
     }
 
     $_SESSION['email'] = $email;
+    $_SESSION['username'] = $username;
     $_SESSION['firstname'] = $firstname;
     $_SESSION['lastname'] = $lastname;
     $_SESSION['avatar_initials'] = strtoupper(substr($firstname, 0, 1) . substr($lastname, 0, 1));
     $_SESSION['avatar_url'] = function_exists('pixelwarAvatarUrl') ? pixelwarAvatarUrl($avatarUrl, 128) : $avatarUrl;
-
-    if ($emailChanged) {
-        pixelwarLogActivity($activityLogRepository ?? null, $userId, 'settings', 'Updated account settings and changed email address.');
-        pixelwarPrepareAccountVerification(
-            pixelwarRequireVerificationRepository($verificationRepository),
-            $tools,
-            $userId,
-            $email,
-            (string) ($currentUser['username'] ?? ($_SESSION['username'] ?? 'Player'))
-        );
-        $_SESSION['alert'] = [
-            'error' => false,
-            'content' => 'Email updated. Verify your new email address to continue.'
-        ];
-        pixelwarRedirect('email-verification');
-    }
 
     pixelwarLogActivity($activityLogRepository ?? null, $userId, 'settings', 'Updated account settings.');
 

@@ -138,6 +138,7 @@ $studentBuildQuery = static function (array $overrides = []) use ($studentSearch
                                     $firstname = trim((string) ($student['firstname'] ?? ''));
                                     $lastname = trim((string) ($student['lastname'] ?? ''));
                                     $displayName = trim($firstname . ' ' . $lastname) ?: (string) $student['username'];
+                                    $studentSection = trim((string) ($student['section'] ?? ''));
                                     $initials = strtoupper(substr(preg_replace('/[^a-z0-9]+/i', '', $displayName) ?: 'ST', 0, 2));
                                     $hasProfile = (int) ($student['user_details_id'] ?? 0) > 0;
                                     $isEmailVerified = (int) ($student['is_verified'] ?? 0) === 1;
@@ -161,6 +162,7 @@ $studentBuildQuery = static function (array $overrides = []) use ($studentSearch
                                                     <div class="truncate font-semibold text-arcade-ink"><?= htmlspecialchars($displayName, ENT_QUOTES, 'UTF-8') ?></div>
                                                     <div class="truncate text-xs text-arcade-ink/55">@<?= htmlspecialchars((string) $student['username'], ENT_QUOTES, 'UTF-8') ?></div>
                                                     <div class="truncate text-xs text-arcade-ink/55"><?= htmlspecialchars((string) $student['email'], ENT_QUOTES, 'UTF-8') ?></div>
+                                                    <div class="truncate text-xs font-semibold text-arcade-ink/65">Section: <?= htmlspecialchars($studentSection !== '' ? $studentSection : 'Not assigned', ENT_QUOTES, 'UTF-8') ?></div>
                                                 </div>
                                             </div>
                                         </td>

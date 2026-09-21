@@ -33,7 +33,8 @@ if ($teacherRequestMethod === 'POST' && $teacherRequestedPage === 'room-session'
         }
 
         $roomEnded = trim((string) ($room['ended_at'] ?? '')) !== '';
-        $strictModeEnabled = (int) ($room['strict_mode'] ?? 0) === 1;
+        $strictModeEnabled = (int) ($room['mode'] ?? 0) === 1;
+        $hardCodeModeEnabled = (int) ($room['mode'] ?? 0) === 3;
         $players = [];
         foreach ($roomPlayerRepository->listJoinedForRoom($roomId) as $player) {
             $displayName = trim((string) ($player['firstname'] ?? '') . ' ' . (string) ($player['lastname'] ?? ''))
@@ -54,6 +55,10 @@ if ($teacherRequestMethod === 'POST' && $teacherRequestedPage === 'room-session'
                 $statusLabel = 'solving';
             } else {
                 $statusLabel = 'waiting';
+            }
+
+            if ($hardCodeModeEnabled && $status === 2) {
+                $statusLabel = 'submitted';
             }
 
             $strictModeScore = max(0, min(100, (int) ($player['strict_mode_score'] ?? 0)));
@@ -96,6 +101,7 @@ if ($teacherRequestMethod === 'POST' && $teacherRequestedPage === 'room-session'
                 'username' => (string) ($player['username'] ?? ''),
                 'email' => (string) ($player['email'] ?? ''),
                 'student_number' => (string) ($player['student_number'] ?? ''),
+                'section' => (string) ($player['section'] ?? ''),
                 'avatar_url' => (string) ($player['avatar_url'] ?? ''),
                 'initials' => $initials,
                 'status_label' => $statusLabel,
@@ -103,6 +109,8 @@ if ($teacherRequestMethod === 'POST' && $teacherRequestedPage === 'room-session'
                 'started_at' => (string) ($player['started_at'] ?? ''),
                 'completed_at' => (string) ($player['completed_at'] ?? ''),
                 'strict_mode_score' => $strictModeScore,
+                'code_solution_url' => (string) ($player['code_solution_url'] ?? ''),
+                'code_solution_grade' => isset($player['code_solution_grade']) ? (int) $player['code_solution_grade'] : null,
             ];
         }
 

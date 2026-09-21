@@ -801,6 +801,55 @@
     padding: 0.65rem !important;
 }
 
+.builder-pane--hard-code {
+    grid-template-rows: minmax(0, 1fr) minmax(0, 1.46fr);
+}
+
+.builder-pane--hard-code .panel-card--identifiers,
+.builder-pane--hard-code .identifiers-scroll,
+.builder-pane--hard-code #selector-card-grid {
+    min-height: 0;
+}
+
+.hard-code-editor {
+    border-color: rgba(38, 25, 15, 0.28) !important;
+    background:
+        linear-gradient(rgba(255, 255, 255, 0.42), rgba(255, 255, 255, 0.08)),
+        #fff0bd !important;
+    color: #26190f !important;
+    caret-color: #e85d2a;
+    box-shadow: inset 0 0 0 2px rgba(255, 209, 102, 0.28), inset 0 3px 0 rgba(255, 255, 255, 0.5);
+}
+
+.hard-code-editor::placeholder {
+    color: rgba(38, 25, 15, 0.48) !important;
+}
+
+.hard-code-editor:focus {
+    border-color: #ff8c42 !important;
+    background-color: #fff7dc !important;
+    box-shadow: 0 0 0 3px rgba(255, 140, 66, 0.22), inset 0 0 0 2px rgba(255, 209, 102, 0.3);
+}
+
+body.pixelwar-dark-mode .hard-code-editor {
+    border-color: rgba(255, 209, 102, 0.5) !important;
+    background:
+        linear-gradient(145deg, rgba(255, 140, 66, 0.12), rgba(255, 209, 102, 0.04)),
+        #2d1d12 !important;
+    color: #fff1cb !important;
+    caret-color: #ffd166;
+    box-shadow: inset 0 0 0 2px rgba(255, 209, 102, 0.08);
+}
+
+body.pixelwar-dark-mode .hard-code-editor::placeholder {
+    color: rgba(255, 241, 203, 0.48) !important;
+}
+
+body.pixelwar-dark-mode .hard-code-editor:focus {
+    border-color: #ffd166 !important;
+    box-shadow: 0 0 0 3px rgba(255, 209, 102, 0.18), inset 0 0 0 2px rgba(255, 140, 66, 0.1);
+}
+
 .target-pane {
     padding: 0.65rem !important;
     display: flex;
@@ -1568,6 +1617,10 @@ body.pixelwar-dark-mode .gameplay-complete-card strong {
         min-height: 0;
     }
 
+    .builder-pane--hard-code {
+        grid-template-rows: minmax(0, 0.8fr) minmax(0, 1.36fr);
+    }
+
     .identifiers-scroll {
         max-height: 100%;
     }
@@ -1630,6 +1683,10 @@ body.pixelwar-dark-mode .gameplay-complete-card strong {
         flex-direction: column;
         gap: 0.55rem;
         overflow: visible;
+    }
+
+    .builder-pane--hard-code .panel-card--identifiers {
+        min-height: min(56dvh, 38rem);
     }
 
     .target-pane {

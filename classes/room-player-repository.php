@@ -76,17 +76,21 @@ final class RoomPlayerRepository
                 room_players.strict_mode_score,
                 room_players.started_at,
                 room_players.completed_at,
+                code_solution.css_code AS code_solution_url,
+                code_solution.grade AS code_solution_grade,
                 users.username,
                 users.email,
                 user_details.firstname,
                 user_details.lastname,
                 user_details.student_number,
+                user_details.section,
                 avatar_images.source AS avatar_url,
                 COALESCE(player_points.points, 0) AS points
              FROM room_players
              INNER JOIN users ON users.user_id = room_players.user_id
              LEFT JOIN user_details ON user_details.user_id = users.user_id
              LEFT JOIN images AS avatar_images ON avatar_images.img_id = user_details.image_id
+             LEFT JOIN code_solution ON code_solution.rp_id = room_players.rp_id
              LEFT JOIN (
                 SELECT user_id, SUM(points) AS points
                 FROM player_progress
@@ -131,18 +135,38 @@ final class RoomPlayerRepository
             return false;
         }
 
-        $statement = $this->connection->prepare(
-            'DELETE FROM room_players
-             WHERE user_id = ?
-                AND room_id = ?
-             LIMIT 1'
-        );
-        $statement->bind_param('ii', $userId, $roomId);
-        $statement->execute();
-        $deleted = $statement->affected_rows > 0;
-        $statement->close();
+        $roomPlayer = $this->findByUserAndRoom($userId, $roomId);
+        if ($roomPlayer === null) {
+            return false;
+        }
 
-        return $deleted;
+        $roomPlayerId = (int) ($roomPlayer['rp_id'] ?? 0);
+        $this->connection->begin_transaction();
+
+        try {
+            $deleteSolution = $this->connection->prepare('DELETE FROM code_solution WHERE rp_id = ?');
+            $deleteSolution->bind_param('i', $roomPlayerId);
+            $deleteSolution->execute();
+            $deleteSolution->close();
+
+            $statement = $this->connection->prepare(
+                'DELETE FROM room_players
+                 WHERE rp_id = ?
+                    AND user_id = ?
+                    AND room_id = ?
+                 LIMIT 1'
+            );
+            $statement->bind_param('iii', $roomPlayerId, $userId, $roomId);
+            $statement->execute();
+            $deleted = $statement->affected_rows > 0;
+            $statement->close();
+
+            $this->connection->commit();
+            return $deleted;
+        } catch (Throwable $error) {
+            $this->connection->rollback();
+            throw $error;
+        }
     }
 
     public function touchPresence(int $userId, int $roomId): bool
@@ -256,6 +280,73 @@ final class RoomPlayerRepository
             'UPDATE room_players
              SET status = 2,
                  strict_mode_score = 100,
+                 last_seen_at = CURRENT_TIMESTAMP,
+                 started_at = COALESCE(started_at, CURRENT_TIMESTAMP),
+                 completed_at = CURRENT_TIMESTAMP
+             WHERE user_id = ?
+                AND room_id = ?
+             LIMIT 1'
+        );
+        $statement->bind_param('ii', $userId, $roomId);
+        $statement->execute();
+        $updated = $statement->affected_rows >= 0;
+        $statement->close();
+
+        return $updated;
+    }
+
+    public function saveHardCodeSolution(int $roomPlayerId, string $solutionUrl): void
+    {
+        if ($roomPlayerId <= 0 || trim($solutionUrl) === '') {
+            throw new InvalidArgumentException('A valid code solution is required.');
+        }
+
+        $statement = $this->connection->prepare(
+            'INSERT INTO code_solution (rp_id, css_code)
+             VALUES (?, ?)
+             ON DUPLICATE KEY UPDATE css_code = VALUES(css_code)'
+        );
+        $statement->bind_param('is', $roomPlayerId, $solutionUrl);
+        $statement->execute();
+        $statement->close();
+    }
+
+    public function updateHardCodeGrade(int $roomPlayerId, int $roomId, int $grade): bool
+    {
+        if ($roomPlayerId <= 0 || $roomId <= 0 || $grade < 0 || $grade > 2147483647) {
+            return false;
+        }
+
+        $check = $this->connection->prepare(
+            'SELECT 1
+             FROM code_solution
+             INNER JOIN room_players ON room_players.rp_id = code_solution.rp_id
+             WHERE code_solution.rp_id = ?
+                AND room_players.room_id = ?
+             LIMIT 1'
+        );
+        $check->bind_param('ii', $roomPlayerId, $roomId);
+        $check->execute();
+        $exists = $check->get_result()->fetch_row() !== null;
+        $check->close();
+
+        if (!$exists) {
+            return false;
+        }
+
+        $statement = $this->connection->prepare('UPDATE code_solution SET grade = ? WHERE rp_id = ? LIMIT 1');
+        $statement->bind_param('ii', $grade, $roomPlayerId);
+        $statement->execute();
+        $statement->close();
+
+        return true;
+    }
+
+    public function markHardCodeSubmitted(int $userId, int $roomId): bool
+    {
+        $statement = $this->connection->prepare(
+            'UPDATE room_players
+             SET status = 2,
                  last_seen_at = CURRENT_TIMESTAMP,
                  started_at = COALESCE(started_at, CURRENT_TIMESTAMP),
                  completed_at = CURRENT_TIMESTAMP

@@ -12,7 +12,6 @@ if ($adminRequestMethod === 'POST' && $adminRequestedPage === 'student-verificat
 
         $action = trim((string) ($_POST['action'] ?? ''));
         $studentId = (int) ($_POST['student_id'] ?? 0);
-        $adminPassword = (string) ($_POST['admin_password'] ?? '');
         $users = adminPanelRequireUserRepository($userRepository);
         $logs = adminPanelRequireActivityLogRepository($activityLogRepository);
         $toolsService = adminPanelRequireTools($tools ?? null);
@@ -21,18 +20,10 @@ if ($adminRequestMethod === 'POST' && $adminRequestedPage === 'student-verificat
             throw new RuntimeException('Student record is missing.');
         }
 
-        if ($adminPassword === '') {
-            throw new RuntimeException('Enter your admin password to confirm this action.');
-        }
-
         $adminUser = $users->findAuthUserById((int) ($_SESSION['user_id'] ?? 0));
 
         if ($adminUser === null || (int) ($adminUser['role_id'] ?? 0) !== 1) {
             throw new RuntimeException('Admin session could not be confirmed.');
-        }
-
-        if (!password_verify($adminPassword, (string) ($adminUser['password'] ?? ''))) {
-            throw new RuntimeException('Admin password is incorrect.');
         }
 
         $student = $users->findSessionUser($studentId);
@@ -55,22 +46,22 @@ if ($adminRequestMethod === 'POST' && $adminRequestedPage === 'student-verificat
                 'content' => 'Student access approved successfully.',
             ];
         } elseif ($action === 'reject') {
-            $idPictureUrl = $users->clearStudentIdPicture($studentId);
+            $corFileUrl = $users->clearStudentCorFile($studentId);
 
-            if ($idPictureUrl !== null) {
+            if ($corFileUrl !== null) {
                 try {
                     $storage = new SupabaseStorage(
                         SUPABASE_URL,
                         SUPABASE_SERVICE_ROLE_KEY,
                         SUPABASE_STORAGE_BUCKET,
-                        SUPABASE_STORAGE_ID_PICTURE_FOLDER
+                        SUPABASE_STORAGE_COR_FILE_FOLDER
                     );
 
                     if ($storage->isConfigured()) {
-                        $storage->deletePublicObject($idPictureUrl);
+                        $storage->deletePublicObject($corFileUrl);
                     }
                 } catch (Throwable $cleanupError) {
-                    error_log('Pixelwar student ID cleanup error: ' . $cleanupError->getMessage());
+                    error_log('Pixelwar student COR cleanup error: ' . $cleanupError->getMessage());
                 }
             }
 

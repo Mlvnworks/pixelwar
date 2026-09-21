@@ -58,6 +58,34 @@ final class SupabaseStorage
         return $this->url . '/storage/v1/object/public/' . rawurlencode($this->bucket) . '/' . $this->encodeObjectPath($objectPath);
     }
 
+    /**
+     * @param array<string, mixed> $file
+     */
+    public function uploadRegistrationDocument(array $file, int $userId): string
+    {
+        $this->ensureConfigured();
+        $this->assertRegistrationDocumentIsValid($file);
+
+        $tmpName = (string) $file['tmp_name'];
+        $mimeType = $this->detectMimeType($tmpName);
+        $extension = $this->registrationDocumentExtension($mimeType);
+        $objectPath = $this->objectPath($userId, $extension);
+        $uploadUrl = $this->url . '/storage/v1/object/' . rawurlencode($this->bucket) . '/' . $this->encodeObjectPath($objectPath);
+        $contents = file_get_contents($tmpName);
+
+        if ($contents === false) {
+            throw new RuntimeException('Unable to read the uploaded Certificate of Registration.');
+        }
+
+        if (function_exists('curl_init')) {
+            $this->uploadWithCurl($uploadUrl, $contents, $mimeType);
+        } else {
+            $this->uploadWithStreamContext($uploadUrl, $contents, $mimeType);
+        }
+
+        return $this->url . '/storage/v1/object/public/' . rawurlencode($this->bucket) . '/' . $this->encodeObjectPath($objectPath);
+    }
+
     public function deletePublicObject(string $publicUrl): bool
     {
         $this->ensureConfigured();
@@ -208,6 +236,33 @@ final class SupabaseStorage
         $this->extensionForMimeType($this->detectMimeType($tmpName));
     }
 
+    /**
+     * @param array<string, mixed> $file
+     */
+    private function assertRegistrationDocumentIsValid(array $file): void
+    {
+        $error = (int) ($file['error'] ?? UPLOAD_ERR_NO_FILE);
+
+        if ($error !== UPLOAD_ERR_OK) {
+            throw new RuntimeException('Upload your Certificate of Registration before continuing.');
+        }
+
+        $tmpName = (string) ($file['tmp_name'] ?? '');
+
+        if ($tmpName === '' || (!$this->allowsLocalFileUploads && !is_uploaded_file($tmpName))) {
+            throw new RuntimeException('Certificate of Registration upload could not be verified.');
+        }
+
+        $size = (int) ($file['size'] ?? 0);
+        $maxSize = 5 * 1024 * 1024;
+
+        if ($size <= 0 || $size > $maxSize) {
+            throw new RuntimeException('Certificate of Registration must be 5MB or smaller.');
+        }
+
+        $this->registrationDocumentExtension($this->detectMimeType($tmpName));
+    }
+
     private function detectMimeType(string $path): string
     {
         $finfo = new finfo(FILEINFO_MIME_TYPE);
@@ -228,6 +283,18 @@ final class SupabaseStorage
             'image/webp' => 'webp',
             'image/gif' => 'gif',
             default => throw new RuntimeException('Profile image must be JPG, PNG, WEBP, or GIF.'),
+        };
+    }
+
+    private function registrationDocumentExtension(string $mimeType): string
+    {
+        return match ($mimeType) {
+            'image/jpeg' => 'jpg',
+            'image/png' => 'png',
+            'image/webp' => 'webp',
+            'image/gif' => 'gif',
+            'application/pdf' => 'pdf',
+            default => throw new RuntimeException('Certificate of Registration must be a JPG, PNG, WEBP, GIF, or PDF file.'),
         };
     }
 

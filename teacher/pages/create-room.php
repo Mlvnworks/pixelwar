@@ -54,7 +54,8 @@ if (is_array($selectedChallenge)) {
 $roomNameValue = (string) ($roomOld['room_name'] ?? $defaultRoomName);
 $roomDescriptionValue = (string) ($roomOld['room_description'] ?? $defaultRoomDescription);
 $timerLimitValue = (string) ($roomOld['timer_limit'] ?? $defaultTimerLimit);
-$strictModeValue = (int) ($roomOld['strict_mode'] ?? $defaultStrictMode);
+$strictModeValue = (int) ($roomOld['mode'] ?? $defaultStrictMode);
+$roomPointsValue = (string) ($roomOld['room_points'] ?? '');
 ?>
 
 <main class="teacher-shell create-room-shell relative overflow-hidden px-4 py-6 text-arcade-ink md:py-8">
@@ -160,15 +161,24 @@ $strictModeValue = (int) ($roomOld['strict_mode'] ?? $defaultStrictMode);
 
                                 <label class="create-room-field">
                                     <span>Room Mode</span>
-                                    <select id="room-strict-mode" name="strict_mode" required>
+                                    <select id="room-strict-mode" name="mode" required>
                                         <option value="0" <?= $strictModeValue === 0 ? 'selected' : '' ?>>Practice mode</option>
                                         <option value="1" <?= $strictModeValue === 1 ? 'selected' : '' ?>>Strict mode</option>
+                                        <option value="3" <?= $strictModeValue === 3 ? 'selected' : '' ?>>Hard code</option>
                                     </select>
                                     <small id="room-mode-description" class="create-room-mode-description">
-                                        <?= $strictModeValue === 1
-                                            ? 'Players receive no live error feedback and submit once for a final score.'
-                                            : 'Players receive live feedback while matching the challenge design.' ?>
+                                        <?= $strictModeValue === 3
+                                            ? 'Players write CSS directly and submit their design for teacher review.'
+                                            : ($strictModeValue === 1
+                                                ? 'Players receive no live error feedback and submit once for a final score.'
+                                                : 'Players receive live feedback while matching the challenge design.') ?>
                                     </small>
+                                </label>
+
+                                <label class="create-room-field" data-room-points-field <?= $strictModeValue === 3 ? '' : 'hidden' ?>>
+                                    <span>Room Activity Points</span>
+                                    <input id="room-points" type="number" name="room_points" min="1" step="1" inputmode="numeric" value="<?= htmlspecialchars($roomPointsValue, ENT_QUOTES, 'UTF-8') ?>" placeholder="Enter activity points" <?= $strictModeValue === 3 ? 'required' : 'disabled' ?>>
+                                    <small class="create-room-mode-description">Shown as the teacher-assigned value for this activity. It will not be added to player rank points.</small>
                                 </label>
                             </div>
                         </div>
@@ -199,8 +209,9 @@ $strictModeValue = (int) ($roomOld['strict_mode'] ?? $defaultStrictMode);
                                 <span class="create-room-pill create-room-pill--host">
                                     Host: <?= htmlspecialchars($teacherName, ENT_QUOTES, 'UTF-8') ?>
                                 </span>
-                                <span id="room-preview-mode" class="create-room-pill">Practice mode</span>
+                                <span id="room-preview-mode" class="create-room-pill"><?= $strictModeValue === 3 ? 'Hard code' : ($strictModeValue === 1 ? 'Strict mode' : 'Practice mode') ?></span>
                                 <span id="room-preview-timer" class="create-room-pill">No timer</span>
+                                <span id="room-preview-points" class="create-room-pill <?= $strictModeValue === 3 ? '' : 'hidden' ?>"><?= $strictModeValue === 3 && (int) $roomPointsValue > 0 ? (int) $roomPointsValue . ' activity pts' : 'Points pending' ?></span>
                             </div>
 
                             <div id="room-preview-description" class="create-room-copy mt-4">
@@ -312,10 +323,13 @@ $strictModeValue = (int) ($roomOld['strict_mode'] ?? $defaultStrictMode);
                 const timerPresetButtons = Array.from(document.querySelectorAll('[data-timer-minutes]'));
                 const strictModeInput = document.getElementById('room-strict-mode');
                 const roomModeDescription = document.getElementById('room-mode-description');
+                const roomPointsField = document.querySelector('[data-room-points-field]');
+                const roomPointsInput = document.getElementById('room-points');
                 const roomPreviewName = document.getElementById('room-preview-name');
                 const roomPreviewDescription = document.getElementById('room-preview-description');
                 const roomPreviewMode = document.getElementById('room-preview-mode');
                 const roomPreviewTimer = document.getElementById('room-preview-timer');
+                const roomPreviewPoints = document.getElementById('room-preview-points');
                 const challengeName = document.getElementById('room-challenge-name');
                 const challengeDifficulty = document.getElementById('room-challenge-difficulty');
                 const challengeAuthor = document.getElementById('room-challenge-author');
@@ -604,12 +618,27 @@ ${cssText}
                         roomPreviewTimer.textContent = timerValue > 0 ? `${timerValue} min timer` : 'No timer';
                     }
                     if (roomPreviewMode) {
-                        const strictModeEnabled = strictModeInput.value === '1';
-                        roomPreviewMode.textContent = strictModeEnabled ? 'Strict mode' : 'Practice mode';
+                        const roomMode = strictModeInput.value;
+                        roomPreviewMode.textContent = roomMode === '3' ? 'Hard code' : (roomMode === '1' ? 'Strict mode' : 'Practice mode');
                         if (roomModeDescription) {
-                            roomModeDescription.textContent = strictModeEnabled
-                                ? 'Players receive no live error feedback and submit once for a final score.'
-                                : 'Players receive live feedback while matching the challenge design.';
+                            roomModeDescription.textContent = roomMode === '3'
+                                ? 'Players write CSS directly and submit their design for teacher review.'
+                                : (roomMode === '1'
+                                    ? 'Players receive no live error feedback and submit once for a final score.'
+                                    : 'Players receive live feedback while matching the challenge design.');
+                        }
+                        const hardCodeMode = roomMode === '3';
+                        if (roomPointsField instanceof HTMLElement) {
+                            roomPointsField.hidden = !hardCodeMode;
+                        }
+                        if (roomPointsInput) {
+                            roomPointsInput.disabled = !hardCodeMode;
+                            roomPointsInput.required = hardCodeMode;
+                        }
+                        roomPreviewPoints?.classList.toggle('hidden', !hardCodeMode);
+                        if (hardCodeMode && roomPreviewPoints) {
+                            const points = Math.max(0, parseInt(roomPointsInput?.value || '0', 10) || 0);
+                            roomPreviewPoints.textContent = points > 0 ? `${points} activity pts` : 'Points pending';
                         }
                     }
                 };
@@ -714,7 +743,7 @@ ${cssText}
                     }
                 });
 
-                [challengeSelect, roomNameInput, roomDescriptionInput, timerLimitInput, strictModeInput].forEach((field) => {
+                [challengeSelect, roomNameInput, roomDescriptionInput, timerLimitInput, strictModeInput, roomPointsInput].forEach((field) => {
                     if (!field) {
                         return;
                     }

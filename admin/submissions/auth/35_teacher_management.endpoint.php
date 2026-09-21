@@ -98,7 +98,11 @@ if ($adminRequestMethod === 'POST' && $adminRequestedPage === 'teachers' && isse
                 throw new RuntimeException(implode(' ', $errors));
             }
 
+            $usernameChangedByAdmin = strcmp((string) ($teacher['username'] ?? ''), $username) !== 0;
             $users->updateTeacherAccount($teacherId, $username, $email, $firstname, $lastname);
+            if ($usernameChangedByAdmin) {
+                $users->recordAccountChange($teacherId, 'username');
+            }
             $logs->create((int) ($_SESSION['user_id'] ?? 0), 'teacher', 'Updated teacher account "' . $teacherLabel . '" from admin teachers.');
             $_SESSION['alert'] = [
                 'error' => false,

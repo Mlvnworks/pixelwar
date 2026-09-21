@@ -25,18 +25,34 @@
             </div>
 
             <div class="landing-stats mt-10 grid max-w-xl gap-3 sm:grid-cols-3">
-                <div class="rounded-2xl border-2 border-arcade-ink/10 bg-white/70 p-4">
-                    <p class="font-arcade text-[9px] uppercase tracking-[0.2em] text-arcade-orange">Solo</p>
-                    <p class="mt-2 text-lg font-bold">Solo Solving</p>
-                </div>
-                <div class="rounded-2xl border-2 border-arcade-ink/10 bg-white/70 p-4">
-                    <p class="font-arcade text-[9px] uppercase tracking-[0.2em] text-arcade-cyan">Versus</p>
-                    <p class="mt-2 text-lg font-bold">1v1 Match</p>
-                </div>
-                <div class="rounded-2xl border-2 border-arcade-ink/10 bg-white/70 p-4">
-                    <p class="font-arcade text-[9px] uppercase tracking-[0.2em] text-arcade-coral">Party</p>
-                    <p class="mt-2 text-lg font-bold">Room Match</p>
-                </div>
+                <article class="landing-mode-card landing-mode-card--solo">
+                    <span class="landing-mode-card__icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M6 11h4M8 9v4M15 12h.01M18 10h.01" />
+                            <path d="M17.3 5H6.7A4.7 4.7 0 0 0 2 9.7v4.6A4.7 4.7 0 0 0 6.7 19c1.2 0 2.3-.45 3.15-1.2l.7-.62a2.2 2.2 0 0 1 2.9 0l.7.62A4.7 4.7 0 0 0 22 14.3V9.7A4.7 4.7 0 0 0 17.3 5Z" />
+                        </svg>
+                    </span>
+                    <h2>Solo Practice</h2>
+                    <p>Sharpen your CSS skills.</p>
+                </article>
+                <article class="landing-mode-card landing-mode-card--versus">
+                    <span class="landing-mode-card__icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="m14.5 17.5-5-5M13 19l6-6M16 16l4 4M19 21l2-2M14.5 6.5l3-3L21 3l-.5 3.5-3 3M5 14l-2 2 5 5 2-2M3 3l6.5 6.5" />
+                        </svg>
+                    </span>
+                    <h2>1v1 Match</h2>
+                    <p>Race another player live.</p>
+                </article>
+                <article class="landing-mode-card landing-mode-card--room">
+                    <span class="landing-mode-card__icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
+                        </svg>
+                    </span>
+                    <h2>Room</h2>
+                    <p>Join a teacher-led match.</p>
+                </article>
             </div>
         </div>
 
@@ -106,15 +122,83 @@
     }
 
     .landing-kicker,
-    .landing-stats>div,
+    .landing-mode-card,
     .landing-button,
     .landing-machine {
         transition: transform 180ms ease, box-shadow 180ms ease, background-color 180ms ease;
     }
 
-    .landing-button:hover,
-    .landing-stats>div:hover {
+    .landing-button:hover {
         transform: translateY(-3px);
+    }
+
+    .landing-mode-card {
+        --mode-color: #ffd166;
+        position: relative;
+        isolation: isolate;
+        min-height: 7.75rem;
+        border: 2px solid rgba(38, 25, 15, 0.16);
+        border-radius: 1.25rem;
+        background: rgba(255, 253, 246, 0.78);
+        padding: 0.3rem 0.85rem;
+        text-align: left;
+    }
+
+    .landing-mode-card--versus {
+        --mode-color: #4cc9f0;
+    }
+
+    .landing-mode-card--room {
+        --mode-color: #f97373;
+    }
+
+    .landing-mode-card:hover {
+        transform: translate(-2px, -4px) rotate(-0.5deg);
+    }
+
+    .landing-mode-card__icon {
+        display: grid;
+        width: 2.8rem;
+        height: 2.8rem;
+        margin-top: 0.35rem;
+        place-items: center;
+        color: var(--mode-color);
+        transition: transform 180ms ease;
+    }
+
+    .landing-mode-card:hover .landing-mode-card__icon {
+        transform: rotate(-5deg) scale(1.05);
+    }
+
+    .landing-mode-card__icon svg {
+        width: 1.4rem;
+        height: 1.4rem;
+        stroke-width: 2.5;
+    }
+
+    .landing-mode-card h2 {
+        margin-top: 0.4rem;
+        font-size: 1rem;
+        font-weight: 900;
+        line-height: 1.2;
+    }
+
+    .landing-mode-card p {
+        margin-top: 0.2rem;
+        font-size: 0.72rem;
+        font-weight: 800;
+        line-height: 1.4;
+        color: rgba(38, 25, 15, 0.62);
+    }
+
+    body.pixelwar-dark-mode .landing-mode-card {
+        border-color: rgba(255, 247, 232, 0.2);
+        background: rgba(255, 247, 232, 0.08);
+        color: #fff7e8;
+    }
+
+    body.pixelwar-dark-mode .landing-mode-card p {
+        color: rgba(255, 247, 232, 0.68);
     }
 
     .landing-machine:hover {
@@ -223,7 +307,7 @@
         }
 
         .landing-kicker,
-        .landing-stats>div,
+        .landing-mode-card,
         .landing-button,
         .landing-machine {
             transition: none;
@@ -276,7 +360,7 @@
         }
 
         .landing-copy h1,
-        .landing-copy p {
+        .landing-copy > p {
             margin-left: auto;
             margin-right: auto;
         }
@@ -286,7 +370,7 @@
             line-height: 0.95;
         }
 
-        .landing-copy p:not(.landing-kicker) {
+        .landing-copy > p:not(.landing-kicker) {
             font-size: 1rem;
             line-height: 1.85;
         }
@@ -295,6 +379,18 @@
             margin-left: auto;
             margin-right: auto;
             max-width: none;
+        }
+
+        .landing-mode-card {
+            padding: 0.35rem 1rem;
+        }
+
+        .landing-mode-card__icon {
+            margin-top: 0.3rem;
+        }
+
+        .landing-mode-card h2 {
+            margin-top: 0.35rem;
         }
 
         .landing-preview {

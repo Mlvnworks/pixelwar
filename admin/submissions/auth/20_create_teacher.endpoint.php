@@ -30,8 +30,8 @@ if ($adminRequestMethod === 'POST' && $adminRequestedPage === 'teachers' && (str
             $errors[] = 'Enter a valid teacher email address.';
         }
 
-        if (strlen($password) < 8) {
-            $errors[] = 'Password must be at least 8 characters.';
+        if (!PasswordPolicy::isValid($password)) {
+            $errors[] = PasswordPolicy::REQUIREMENTS_MESSAGE;
         }
 
         if ($password !== $confirmPassword) {

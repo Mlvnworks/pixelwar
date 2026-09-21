@@ -19,12 +19,18 @@ $existingLastname = trim((string) ($existingSessionUser['lastname'] ?? ''));
 $existingAvatarUrl = trim((string) ($existingDetails['avatar_url'] ?? ($existingSessionUser['avatar_url'] ?? '')));
 $existingAvatarUrl = function_exists('pixelwarAvatarUrl') ? pixelwarAvatarUrl($existingAvatarUrl, 160) : $existingAvatarUrl;
 $existingStudentNumber = trim((string) ($existingDetails['student_number'] ?? ''));
-$existingIdPictureUrl = trim((string) ($existingDetails['id_picture_url'] ?? ''));
+$existingSection = trim((string) ($existingDetails['section'] ?? ''));
+$existingCorFileUrl = trim((string) ($existingDetails['cor_file_url'] ?? ''));
+$existingCorIsPdf = $existingCorFileUrl !== '' && preg_match('/\.pdf(?:$|[?#])/i', $existingCorFileUrl) === 1;
 $profileFirstnameValue = (string) ($profileSetupOld['firstname'] ?? $existingFirstname);
 $profileLastnameValue = (string) ($profileSetupOld['lastname'] ?? $existingLastname);
 $profileUsernameValue = (string) ($profileSetupOld['username'] ?? $setupUsername);
 $profileEmailValue = (string) ($profileSetupOld['email'] ?? $setupEmail);
 $profileStudentNumberValue = (string) ($profileSetupOld['student_number'] ?? $existingStudentNumber);
+$profileSectionValue = (string) ($profileSetupOld['section'] ?? $existingSection);
+$isSectionOnlySetup = !$isStaffSetup
+    && is_array($existingSessionUser)
+    && pixelwarStudentNeedsSectionOnlySetup($userRepository, $existingSessionUser);
 $profilePreviewInitials = strtoupper(substr(preg_replace('/[^a-z0-9]+/i', '', trim($profileFirstnameValue . $profileLastnameValue)) ?: $setupUsername, 0, 2)) ?: 'PW';
 $profileTitle = $isTeacherSetup
     ? 'Finish your teacher setup.'
@@ -41,6 +47,14 @@ $submitLabel = $isTeacherSetup
     ? 'Finish Teacher Setup'
     : ($isAdminSetup ? 'Save Admin Setup' : 'Enter Pixelwar');
 $profileCardWidthClass = $isStaffSetup ? 'max-w-[25rem]' : 'max-w-[31rem]';
+
+if ($isSectionOnlySetup) {
+    $profileTitle = 'Add your student section.';
+    $profileEyebrow = 'Profile Update';
+    $profileDescription = '';
+    $submitLabel = 'Submit for Review';
+    $profileCardWidthClass = 'max-w-[28rem]';
+}
 unset($_SESSION['profile_setup_errors'], $_SESSION['profile_setup_old']);
 ?>
 <main class="auth-page relative min-h-[calc(100vh-4.25rem)] overflow-hidden bg-arcade-cream px-4 py-4 text-arcade-ink">
@@ -59,7 +73,9 @@ unset($_SESSION['profile_setup_errors'], $_SESSION['profile_setup_old']);
             <?= pixelwarCsrfField() ?>
             <p class="font-arcade text-[10px] uppercase tracking-[0.28em] text-arcade-orange"><?= htmlspecialchars($profileEyebrow, ENT_QUOTES, 'UTF-8') ?></p>
             <h1 class="mt-2 text-[1.35rem] font-bold leading-tight"><?= htmlspecialchars($profileTitle, ENT_QUOTES, 'UTF-8') ?></h1>
-            <p class="mt-1 text-sm leading-5 text-arcade-ink/68"><?= $profileDescription ?></p>
+            <?php if ($profileDescription !== '') : ?>
+                <p class="mt-1 text-sm leading-5 text-arcade-ink/68"><?= $profileDescription ?></p>
+            <?php endif; ?>
             <button type="submit" form="profile-setup-logout-form" class="mt-3 inline-flex items-center gap-2 rounded-xl border-2 border-arcade-ink bg-white px-3 py-2 text-xs font-extrabold uppercase tracking-[0.14em] text-arcade-ink shadow-[0_3px_0_#26190f] transition hover:-translate-y-0.5 hover:bg-arcade-yellow">
                 <span aria-hidden="true">&larr;</span>
                 Logout
@@ -73,6 +89,23 @@ unset($_SESSION['profile_setup_errors'], $_SESSION['profile_setup_old']);
                 </div>
             <?php endif; ?>
 
+            <?php if ($isSectionOnlySetup) : ?>
+                <section class="mt-4 rounded-[22px] border-2 border-arcade-ink/12 bg-white/75 p-4">
+                    <div class="flex items-start gap-3">
+                        <span class="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-arcade-cyan/25 text-arcade-ink">
+                            <i data-lucide="school" class="h-5 w-5" aria-hidden="true"></i>
+                        </span>
+                        <div>
+                            <h2 class="text-base font-black">Section required</h2>
+                        </div>
+                    </div>
+                    <label class="mt-4 block text-sm font-bold" for="student-section">
+                        Section
+                        <input id="student-section" name="section" type="text" autocomplete="organization" required maxlength="100" value="<?= htmlspecialchars($profileSectionValue, ENT_QUOTES, 'UTF-8') ?>" class="mt-1 w-full rounded-xl border-2 border-arcade-ink/15 bg-white px-3 py-2 outline-none transition focus:border-arcade-orange" placeholder="Example: BSIT 4-A">
+                        <span id="student-section-message" class="mt-1 block min-h-4 text-xs font-bold leading-5 text-arcade-coral" aria-live="polite"></span>
+                    </label>
+                </section>
+            <?php else : ?>
             <label class="mt-4 block text-sm font-bold" for="profile-image">Profile Image</label>
             <div id="profile-upload-dropzone" class="profile-upload-dropzone mt-1 rounded-[22px] border-2 border-dashed border-arcade-ink/25 bg-white/75 p-3 transition">
                 <div class="flex items-center gap-3">
@@ -120,12 +153,14 @@ unset($_SESSION['profile_setup_errors'], $_SESSION['profile_setup_old']);
 
                     <label class="block text-sm font-bold" for="profile-password">
                         Final Password
-                        <input id="profile-password" name="password" type="password" autocomplete="new-password" required minlength="8" class="mt-1 w-full rounded-xl border-2 border-arcade-ink/15 bg-white px-3 py-2 outline-none transition focus:border-arcade-orange" placeholder="Minimum 8 characters">
+                        <input id="profile-password" name="password" type="password" autocomplete="new-password" required minlength="8" class="mt-1 w-full rounded-xl border-2 border-arcade-ink/15 bg-white px-3 py-2 outline-none transition focus:border-arcade-orange" placeholder="Upper, lower, number, symbol">
+                        <span id="profile-password-feedback" class="mt-1 block min-h-5 text-xs font-bold leading-5 text-arcade-ink/55"></span>
                     </label>
 
                     <label class="block text-sm font-bold" for="profile-confirm-password">
                         Confirm Password
                         <input id="profile-confirm-password" name="confirm_password" type="password" autocomplete="new-password" required minlength="8" class="mt-1 w-full rounded-xl border-2 border-arcade-ink/15 bg-white px-3 py-2 outline-none transition focus:border-arcade-orange" placeholder="Repeat password">
+                        <span id="profile-confirm-password-feedback" class="mt-1 block min-h-5 text-xs font-bold leading-5 text-arcade-ink/55"></span>
                     </label>
                 </div>
             <?php endif; ?>
@@ -135,7 +170,7 @@ unset($_SESSION['profile_setup_errors'], $_SESSION['profile_setup_old']);
                     <div class="flex items-start justify-between gap-3">
                         <div>
                             <p class="text-sm font-extrabold text-arcade-ink">Student Details</p>
-                            <p class="mt-1 text-xs font-bold leading-5 text-arcade-ink/55">Add your student number and upload a clear ID image before entering the homepage.</p>
+                            <p class="mt-1 text-xs font-bold leading-5 text-arcade-ink/55">Add your student number and section, then upload a clear Certificate of Registration for review.</p>
                         </div>
                         <span class="inline-flex rounded-full border-2 border-arcade-ink bg-arcade-yellow px-2 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-arcade-ink">Required</span>
                     </div>
@@ -148,40 +183,48 @@ unset($_SESSION['profile_setup_errors'], $_SESSION['profile_setup_old']);
                             <span class="mt-1 block text-xs font-bold leading-5 text-arcade-ink/55">Use the number printed on your active school record or ID.</span>
                         </label>
 
+                        <label class="block text-sm font-bold" for="student-section">
+                            Section
+                            <input id="student-section" name="section" type="text" autocomplete="organization" required maxlength="100" value="<?= htmlspecialchars($profileSectionValue, ENT_QUOTES, 'UTF-8') ?>" class="mt-1 w-full rounded-xl border-2 border-arcade-ink/15 bg-white px-3 py-2 outline-none transition focus:border-arcade-orange" placeholder="Example: BSIT 4-A">
+                            <span id="student-section-message" class="mt-1 block min-h-4 text-xs font-bold leading-5 text-arcade-coral" aria-live="polite"></span>
+                        </label>
+
                         <div>
-                            <label class="block text-sm font-bold" for="id-picture">ID Picture</label>
-                            <div id="id-upload-dropzone" class="profile-upload-dropzone profile-upload-dropzone--compact mt-1 rounded-[20px] border-2 border-dashed border-arcade-ink/25 bg-white/80 p-3 transition">
+                            <label class="block text-sm font-bold" for="cor-file">Certificate of Registration</label>
+                            <div id="cor-upload-dropzone" class="profile-upload-dropzone profile-upload-dropzone--compact mt-1 rounded-[20px] border-2 border-dashed border-arcade-ink/25 bg-white/80 p-3 transition">
                                 <div class="flex items-center gap-3">
                                     <div class="profile-upload-preview profile-upload-preview--id grid h-14 w-20 shrink-0 place-items-center overflow-hidden rounded-2xl border-2 border-arcade-ink bg-white text-arcade-ink">
-                                        <span id="id-upload-placeholder" class="text-[10px] font-black uppercase tracking-[0.18em] text-arcade-ink/42 <?= $existingIdPictureUrl !== '' ? 'hidden' : '' ?>">ID</span>
-                                        <img id="id-upload-preview-image" src="<?= htmlspecialchars($existingIdPictureUrl, ENT_QUOTES, 'UTF-8') ?>" alt="ID picture preview" class="<?= $existingIdPictureUrl !== '' ? '' : 'hidden ' ?>h-full w-full object-cover">
+                                        <span id="cor-upload-placeholder" class="text-[10px] font-black uppercase tracking-[0.18em] text-arcade-ink/42 <?= $existingCorFileUrl !== '' && !$existingCorIsPdf ? 'hidden' : '' ?>"><?= $existingCorIsPdf ? 'PDF' : 'COR' ?></span>
+                                        <img id="cor-upload-preview-image"<?= $existingCorFileUrl !== '' && !$existingCorIsPdf ? ' src="' . htmlspecialchars($existingCorFileUrl, ENT_QUOTES, 'UTF-8') . '"' : '' ?> alt="Certificate of Registration preview" class="<?= $existingCorFileUrl !== '' && !$existingCorIsPdf ? '' : 'hidden ' ?>h-full w-full object-cover">
                                     </div>
                                     <div class="min-w-0 flex-1">
-                                        <p class="text-sm font-extrabold text-arcade-ink">Upload your school ID</p>
-                                        <p id="id-upload-file-name" class="mt-1 truncate text-xs font-bold text-arcade-ink/55"><?= $existingIdPictureUrl !== '' ? 'Current ID image is loaded. Choose a new file to replace it.' : 'Front side image. Max 2MB.' ?></p>
+                                        <p class="text-sm font-extrabold text-arcade-ink">Upload your Certificate of Registration</p>
+                                        <p id="cor-upload-file-name" class="mt-1 truncate text-xs font-bold text-arcade-ink/55"><?= $existingCorFileUrl !== '' ? 'Current registration document is loaded. Choose a new file to replace it.' : 'Upload an image or PDF. Max 5MB.' ?></p>
                                     </div>
                                 </div>
-                                <input id="id-picture" name="id_picture" type="file" accept="image/png,image/jpeg,image/webp,image/gif" <?= $existingIdPictureUrl === '' ? 'required' : '' ?> class="sr-only">
+                                <input id="cor-file" name="cor_file" type="file" accept="image/png,image/jpeg,image/webp,image/gif,application/pdf,.pdf" <?= $existingCorFileUrl === '' ? 'required' : '' ?> class="sr-only">
                             </div>
-                            <p id="id-upload-message" class="mt-1 min-h-4 text-xs font-bold leading-5 text-arcade-coral" aria-live="polite"></p>
+                            <p id="cor-upload-message" class="mt-1 min-h-4 text-xs font-bold leading-5 text-arcade-coral" aria-live="polite"></p>
                         </div>
                     </div>
 
                     <div class="mt-4 rounded-[20px] border-2 border-arcade-ink bg-arcade-cream/75 p-3">
                         <div class="flex items-center justify-between gap-2">
-                            <p class="text-xs font-black uppercase tracking-[0.18em] text-arcade-ink/58">ID Preview</p>
+                            <p class="text-xs font-black uppercase tracking-[0.18em] text-arcade-ink/58">Registration Preview</p>
                             <span class="rounded-full bg-white px-2 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-arcade-ink/55">Front</span>
                         </div>
                         <div class="mt-3 overflow-hidden rounded-2xl border-2 border-dashed border-arcade-ink/25 bg-white">
                             <div class="relative min-h-[16rem] sm:min-h-[18rem]">
-                                <div id="id-preview-empty" class="absolute inset-0 <?= $existingIdPictureUrl !== '' ? 'hidden ' : '' ?>grid place-items-center px-4 text-center text-xs font-bold leading-5 text-arcade-ink/45">
-                                    Select an ID image to preview it here.
+                                <div id="cor-preview-empty" class="absolute inset-0 <?= $existingCorFileUrl !== '' ? 'hidden ' : '' ?>grid place-items-center px-4 text-center text-xs font-bold leading-5 text-arcade-ink/45">
+                                    Select a Certificate of Registration image or PDF.
                                 </div>
-                                <img id="id-upload-preview-panel" src="<?= htmlspecialchars($existingIdPictureUrl, ENT_QUOTES, 'UTF-8') ?>" alt="Selected ID image preview" class="<?= $existingIdPictureUrl !== '' ? '' : 'hidden ' ?>h-full w-full object-contain p-3">
+                                <img id="cor-upload-preview-panel"<?= $existingCorFileUrl !== '' && !$existingCorIsPdf ? ' src="' . htmlspecialchars($existingCorFileUrl, ENT_QUOTES, 'UTF-8') . '"' : '' ?> alt="Selected Certificate of Registration preview" class="<?= $existingCorFileUrl !== '' && !$existingCorIsPdf ? '' : 'hidden ' ?>h-full w-full object-contain p-3">
+                                <iframe id="cor-upload-pdf-preview"<?= $existingCorIsPdf ? ' src="' . htmlspecialchars($existingCorFileUrl, ENT_QUOTES, 'UTF-8') . '"' : '' ?> title="Selected Certificate of Registration PDF preview" class="<?= $existingCorIsPdf ? '' : 'hidden ' ?>h-[18rem] w-full bg-white sm:h-[22rem]"></iframe>
                             </div>
                         </div>
                     </div>
                 </div>
+            <?php endif; ?>
             <?php endif; ?>
 
             <div id="profile-upload-progress" class="profile-upload-progress mt-4 hidden" aria-live="polite">
@@ -407,6 +450,7 @@ unset($_SESSION['profile_setup_errors'], $_SESSION['profile_setup_old']);
 <script>
 (() => {
     const form = document.querySelector('#profile-setup-form');
+    const sectionOnlySetup = <?= $isSectionOnlySetup ? 'true' : 'false' ?>;
     const dropzone = document.querySelector('#profile-upload-dropzone');
     const input = document.querySelector('#profile-image');
     const preview = document.querySelector('#profile-upload-preview-image');
@@ -419,30 +463,65 @@ unset($_SESSION['profile_setup_errors'], $_SESSION['profile_setup_old']);
     const progressBar = document.querySelector('#profile-upload-progress-bar');
     const submitButton = document.querySelector('#profile-submit-button');
     const submitLabel = document.querySelector('#profile-submit-label');
-    const idDropzone = document.querySelector('#id-upload-dropzone');
-    const idInput = document.querySelector('#id-picture');
-    const idPreview = document.querySelector('#id-upload-preview-image');
-    const idPanelPreview = document.querySelector('#id-upload-preview-panel');
-    const idPreviewEmpty = document.querySelector('#id-preview-empty');
-    const idPlaceholder = document.querySelector('#id-upload-placeholder');
-    const idFileName = document.querySelector('#id-upload-file-name');
-    const idMessage = document.querySelector('#id-upload-message');
+    const corDropzone = document.querySelector('#cor-upload-dropzone');
+    const corInput = document.querySelector('#cor-file');
+    const corPreview = document.querySelector('#cor-upload-preview-image');
+    const corPanelPreview = document.querySelector('#cor-upload-preview-panel');
+    const corPdfPreview = document.querySelector('#cor-upload-pdf-preview');
+    const corPreviewEmpty = document.querySelector('#cor-preview-empty');
+    const corPlaceholder = document.querySelector('#cor-upload-placeholder');
+    const corFileName = document.querySelector('#cor-upload-file-name');
+    const corMessage = document.querySelector('#cor-upload-message');
     const studentNumberInput = document.querySelector('#student-number');
     const studentNumberMessage = document.querySelector('#student-number-message');
+    const sectionInput = document.querySelector('#student-section');
+    const sectionMessage = document.querySelector('#student-section-message');
     const usernameInput = document.querySelector('#profile-username');
     const usernameFeedback = document.querySelector('#profile-username-feedback');
     const emailInput = document.querySelector('#profile-email');
     const emailFeedback = document.querySelector('#profile-email-feedback');
+    const passwordInput = document.querySelector('#profile-password');
+    const confirmPasswordInput = document.querySelector('#profile-confirm-password');
+    const passwordFeedback = document.querySelector('#profile-password-feedback');
+    const confirmPasswordFeedback = document.querySelector('#profile-confirm-password-feedback');
     const defaultSubmitLabel = submitLabel ? submitLabel.textContent : 'Continue';
-    const hasExistingProfileImage = Boolean(preview.getAttribute('src'));
-    const hasExistingIdImage = Boolean(idPreview && idPreview.getAttribute('src'));
+    const hasExistingProfileImage = Boolean(preview?.getAttribute('src'));
+    const hasExistingCorDocument = <?= $existingCorFileUrl !== '' ? 'true' : 'false' ?>;
+
+    if (sectionOnlySetup) {
+        form?.addEventListener('submit', (event) => {
+            const section = sectionInput?.value.trim() || '';
+            if (!/^[A-Za-z0-9][A-Za-z0-9 _.-]{0,99}$/.test(section)) {
+                event.preventDefault();
+                if (sectionMessage) {
+                    sectionMessage.textContent = 'Enter a valid section using up to 100 characters.';
+                }
+                sectionInput?.focus();
+                return;
+            }
+
+            if (submitButton && submitLabel) {
+                submitButton.disabled = true;
+                submitButton.classList.add('is-loading');
+                submitLabel.textContent = 'Submitting...';
+            }
+        });
+        sectionInput?.addEventListener('input', () => {
+            if (sectionMessage) {
+                sectionMessage.textContent = '';
+            }
+        });
+        return;
+    }
 
     if (!form || !dropzone || !input || !preview || !initials || !fileName || !message || !progress || !progressLabel || !progressValue || !progressBar || !submitButton || !submitLabel) {
         return;
     }
 
     const allowedTypes = ['image/png', 'image/jpeg', 'image/webp', 'image/gif'];
+    const allowedCorTypes = [...allowedTypes, 'application/pdf'];
     const maxSize = 2 * 1024 * 1024;
+    const maxCorSize = 5 * 1024 * 1024;
     const requiresTeacherUsernameCheck = Boolean(usernameInput && usernameFeedback);
     const requiresAdminEmailCheck = Boolean(emailInput && emailFeedback);
     const teacherUsernameState = {
@@ -456,7 +535,9 @@ unset($_SESSION['profile_setup_errors'], $_SESSION['profile_setup_old']);
         pending: false,
     };
     let selectedProfileFile = null;
-    let selectedIdFile = null;
+    let selectedCorFile = null;
+    let setupPasswordValid = !passwordInput;
+    let setupPasswordConfirmationValid = !confirmPasswordInput;
 
     const setError = (text, targetMessage = message, targetDropzone = dropzone) => {
         if (!targetMessage || !targetDropzone) {
@@ -474,6 +555,15 @@ unset($_SESSION['profile_setup_errors'], $_SESSION['profile_setup_old']);
 
         studentNumberMessage.textContent = text;
         studentNumberInput.classList.toggle('border-arcade-coral', text !== '');
+    };
+
+    const setSectionError = (text) => {
+        if (!sectionInput || !sectionMessage) {
+            return;
+        }
+
+        sectionMessage.textContent = text;
+        sectionInput.classList.toggle('border-arcade-coral', text !== '');
     };
 
     const setProgress = (value, label = 'Uploading avatar') => {
@@ -504,7 +594,52 @@ unset($_SESSION['profile_setup_errors'], $_SESSION['profile_setup_old']);
             || teacherUsernameState.pending
             || !adminEmailState.valid
             || !adminEmailState.available
-            || adminEmailState.pending;
+            || adminEmailState.pending
+            || !setupPasswordValid
+            || !setupPasswordConfirmationValid;
+    };
+
+    const applyPasswordFeedback = (inputElement, feedbackElement, messageText, valid) => {
+        if (!inputElement || !feedbackElement) {
+            return;
+        }
+
+        inputElement.classList.toggle('border-arcade-coral', messageText !== '' && !valid);
+        inputElement.classList.toggle('border-arcade-mint', messageText !== '' && valid);
+        feedbackElement.classList.toggle('text-arcade-coral', messageText !== '' && !valid);
+        feedbackElement.classList.toggle('text-arcade-mint', messageText !== '' && valid);
+        feedbackElement.classList.toggle('text-arcade-ink/55', messageText === '');
+        feedbackElement.textContent = messageText;
+    };
+
+    const validateSetupPasswords = () => {
+        if (!passwordInput || !confirmPasswordInput) {
+            return true;
+        }
+
+        const password = passwordInput.value;
+        const confirmation = confirmPasswordInput.value;
+        setupPasswordValid = password.length >= 8
+            && /[A-Z]/.test(password)
+            && /[a-z]/.test(password)
+            && /[0-9]/.test(password)
+            && /[^A-Za-z0-9]/.test(password);
+        setupPasswordConfirmationValid = confirmation !== '' && confirmation === password;
+
+        applyPasswordFeedback(
+            passwordInput,
+            passwordFeedback,
+            password === '' ? '' : (setupPasswordValid ? 'Password meets all requirements.' : 'Use 8+ characters with uppercase, lowercase, number, and symbol.'),
+            setupPasswordValid
+        );
+        applyPasswordFeedback(
+            confirmPasswordInput,
+            confirmPasswordFeedback,
+            confirmation === '' ? '' : (setupPasswordConfirmationValid ? 'Passwords match.' : 'Password confirmation does not match.'),
+            setupPasswordConfirmationValid
+        );
+        updateSubmitAvailability();
+        return setupPasswordValid && setupPasswordConfirmationValid;
     };
 
     const applyUsernameFeedback = (messageText, tone) => {
@@ -667,51 +802,85 @@ unset($_SESSION['profile_setup_errors'], $_SESSION['profile_setup_old']);
         const targetMessage = config.message || message;
         const targetDropzone = config.dropzone || dropzone;
         const targetPanelPreview = config.panelPreview || null;
+        const targetPdfPreview = config.pdfPreview || null;
         const targetPanelEmpty = config.panelEmpty || null;
         const stateKey = config.stateKey || 'profile';
+        const isCorDocument = stateKey === 'cor';
+        const acceptedTypes = isCorDocument ? allowedCorTypes : allowedTypes;
+        const acceptedSize = isCorDocument ? maxCorSize : maxSize;
 
-        if (!allowedTypes.includes(file.type)) {
-            setError('Image must be JPG, PNG, WEBP, or GIF.', targetMessage, targetDropzone);
+        if (!acceptedTypes.includes(file.type)) {
+            setError(
+                isCorDocument
+                    ? 'Certificate of Registration must be JPG, PNG, WEBP, GIF, or PDF.'
+                    : 'Image must be JPG, PNG, WEBP, or GIF.',
+                targetMessage,
+                targetDropzone
+            );
             targetInput.value = '';
             if (stateKey === 'profile') {
                 selectedProfileFile = null;
-            } else if (stateKey === 'id') {
-                selectedIdFile = null;
+            } else if (stateKey === 'cor') {
+                selectedCorFile = null;
             }
             return false;
         }
 
-        if (file.size > maxSize) {
-            setError('Image must be 2MB or smaller.', targetMessage, targetDropzone);
+        if (file.size <= 0 || file.size > acceptedSize) {
+            setError(
+                isCorDocument ? 'Certificate of Registration must be 5MB or smaller.' : 'Image must be 2MB or smaller.',
+                targetMessage,
+                targetDropzone
+            );
             targetInput.value = '';
             if (stateKey === 'profile') {
                 selectedProfileFile = null;
-            } else if (stateKey === 'id') {
-                selectedIdFile = null;
+            } else if (stateKey === 'cor') {
+                selectedCorFile = null;
             }
             return false;
         }
 
         setError('', targetMessage, targetDropzone);
         targetFileName.textContent = `${file.name} - ${(file.size / 1024).toFixed(0)}KB`;
-        targetPreview.src = URL.createObjectURL(file);
-        targetPreview.classList.remove('hidden');
-        if (targetPanelPreview) {
-            targetPanelPreview.src = targetPreview.src;
-            targetPanelPreview.classList.remove('hidden');
-        }
-        if (targetPanelEmpty) {
-            targetPanelEmpty.classList.add('hidden');
-        }
-
-        if (targetInitials) {
-            targetInitials.classList.add('hidden');
+        if (isCorDocument && file.type === 'application/pdf') {
+            const pdfUrl = URL.createObjectURL(file);
+            targetPreview.removeAttribute('src');
+            targetPreview.classList.add('hidden');
+            targetPanelPreview?.removeAttribute('src');
+            targetPanelPreview?.classList.add('hidden');
+            if (targetPdfPreview) {
+                targetPdfPreview.src = pdfUrl;
+                targetPdfPreview.classList.remove('hidden');
+            }
+            if (targetPanelEmpty) {
+                targetPanelEmpty.classList.add('hidden');
+            }
+            if (targetInitials) {
+                targetInitials.textContent = 'PDF';
+                targetInitials.classList.remove('hidden');
+            }
+        } else {
+            targetPdfPreview?.removeAttribute('src');
+            targetPdfPreview?.classList.add('hidden');
+            targetPreview.src = URL.createObjectURL(file);
+            targetPreview.classList.remove('hidden');
+            if (targetPanelPreview) {
+                targetPanelPreview.src = targetPreview.src;
+                targetPanelPreview.classList.remove('hidden');
+            }
+            if (targetPanelEmpty) {
+                targetPanelEmpty.classList.add('hidden');
+            }
+            if (targetInitials) {
+                targetInitials.classList.add('hidden');
+            }
         }
 
         if (stateKey === 'profile') {
             selectedProfileFile = file;
-        } else if (stateKey === 'id') {
-            selectedIdFile = file;
+        } else if (stateKey === 'cor') {
+            selectedCorFile = file;
         }
 
         return true;
@@ -740,46 +909,48 @@ unset($_SESSION['profile_setup_errors'], $_SESSION['profile_setup_old']);
         }
     });
 
-    if (idDropzone && idInput && idPreview && idFileName && idMessage) {
-        idDropzone.addEventListener('click', () => idInput.click());
-        idDropzone.addEventListener('dragover', (event) => {
+    if (corDropzone && corInput && corPreview && corFileName && corMessage) {
+        corDropzone.addEventListener('click', () => corInput.click());
+        corDropzone.addEventListener('dragover', (event) => {
             event.preventDefault();
-            idDropzone.classList.add('is-dragging');
+            corDropzone.classList.add('is-dragging');
         });
-        idDropzone.addEventListener('dragleave', () => idDropzone.classList.remove('is-dragging'));
-        idDropzone.addEventListener('drop', (event) => {
+        corDropzone.addEventListener('dragleave', () => corDropzone.classList.remove('is-dragging'));
+        corDropzone.addEventListener('drop', (event) => {
             event.preventDefault();
-            idDropzone.classList.remove('is-dragging');
+            corDropzone.classList.remove('is-dragging');
 
             if (event.dataTransfer.files.length === 0) {
                 return;
             }
 
-            idInput.files = event.dataTransfer.files;
+            corInput.files = event.dataTransfer.files;
             showPreview(event.dataTransfer.files[0], {
-                input: idInput,
-                preview: idPreview,
-                initials: idPlaceholder,
-                fileName: idFileName,
-                message: idMessage,
-                dropzone: idDropzone,
-                panelPreview: idPanelPreview,
-                panelEmpty: idPreviewEmpty,
-                stateKey: 'id',
+                input: corInput,
+                preview: corPreview,
+                initials: corPlaceholder,
+                fileName: corFileName,
+                message: corMessage,
+                dropzone: corDropzone,
+                panelPreview: corPanelPreview,
+                pdfPreview: corPdfPreview,
+                panelEmpty: corPreviewEmpty,
+                stateKey: 'cor',
             });
         });
-        idInput.addEventListener('change', () => {
-            if (idInput.files.length > 0) {
-                showPreview(idInput.files[0], {
-                    input: idInput,
-                    preview: idPreview,
-                    initials: idPlaceholder,
-                    fileName: idFileName,
-                    message: idMessage,
-                    dropzone: idDropzone,
-                    panelPreview: idPanelPreview,
-                    panelEmpty: idPreviewEmpty,
-                    stateKey: 'id',
+        corInput.addEventListener('change', () => {
+            if (corInput.files.length > 0) {
+                showPreview(corInput.files[0], {
+                    input: corInput,
+                    preview: corPreview,
+                    initials: corPlaceholder,
+                    fileName: corFileName,
+                    message: corMessage,
+                    dropzone: corDropzone,
+                    panelPreview: corPanelPreview,
+                    pdfPreview: corPdfPreview,
+                    panelEmpty: corPreviewEmpty,
+                    stateKey: 'cor',
                 });
             }
         });
@@ -827,6 +998,10 @@ unset($_SESSION['profile_setup_errors'], $_SESSION['profile_setup_old']);
         });
     }
 
+    sectionInput?.addEventListener('input', () => setSectionError(''));
+    passwordInput?.addEventListener('input', validateSetupPasswords);
+    confirmPasswordInput?.addEventListener('input', validateSetupPasswords);
+
     const submitWithProgress = () => {
         const request = new XMLHttpRequest();
         const formData = new FormData(form);
@@ -835,8 +1010,8 @@ unset($_SESSION['profile_setup_errors'], $_SESSION['profile_setup_old']);
             formData.set('profile_image', selectedProfileFile, selectedProfileFile.name);
         }
 
-        if (selectedIdFile) {
-            formData.set('id_picture', selectedIdFile, selectedIdFile.name);
+        if (selectedCorFile) {
+            formData.set('cor_file', selectedCorFile, selectedCorFile.name);
         }
 
         setError('');
@@ -888,6 +1063,12 @@ unset($_SESSION['profile_setup_errors'], $_SESSION['profile_setup_old']);
                 return;
             }
 
+            if (responseMessage.includes('Section is required')) {
+                setSectionError('Enter a valid section using up to 100 characters.');
+                sectionInput?.focus();
+                return;
+            }
+
             setError(responseMessage);
         });
 
@@ -904,6 +1085,17 @@ unset($_SESSION['profile_setup_errors'], $_SESSION['profile_setup_old']);
 
     form.addEventListener('submit', (event) => {
         event.preventDefault();
+
+        if (!validateSetupPasswords()) {
+            if (passwordInput && !setupPasswordValid) {
+                applyPasswordFeedback(passwordInput, passwordFeedback, passwordInput.value === '' ? 'Enter a password.' : 'Use 8+ characters with uppercase, lowercase, number, and symbol.', false);
+                passwordInput.focus();
+            } else if (confirmPasswordInput && !setupPasswordConfirmationValid) {
+                applyPasswordFeedback(confirmPasswordInput, confirmPasswordFeedback, confirmPasswordInput.value === '' ? 'Confirm your password.' : 'Password confirmation does not match.', false);
+                confirmPasswordInput.focus();
+            }
+            return;
+        }
 
         if (requiresTeacherUsernameCheck && (!teacherUsernameState.valid || !teacherUsernameState.available || teacherUsernameState.pending)) {
             applyUsernameFeedback('Use a valid and available username before continuing.', 'invalid');
@@ -939,6 +1131,7 @@ unset($_SESSION['profile_setup_errors'], $_SESSION['profile_setup_old']);
         }
 
         setStudentNumberError('');
+        setSectionError('');
 
         if (studentNumberInput && !/^[A-Za-z0-9-]{4,40}$/.test(studentNumberInput.value.trim())) {
             setStudentNumberError('Enter a valid student number.');
@@ -946,31 +1139,38 @@ unset($_SESSION['profile_setup_errors'], $_SESSION['profile_setup_old']);
             return;
         }
 
-        if (idInput) {
-            if (!selectedIdFile && idInput.files.length > 0) {
-                selectedIdFile = idInput.files[0];
+        if (sectionInput && !/^[A-Za-z0-9][A-Za-z0-9 _.-]{0,99}$/.test(sectionInput.value.trim())) {
+            setSectionError('Enter a valid section using up to 100 characters.');
+            sectionInput.focus();
+            return;
+        }
+
+        if (corInput) {
+            if (!selectedCorFile && corInput.files.length > 0) {
+                selectedCorFile = corInput.files[0];
             }
 
-            if (!selectedIdFile && !hasExistingIdImage) {
-                setError('Upload your ID picture before continuing.', idMessage, idDropzone);
+            if (!selectedCorFile && !hasExistingCorDocument) {
+                setError('Upload your Certificate of Registration before continuing.', corMessage, corDropzone);
                 return;
             }
         }
 
-        if (idInput && selectedIdFile) {
-            const idIsValid = showPreview(selectedIdFile, {
-                input: idInput,
-                preview: idPreview,
-                initials: idPlaceholder,
-                fileName: idFileName,
-                message: idMessage,
-                dropzone: idDropzone,
-                panelPreview: idPanelPreview,
-                panelEmpty: idPreviewEmpty,
-                stateKey: 'id',
+        if (corInput && selectedCorFile) {
+            const corIsValid = showPreview(selectedCorFile, {
+                input: corInput,
+                preview: corPreview,
+                initials: corPlaceholder,
+                fileName: corFileName,
+                message: corMessage,
+                dropzone: corDropzone,
+                panelPreview: corPanelPreview,
+                pdfPreview: corPdfPreview,
+                panelEmpty: corPreviewEmpty,
+                stateKey: 'cor',
             });
 
-            if (!idIsValid) {
+            if (!corIsValid) {
                 return;
             }
         }

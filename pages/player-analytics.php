@@ -1,7 +1,7 @@
 <?php
 $currentStudentId = (int) ($_SESSION['user_id'] ?? 0);
-$initialStatusFilter = isset($_GET['status']) && in_array((string) $_GET['status'], ['completed', 'ongoing', 'failed'], true)
-    ? (string) $_GET['status']
+$initialModeFilter = isset($_GET['mode']) && in_array((string) $_GET['mode'], ['solo', 'pvp', 'room'], true)
+    ? (string) $_GET['mode']
     : 'all';
 $allowedAnalyticsRanges = [7, 30, 365];
 $selectedRangeDays = isset($_GET['range']) ? (int) $_GET['range'] : 30;
@@ -21,7 +21,7 @@ $attemptHistoryRows = $userChallengeRepository instanceof UserChallengeRepositor
 $activityChartLabels = [];
 $activityChartValues = [];
 $analyticsRows = [];
-$rangeQueryBase = './?c=player-analytics&status=' . urlencode($initialStatusFilter);
+$rangeQueryBase = './?c=player-analytics&mode=' . urlencode($initialModeFilter);
 
 $formatDurationLabel = static function (int $totalSeconds): string {
     $safeSeconds = max(0, $totalSeconds);
@@ -51,7 +51,8 @@ for ($dayIndex = 0; $dayIndex < $selectedRangeDays; $dayIndex++) {
 foreach ($attemptHistoryRows as $attemptRow) {
     $isRoomAttempt = (int) ($attemptRow['room_id'] ?? 0) > 0;
     $isPvpAttempt = (int) ($attemptRow['pvp_id'] ?? 0) > 0;
-    $isStrictRoomAttempt = $isRoomAttempt && (int) ($attemptRow['room_strict_mode'] ?? 0) === 1;
+    $isStrictRoomAttempt = $isRoomAttempt && (int) ($attemptRow['room_mode'] ?? 0) === 1;
+    $isHardCodeRoomAttempt = $isRoomAttempt && (int) ($attemptRow['room_mode'] ?? 0) === 3;
     $strictModeScore = max(0, min(100, (int) ($attemptRow['strict_mode_score'] ?? 0)));
     $attemptStatus = (string) ($attemptRow['attempt_status'] ?? '');
     $status = match ($attemptStatus) {
@@ -61,7 +62,17 @@ foreach ($attemptHistoryRows as $attemptRow) {
             ? 'completed'
             : ($isRoomAttempt ? 'failed' : 'ongoing')),
     };
-    $modeLabel = $isPvpAttempt ? '1v1' : ($isRoomAttempt ? 'Room' : 'Solo');
+    $modeKey = $isPvpAttempt ? 'pvp' : ($isRoomAttempt ? 'room' : 'solo');
+    $modeLabel = $isPvpAttempt ? '1v1' : ($isRoomAttempt ? 'Room' : 'Solo Practice');
+    $roomModeLabel = $isRoomAttempt
+        ? match ((int) ($attemptRow['room_mode'] ?? 0)) {
+            1 => 'Strict Mode',
+            3 => 'Hard Code Mode',
+            default => 'Practice Mode',
+        }
+        : null;
+    $hardCodeGrade = isset($attemptRow['hard_code_grade']) ? max(0, (int) $attemptRow['hard_code_grade']) : null;
+    $hardCodeRoomPoints = max(0, (int) ($attemptRow['room_points'] ?? 0));
     $startedAt = new DateTimeImmutable((string) $attemptRow['started_at']);
     $completedAt = !empty($attemptRow['completed_at'])
         ? new DateTimeImmutable((string) $attemptRow['completed_at'])
@@ -97,6 +108,9 @@ foreach ($attemptHistoryRows as $attemptRow) {
                 ? ' - Completed in ' . $durationLabel
                 : ' - Strict mode result recorded at ' . $strictModeScore . '%.');
     }
+    if ($isHardCodeRoomAttempt && $status === 'completed') {
+        $statusBadgeLabel = 'Submitted';
+    }
 
     $analyticsRows[] = [
         'challengeId' => (int) $attemptRow['challenge_id'],
@@ -104,7 +118,12 @@ foreach ($attemptHistoryRows as $attemptRow) {
         'status' => $status,
         'statusBadgeLabel' => $statusBadgeLabel,
         'modeLabel' => $modeLabel,
+        'modeKey' => $modeKey,
+        'roomModeLabel' => $roomModeLabel,
         'isStrictRoomAttempt' => $isStrictRoomAttempt,
+        'isHardCodeRoomAttempt' => $isHardCodeRoomAttempt,
+        'hardCodeGrade' => $hardCodeGrade,
+        'hardCodeRoomPoints' => $hardCodeRoomPoints,
         'strictModeScore' => $strictModeScore,
         'level' => ucfirst(strtolower((string) ($attemptRow['difficulty_name'] ?? 'Beginner'))),
         'startedAt' => $startedAt,
@@ -181,10 +200,10 @@ foreach ($attemptHistoryRows as $attemptRow) {
                     <input id="analytics-search" type="search" class="mt-1 w-full rounded-xl border-2 border-arcade-ink/15 bg-white px-3 py-2 text-sm outline-none transition focus:border-arcade-orange" placeholder="Search challenge name, ID, status, or level...">
                 </label>
                 <div class="flex gap-2">
-                    <button class="analytics-filter <?= $initialStatusFilter === 'all' ? 'is-active bg-arcade-yellow' : 'bg-white' ?> rounded-xl border-2 border-arcade-ink/10 px-3 py-2 text-xs font-bold" type="button" data-status-filter="all">All</button>
-                    <button class="analytics-filter <?= $initialStatusFilter === 'completed' ? 'is-active bg-arcade-yellow' : 'bg-white' ?> rounded-xl border-2 border-arcade-ink/10 px-3 py-2 text-xs font-bold" type="button" data-status-filter="completed">Completed</button>
-                    <button class="analytics-filter <?= $initialStatusFilter === 'ongoing' ? 'is-active bg-arcade-yellow' : 'bg-white' ?> rounded-xl border-2 border-arcade-ink/10 px-3 py-2 text-xs font-bold" type="button" data-status-filter="ongoing">Ongoing</button>
-                    <button class="analytics-filter <?= $initialStatusFilter === 'failed' ? 'is-active bg-arcade-yellow' : 'bg-white' ?> rounded-xl border-2 border-arcade-ink/10 px-3 py-2 text-xs font-bold" type="button" data-status-filter="failed">Failed</button>
+                    <button class="analytics-filter <?= $initialModeFilter === 'all' ? 'is-active bg-arcade-yellow' : 'bg-white' ?> rounded-xl border-2 border-arcade-ink/10 px-3 py-2 text-xs font-bold" type="button" data-mode-filter="all">All</button>
+                    <button class="analytics-filter <?= $initialModeFilter === 'solo' ? 'is-active bg-arcade-yellow' : 'bg-white' ?> rounded-xl border-2 border-arcade-ink/10 px-3 py-2 text-xs font-bold" type="button" data-mode-filter="solo">Solo Practice</button>
+                    <button class="analytics-filter <?= $initialModeFilter === 'pvp' ? 'is-active bg-arcade-yellow' : 'bg-white' ?> rounded-xl border-2 border-arcade-ink/10 px-3 py-2 text-xs font-bold" type="button" data-mode-filter="pvp">1v1</button>
+                    <button class="analytics-filter <?= $initialModeFilter === 'room' ? 'is-active bg-arcade-yellow' : 'bg-white' ?> rounded-xl border-2 border-arcade-ink/10 px-3 py-2 text-xs font-bold" type="button" data-mode-filter="room">Room</button>
                 </div>
             </div>
 
@@ -196,8 +215,8 @@ foreach ($attemptHistoryRows as $attemptRow) {
                     <article
                         class="analytics-row grid gap-2 border-b border-arcade-ink/10 px-4 py-3 last:border-b-0 lg:grid-cols-[1.2fr_0.55fr_0.65fr_1fr_auto] lg:items-center"
                         data-analytics-row
-                        data-search="<?= htmlspecialchars(strtolower($row['title'] . ' challenge id #' . $row['challengeId'] . ' ' . $row['challengeId'] . ' ' . $row['status'] . ' ' . $row['level']), ENT_QUOTES, 'UTF-8') ?>"
-                        data-status="<?= htmlspecialchars($row['status'], ENT_QUOTES, 'UTF-8') ?>">
+                        data-search="<?= htmlspecialchars(strtolower($row['title'] . ' challenge id #' . $row['challengeId'] . ' ' . $row['challengeId'] . ' ' . $row['status'] . ' ' . $row['modeLabel'] . ' ' . ($row['roomModeLabel'] ?? '') . ' ' . $row['level']), ENT_QUOTES, 'UTF-8') ?>"
+                        data-mode="<?= htmlspecialchars($row['modeKey'], ENT_QUOTES, 'UTF-8') ?>">
                         <div>
                             <p class="text-sm font-bold"><?= htmlspecialchars($row['title'], ENT_QUOTES, 'UTF-8') ?></p>
                             <p class="text-xs font-semibold text-arcade-ink/55">Challenge ID: #<?= (int) $row['challengeId'] ?></p>
@@ -205,6 +224,11 @@ foreach ($attemptHistoryRows as $attemptRow) {
                                 <span class="rounded-full <?= $row['modeLabel'] === '1v1' ? 'bg-arcade-cyan/30' : ($row['modeLabel'] === 'Room' ? 'bg-arcade-orange/20' : 'bg-arcade-mint/35') ?> px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-arcade-ink">
                                     <?= htmlspecialchars($row['modeLabel'], ENT_QUOTES, 'UTF-8') ?>
                                 </span>
+                                <?php if ($row['roomModeLabel'] !== null) : ?>
+                                    <span class="rounded-full <?= $row['isHardCodeRoomAttempt'] ? 'bg-arcade-coral/25' : ($row['isStrictRoomAttempt'] ? 'bg-arcade-yellow/60' : 'bg-arcade-mint/35') ?> px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-arcade-ink">
+                                        <?= htmlspecialchars($row['roomModeLabel'], ENT_QUOTES, 'UTF-8') ?>
+                                    </span>
+                                <?php endif; ?>
                                 <span class="rounded-full bg-arcade-orange/12 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-arcade-orange">
                                     +<?= (int) $row['points'] ?> pts
                                 </span>
@@ -217,9 +241,21 @@ foreach ($attemptHistoryRows as $attemptRow) {
                         </div>
                         <p class="text-xs font-bold text-arcade-ink/60"><?= htmlspecialchars($row['level'], ENT_QUOTES, 'UTF-8') ?> - <?= htmlspecialchars($row['duration'], ENT_QUOTES, 'UTF-8') ?></p>
                         <p class="text-xs font-semibold text-arcade-ink/55"><?= htmlspecialchars($row['durationDetails'], ENT_QUOTES, 'UTF-8') ?></p>
-                        <a href="<?= htmlspecialchars($row['href'], ENT_QUOTES, 'UTF-8') ?>" class="inline-flex justify-center rounded-xl border-2 border-arcade-ink bg-arcade-orange px-3 py-1.5 text-xs font-bold text-white no-underline shadow-[0_3px_0_#26190f] transition hover:-translate-y-0.5 hover:bg-arcade-yellow hover:text-arcade-ink">
-                            Train again
-                        </a>
+                        <div class="flex flex-wrap justify-end gap-2">
+                            <?php if ($row['isHardCodeRoomAttempt']) : ?>
+                                <button type="button"
+                                    class="inline-flex justify-center rounded-xl border-2 border-arcade-ink bg-arcade-cyan px-3 py-1.5 text-xs font-bold text-arcade-ink shadow-[0_3px_0_#26190f] transition hover:-translate-y-0.5 hover:bg-arcade-yellow"
+                                    data-view-hard-code-grade
+                                    data-challenge-name="<?= htmlspecialchars($row['title'], ENT_QUOTES, 'UTF-8') ?>"
+                                    data-grade="<?= $row['hardCodeGrade'] === null ? '' : (int) $row['hardCodeGrade'] ?>"
+                                    data-room-points="<?= (int) $row['hardCodeRoomPoints'] ?>">
+                                    View Grade
+                                </button>
+                            <?php endif; ?>
+                            <a href="<?= htmlspecialchars($row['href'], ENT_QUOTES, 'UTF-8') ?>" class="inline-flex justify-center rounded-xl border-2 border-arcade-ink bg-arcade-orange px-3 py-1.5 text-xs font-bold text-white no-underline shadow-[0_3px_0_#26190f] transition hover:-translate-y-0.5 hover:bg-arcade-yellow hover:text-arcade-ink">
+                                Train again
+                            </a>
+                        </div>
                     </article>
                 <?php endforeach; ?>
             </div>
@@ -233,6 +269,30 @@ foreach ($attemptHistoryRows as $attemptRow) {
     </section>
 </main>
 
+<div class="modal fade" id="hard-code-grade-view-modal" tabindex="-1" aria-labelledby="hard-code-grade-view-title" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-[26px] border-4 border-arcade-ink bg-arcade-panel text-arcade-ink shadow-[8px_8px_0_#26190f]">
+            <div class="modal-header border-0 px-5 pb-2 pt-5">
+                <div>
+                    <p class="font-arcade text-[10px] uppercase tracking-[0.24em] text-arcade-orange">Hard Code Result</p>
+                    <h2 id="hard-code-grade-view-title" class="modal-title mt-2 text-2xl font-bold" data-grade-modal-challenge>Submission Grade</h2>
+                </div>
+                <button type="button" class="btn-close opacity-100" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body px-5 pb-5 pt-2">
+                <div class="rounded-[20px] border-2 border-arcade-ink/10 bg-white p-5 text-center">
+                    <p class="text-xs font-black uppercase tracking-[0.18em] text-arcade-ink/55">Teacher Grade</p>
+                    <p class="mt-3 text-4xl font-black text-arcade-orange" data-grade-modal-value>Pending grading</p>
+                    <p class="mt-2 text-sm font-semibold text-arcade-ink/60" data-grade-modal-note>Your teacher has not graded this submission yet.</p>
+                </div>
+                <div class="mt-4 flex justify-end">
+                    <button type="button" class="rounded-xl border-2 border-arcade-ink bg-arcade-yellow px-4 py-2 text-sm font-bold text-arcade-ink shadow-[0_3px_0_#26190f] transition hover:-translate-y-0.5 hover:bg-arcade-orange hover:text-white" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="modal fade" id="analytics-export-modal" tabindex="-1" aria-labelledby="analytics-export-modal-title" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <form class="modal-content rounded-[28px] border-4 border-arcade-ink bg-arcade-panel p-0 text-arcade-ink shadow-[8px_8px_0_#26190f]" action="./" method="get">
@@ -245,12 +305,21 @@ foreach ($attemptHistoryRows as $attemptRow) {
                 <button type="button" class="btn-close opacity-100" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body px-5 pb-5 pt-2">
-                <p class="text-sm font-semibold leading-6 text-arcade-ink/65">Choose a file format and date range for your solving records.</p>
+                <p class="text-sm font-semibold leading-6 text-arcade-ink/65">Choose a file format, game mode, and date range for your solving records.</p>
                 <label class="export-date-field mt-4">
                     <span>File Format</span>
                     <select name="export" required>
                         <option value="csv">CSV spreadsheet</option>
                         <option value="pdf">PDF document</option>
+                    </select>
+                </label>
+                <label class="export-date-field mt-4">
+                    <span>Game Mode</span>
+                    <select id="analytics-export-mode" name="export_mode" required>
+                        <option value="all"<?= $initialModeFilter === 'all' ? ' selected' : '' ?>>All game modes</option>
+                        <option value="solo"<?= $initialModeFilter === 'solo' ? ' selected' : '' ?>>Solo Practice</option>
+                        <option value="pvp"<?= $initialModeFilter === 'pvp' ? ' selected' : '' ?>>1v1</option>
+                        <option value="room"<?= $initialModeFilter === 'room' ? ' selected' : '' ?>>Room</option>
                     </select>
                 </label>
                 <div class="mt-4 grid gap-3 sm:grid-cols-2">
@@ -277,13 +346,22 @@ foreach ($attemptHistoryRows as $attemptRow) {
 (() => {
     const rows = Array.from(document.querySelectorAll('[data-analytics-row]'));
     const searchInput = document.getElementById('analytics-search');
-    const filterButtons = Array.from(document.querySelectorAll('[data-status-filter]'));
+    const filterButtons = Array.from(document.querySelectorAll('[data-mode-filter]'));
     const previousButton = document.getElementById('analytics-prev');
     const nextButton = document.getElementById('analytics-next');
     const pageStatus = document.getElementById('analytics-page-status');
+    const exportModalElement = document.getElementById('analytics-export-modal');
+    const exportModeSelect = document.getElementById('analytics-export-mode');
     const pageSize = 20;
     let currentPage = 1;
-    let activeStatus = <?= json_encode($initialStatusFilter, JSON_UNESCAPED_SLASHES) ?>;
+    let activeMode = <?= json_encode($initialModeFilter, JSON_UNESCAPED_SLASHES) ?>;
+    const gradeModalElement = document.getElementById('hard-code-grade-view-modal');
+    const gradeModal = gradeModalElement && window.bootstrap?.Modal
+        ? window.bootstrap.Modal.getOrCreateInstance(gradeModalElement)
+        : null;
+    const gradeModalChallenge = gradeModalElement?.querySelector('[data-grade-modal-challenge]');
+    const gradeModalValue = gradeModalElement?.querySelector('[data-grade-modal-value]');
+    const gradeModalNote = gradeModalElement?.querySelector('[data-grade-modal-note]');
 
     const canvas = document.getElementById('player-analytics-chart');
 
@@ -384,9 +462,9 @@ foreach ($attemptHistoryRows as $attemptRow) {
     const matchingRows = () => {
         const query = (searchInput?.value || '').trim().toLowerCase();
         return rows.filter((row) => {
-            const matchesStatus = activeStatus === 'all' || row.dataset.status === activeStatus;
+            const matchesMode = activeMode === 'all' || row.dataset.mode === activeMode;
             const matchesSearch = query === '' || (row.dataset.search || '').includes(query);
-            return matchesStatus && matchesSearch;
+            return matchesMode && matchesSearch;
         });
     };
 
@@ -423,7 +501,7 @@ foreach ($attemptHistoryRows as $attemptRow) {
 
     filterButtons.forEach((button) => {
         button.addEventListener('click', () => {
-            activeStatus = button.dataset.statusFilter || 'all';
+            activeMode = button.dataset.modeFilter || 'all';
             currentPage = 1;
             filterButtons.forEach((filterButton) => {
                 filterButton.classList.toggle('is-active', filterButton === button);
@@ -431,6 +509,31 @@ foreach ($attemptHistoryRows as $attemptRow) {
                 filterButton.classList.toggle('bg-white', filterButton !== button);
             });
             renderRows();
+        });
+    });
+
+    exportModalElement?.addEventListener('show.bs.modal', () => {
+        if (exportModeSelect instanceof HTMLSelectElement) {
+            exportModeSelect.value = activeMode;
+        }
+    });
+
+    document.querySelectorAll('[data-view-hard-code-grade]').forEach((button) => {
+        button.addEventListener('click', () => {
+            const grade = button.dataset.grade || '';
+            const roomPoints = Math.max(0, Number.parseInt(button.dataset.roomPoints || '0', 10) || 0);
+            if (gradeModalChallenge) {
+                gradeModalChallenge.textContent = button.dataset.challengeName || 'Submission Grade';
+            }
+            if (gradeModalValue) {
+                gradeModalValue.textContent = grade === '' ? 'Pending grading' : `${grade} / ${roomPoints}`;
+            }
+            if (gradeModalNote) {
+                gradeModalNote.textContent = grade === ''
+                    ? 'Your teacher has not graded this submission yet.'
+                    : 'This grade was assigned by your teacher.';
+            }
+            gradeModal?.show();
         });
     });
 

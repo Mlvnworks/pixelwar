@@ -25,7 +25,8 @@ if (
             throw new RuntimeException('Room session not found.');
         }
 
-        $strictModeEnabled = (int) ($room['strict_mode'] ?? 0) === 1;
+        $strictModeEnabled = (int) ($room['mode'] ?? 0) === 1;
+        $hardCodeModeEnabled = (int) ($room['mode'] ?? 0) === 3;
         $rows = $roomPlayerRepository->listJoinedForRoom($roomId);
         $sanitizeFilePart = static function (string $value, string $fallback): string {
             $sanitized = preg_replace('/[^a-zA-Z0-9_-]+/', '_', trim($value));
@@ -37,10 +38,14 @@ if (
         $roomNameFilePart = $sanitizeFilePart((string) ($room['room_name'] ?? ''), 'session');
         $fileName = 'room-' . $roomId . '_' . $roomCodeFilePart . '_' . $roomNameFilePart . '_records.csv';
 
-        $statusLabel = static function (array $row) use ($strictModeEnabled): string {
+        $statusLabel = static function (array $row) use ($strictModeEnabled, $hardCodeModeEnabled): string {
             $status = (int) ($row['status'] ?? 0);
             $startedAt = trim((string) ($row['started_at'] ?? ''));
             $completedAt = trim((string) ($row['completed_at'] ?? ''));
+
+            if ($hardCodeModeEnabled && $status === 2) {
+                return 'Submitted';
+            }
 
             if ($strictModeEnabled && in_array($status, [2, 3], true)) {
                 $score = max(0, min(100, (int) ($row['strict_mode_score'] ?? 0)));
@@ -77,6 +82,7 @@ if (
             'Status',
             'Started At',
             'Completed At',
+            'Code Solution URL',
         ], ',', '"', '\\');
 
         foreach ($rows as $row) {
@@ -95,6 +101,7 @@ if (
                 $statusLabel($row),
                 (string) ($row['started_at'] ?? ''),
                 (string) ($row['completed_at'] ?? ''),
+                (string) ($row['code_solution_url'] ?? ''),
             ], ',', '"', '\\');
         }
 

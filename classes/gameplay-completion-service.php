@@ -54,9 +54,9 @@ final class GameplayCompletionService
 
         $alreadyRewarded = $this->userChallenges->hasCompletedRecordForChallenge($userId, $challengeId, $userChallengeId);
         $challengePoints = (int) ($challenge['points'] ?? 0);
-        $awardedPoints = $isPvpLinkedRun
-            ? $challengePoints
-            : ($isRoomLinkedRun ? $challengePoints : ($alreadyRewarded ? 0 : $challengePoints));
+        $awardedPoints = $isRoomLinkedRun
+            ? 0
+            : ($isPvpLinkedRun ? $challengePoints : ($alreadyRewarded ? 0 : $challengePoints));
 
         try {
             $this->connection->begin_transaction();
@@ -97,7 +97,7 @@ final class GameplayCompletionService
             'difficulty' => ucfirst(strtolower((string) ($challenge['difficulty_name'] ?? 'Easy'))),
             'points' => $awardedPoints,
             'challenge_points' => $challengePoints,
-            'awarded_once' => $isPvpLinkedRun || $isRoomLinkedRun ? true : !$alreadyRewarded,
+            'awarded_once' => $isRoomLinkedRun ? false : ($isPvpLinkedRun ? true : !$alreadyRewarded),
             'started_at' => $startedAt->format(DATE_ATOM),
             'completed_at' => $completedAt->format(DATE_ATOM),
             'duration_seconds' => max(0, $completedAt->getTimestamp() - $startedAt->getTimestamp()),

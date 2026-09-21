@@ -42,19 +42,20 @@ class UserAccountService
         string $avatarUrl,
         string $firstname,
         string $lastname,
-        ?string $idPictureUrl = null,
-        ?string $studentNumber = null
+        ?string $corFileUrl = null,
+        ?string $studentNumber = null,
+        ?string $section = null
     ): int
     {
-        return $this->transaction(function () use ($userId, $avatarUrl, $firstname, $lastname, $idPictureUrl, $studentNumber): int {
+        return $this->transaction(function () use ($userId, $avatarUrl, $firstname, $lastname, $corFileUrl, $studentNumber, $section): int {
             $imageId = $this->users->insertImage($avatarUrl);
-            $idPictureImageId = null;
+            $corFileImageId = null;
 
-            if ($idPictureUrl !== null && $idPictureUrl !== '') {
-                $idPictureImageId = $this->users->insertImage($idPictureUrl);
+            if ($corFileUrl !== null && $corFileUrl !== '') {
+                $corFileImageId = $this->users->insertImage($corFileUrl);
             }
 
-            $this->users->upsertUserDetails($userId, $imageId, $firstname, $lastname, $idPictureImageId, $studentNumber);
+            $this->users->upsertUserDetails($userId, $imageId, $firstname, $lastname, $corFileImageId, $studentNumber, $section);
             $this->users->updateActiveState($userId, 0);
 
             return $imageId;
@@ -69,21 +70,26 @@ class UserAccountService
         int $isVerified,
         int $imageId,
         ?string $newAvatarUrl,
-        bool $emailChanged
+        bool $emailChanged,
+        ?string $username = null
     ): int {
-        return $this->transaction(function () use ($userId, $firstname, $lastname, $email, $isVerified, $imageId, $newAvatarUrl, $emailChanged): int {
+        return $this->transaction(function () use ($userId, $firstname, $lastname, $email, $isVerified, $imageId, $newAvatarUrl, $emailChanged, $username): int {
             $existingDetails = $this->users->findUserDetailsAvatar($userId);
-            $existingIdPicture = null;
+            $existingCorFile = null;
             $existingStudentNumber = null;
 
             if ($existingDetails !== null) {
-                $existingIdPicture = isset($existingDetails['id_picture']) ? (int) $existingDetails['id_picture'] : null;
+                $existingCorFile = isset($existingDetails['cor_file']) ? (int) $existingDetails['cor_file'] : null;
                 $studentNumberValue = trim((string) ($existingDetails['student_number'] ?? ''));
                 $existingStudentNumber = $studentNumberValue !== '' ? $studentNumberValue : null;
             }
 
             if ($newAvatarUrl !== null) {
                 $imageId = $this->users->insertImage($newAvatarUrl);
+            }
+
+            if ($username !== null) {
+                $this->users->updateUsername($userId, $username);
             }
 
             $this->users->updateEmailVerificationState($userId, $email, $isVerified);
@@ -97,7 +103,7 @@ class UserAccountService
                 $imageId,
                 $firstname,
                 $lastname,
-                $existingIdPicture,
+                $existingCorFile,
                 $existingStudentNumber
             );
 

@@ -93,6 +93,19 @@ if (
             pixelwarRedirect($redirectPage);
         }
 
+        if ((int) ($user['role_id'] ?? 0) === pixelwarStudentRoleId()) {
+            $passwordAvailableAt = $users->accountChangeAvailableAt($userId, 'password');
+            if ($passwordAvailableAt > time()) {
+                $message = 'Password can only be changed every 15 days. Try again on ' . date('M j, Y g:i A', $passwordAvailableAt) . '.';
+                if ($isSettingsPasswordReset) {
+                    $_SESSION['alert'] = ['error' => true, 'content' => $message];
+                } else {
+                    $_SESSION['forgot_password_errors'] = [$message];
+                }
+                pixelwarRedirect($redirectPage);
+            }
+        }
+
         $verifications->expirePending($userId, 'password change');
         $rawToken = bin2hex(random_bytes(24));
         $verifications->create($userId, 'password change', pixelwarHashVerificationToken($rawToken), 0);

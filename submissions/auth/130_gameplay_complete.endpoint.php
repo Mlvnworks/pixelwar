@@ -51,6 +51,16 @@ if ($requestMethod === 'POST' && $requestedPage === 'pixelwar' && (string) ($_PO
             throw new RuntimeException('1v1 challenge context is missing.');
         }
 
+        if (
+            $actualRoomId > 0
+            && (
+                !$roomPlayerRepository instanceof RoomPlayerRepository
+                || $roomPlayerRepository->findByUserAndRoom($userId, $actualRoomId) === null
+            )
+        ) {
+            throw new RuntimeException('You are no longer a member of this room.');
+        }
+
         $completion = $gameplayCompletionService->complete($userId, $userChallengeId, $challengeId);
 
         if ($roomId > 0 && isset($roomPlayerRepository) && $roomPlayerRepository instanceof RoomPlayerRepository) {

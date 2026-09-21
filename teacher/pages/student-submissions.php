@@ -50,7 +50,8 @@ for ($dayIndex = 0; $dayIndex < $studentSubmissionRangeDays; $dayIndex++) {
 foreach ($studentSubmissionAttemptRows as $attemptRow) {
     $isRoomAttempt = (int) ($attemptRow['room_id'] ?? 0) > 0;
     $isPvpAttempt = (int) ($attemptRow['pvp_id'] ?? 0) > 0;
-    $isStrictRoomAttempt = $isRoomAttempt && (int) ($attemptRow['room_strict_mode'] ?? 0) === 1;
+    $isStrictRoomAttempt = $isRoomAttempt && (int) ($attemptRow['room_mode'] ?? 0) === 1;
+    $isHardCodeRoomAttempt = $isRoomAttempt && (int) ($attemptRow['room_mode'] ?? 0) === 3;
     $strictModeScore = max(0, min(100, (int) ($attemptRow['strict_mode_score'] ?? 0)));
     $attemptStatus = (string) ($attemptRow['attempt_status'] ?? '');
     $status = match ($attemptStatus) {
@@ -95,6 +96,9 @@ foreach ($studentSubmissionAttemptRows as $attemptRow) {
             . ($completedAt instanceof DateTimeImmutable
                 ? ' - Completed in ' . $durationLabel
                 : ' - Strict mode result recorded at ' . $strictModeScore . '%.');
+    }
+    if ($isHardCodeRoomAttempt && $status === 'completed') {
+        $statusBadgeLabel = 'Submitted';
     }
 
     $studentSubmissionRows[] = [

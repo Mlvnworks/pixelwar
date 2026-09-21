@@ -104,7 +104,11 @@ if ($adminRequestMethod === 'POST' && $adminRequestedPage === 'students' && isse
                 throw new RuntimeException(implode(' ', $errors));
             }
 
+            $usernameChangedByAdmin = strcmp((string) ($student['username'] ?? ''), $username) !== 0;
             $users->updateStudentAccount($studentId, $username, $email, $firstname, $lastname, $studentNumber !== '' ? $studentNumber : null);
+            if ($usernameChangedByAdmin) {
+                $users->recordAccountChange($studentId, 'username');
+            }
             $logs->create((int) ($_SESSION['user_id'] ?? 0), 'student', 'Updated student account "' . $studentLabel . '" from admin students.');
             $_SESSION['alert'] = [
                 'error' => false,

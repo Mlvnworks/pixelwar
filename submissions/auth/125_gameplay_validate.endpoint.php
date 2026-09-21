@@ -55,6 +55,19 @@ if ($requestMethod === 'POST' && $requestedPage === 'pixelwar' && (string) ($_PO
         $isPvpLinkedRun = $activeRun !== null && (int) ($activeRun['pvp_id'] ?? 0) > 0;
         $isRoomLinkedRun = $activeRun !== null && (int) ($activeRun['room_id'] ?? 0) > 0;
 
+        if ($isRoomLinkedRun && $roomPlayerRepository instanceof RoomPlayerRepository) {
+            $activeRoomId = (int) ($activeRun['room_id'] ?? 0);
+            if ($roomPlayerRepository->findByUserAndRoom($userId, $activeRoomId) === null) {
+                pixelwarJsonResponse([
+                    'success' => false,
+                    'available' => false,
+                    'removed_from_room' => true,
+                    'redirect_url' => './?c=home&room_notice=removed',
+                    'message' => 'You were removed from the room by the teacher.',
+                ], 409);
+            }
+        }
+
         if ($isPvpLinkedRun && $pvpPlayerRepository instanceof PvpPlayerRepository) {
             $pvpId = (int) ($activeRun['pvp_id'] ?? 0);
             $pvpPlayer = $pvpPlayerRepository->findByMatchAndUser($pvpId, $userId);

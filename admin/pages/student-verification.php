@@ -134,8 +134,9 @@ $reviewActionIntent = [
                         $displayName = trim($firstname . ' ' . $lastname) ?: (string) ($student['username'] ?? 'Student');
                         $initials = strtoupper(substr(preg_replace('/[^a-z0-9]+/i', '', $displayName) ?: 'ST', 0, 2));
                         $avatarUrl = trim((string) ($student['avatar_url'] ?? ''));
-                        $idPictureUrl = trim((string) ($student['id_picture_url'] ?? ''));
+                        $corFileUrl = trim((string) ($student['cor_file_url'] ?? ''));
                         $studentNumber = trim((string) ($student['student_number'] ?? ''));
+                        $studentSection = trim((string) ($student['section'] ?? ''));
                         $activeState = (int) ($student['is_active'] ?? 0);
                         $statusLabel = $activeState === 1 ? 'Approved' : ($activeState === -1 ? 'Rejected' : 'Pending');
                         $statusPillClass = $activeState === 1
@@ -165,51 +166,41 @@ $reviewActionIntent = [
 
                                 <div class="min-w-0 rounded-2xl border border-arcade-ink/10 bg-white/80 p-3 lg:w-[12.5rem]">
                                     <div class="flex items-center justify-between gap-2">
-                                        <p class="text-[11px] font-semibold uppercase tracking-[0.08em] text-arcade-ink/55">Student ID Preview</p>
-                                        <?php if ($idPictureUrl !== '') : ?>
+                                        <p class="text-[11px] font-semibold uppercase tracking-[0.08em] text-arcade-ink/55">Certificate of Registration</p>
+                                        <?php if ($corFileUrl !== '') : ?>
                                             <button
                                                 type="button"
                                                 class="rounded-lg border border-arcade-ink/10 bg-white px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-arcade-ink transition hover:bg-arcade-yellow/35"
                                                 data-bs-toggle="modal"
-                                                data-bs-target="#student-id-preview-modal"
+                                                data-bs-target="#student-cor-preview-modal"
                                                 data-student-name="<?= htmlspecialchars($displayName, ENT_QUOTES, 'UTF-8') ?>"
-                                                data-student-id-url="<?= htmlspecialchars($idPictureUrl, ENT_QUOTES, 'UTF-8') ?>"
+                                                data-student-cor-url="<?= htmlspecialchars($corFileUrl, ENT_QUOTES, 'UTF-8') ?>"
                                             >
                                                 View
                                             </button>
                                         <?php endif; ?>
                                     </div>
                                     <div class="mt-2 overflow-hidden rounded-xl border border-arcade-ink/10 bg-arcade-cream/80">
-                                        <div class="relative grid min-h-[10rem] place-items-center p-2">
-                                            <?php if ($idPictureUrl !== '') : ?>
-                                                <div class="admin-image-loader" data-image-loader>
-                                                    <span class="admin-image-loader__spinner" aria-hidden="true"></span>
-                                                    <span class="text-[11px] font-semibold uppercase tracking-[0.08em] text-arcade-ink/50">Loading</span>
-                                                </div>
-                                                <img
-                                                    src=""
-                                                    data-src="<?= htmlspecialchars($idPictureUrl, ENT_QUOTES, 'UTF-8') ?>"
-                                                    alt="Submitted student ID"
-                                                    class="admin-lazy-image admin-lazy-image--hidden max-h-[13rem] w-full cursor-zoom-in object-contain"
-                                                    decoding="async"
-                                                    data-image-target
-                                                    data-bs-toggle="modal"
-                                                    data-bs-target="#student-id-preview-modal"
-                                                    data-student-name="<?= htmlspecialchars($displayName, ENT_QUOTES, 'UTF-8') ?>"
-                                                    data-student-id-url="<?= htmlspecialchars($idPictureUrl, ENT_QUOTES, 'UTF-8') ?>"
-                                                >
+                                        <div class="grid min-h-[7rem] place-items-center gap-2 p-3 text-center">
+                                            <?php if ($corFileUrl !== '') : ?>
+                                                <i data-lucide="file-check-2" class="h-8 w-8 text-arcade-orange" aria-hidden="true"></i>
+                                                <span class="text-xs font-semibold text-arcade-ink/60">COR file submitted</span>
                                             <?php else : ?>
-                                                <span class="px-3 text-center text-xs font-semibold leading-5 text-arcade-ink/45">No ID picture uploaded.</span>
+                                                <span class="px-3 text-center text-xs font-semibold leading-5 text-arcade-ink/45">No Certificate of Registration uploaded.</span>
                                             <?php endif; ?>
                                         </div>
                                     </div>
                                 </div>
                             </div>
 
-                            <div class="mt-4 grid gap-3 md:grid-cols-2">
+                            <div class="mt-4 grid gap-3 md:grid-cols-3">
                                 <div class="rounded-2xl border border-arcade-ink/10 bg-white/80 px-3 py-2">
                                     <p class="text-[11px] font-semibold uppercase tracking-[0.08em] text-arcade-ink/55">Student Number</p>
                                     <p class="mt-1 text-sm font-semibold text-arcade-ink"><?= htmlspecialchars($studentNumber !== '' ? $studentNumber : 'Not provided', ENT_QUOTES, 'UTF-8') ?></p>
+                                </div>
+                                <div class="rounded-2xl border border-arcade-ink/10 bg-white/80 px-3 py-2">
+                                    <p class="text-[11px] font-semibold uppercase tracking-[0.08em] text-arcade-ink/55">Section</p>
+                                    <p class="mt-1 text-sm font-semibold text-arcade-ink"><?= htmlspecialchars($studentSection !== '' ? $studentSection : 'Not provided', ENT_QUOTES, 'UTF-8') ?></p>
                                 </div>
                                 <div class="rounded-2xl border border-arcade-ink/10 bg-white/80 px-3 py-2">
                                     <p class="text-[11px] font-semibold uppercase tracking-[0.08em] text-arcade-ink/55">Joined</p>
@@ -223,7 +214,7 @@ $reviewActionIntent = [
                                         ? 'This student already has access to the student resources.'
                                         : ($activeState === -1
                                             ? 'This student was previously rejected and still has no access.'
-                                            : 'Review the submitted ID and choose whether to unlock student access.'); ?>
+                                            : 'Review the submitted Certificate of Registration and choose whether to unlock student access.'); ?>
                                 </p>
                                 <div class="flex flex-wrap gap-2">
                                     <?php if ($activeState !== 1) : ?>
@@ -312,18 +303,6 @@ $reviewActionIntent = [
                         <p id="student-review-student-name" class="mt-1 text-sm font-bold text-arcade-ink"></p>
                     </div>
 
-                    <label class="mt-4 grid gap-2">
-                        <span class="text-xs font-semibold uppercase tracking-[0.08em] text-arcade-ink/55">Admin password</span>
-                        <input
-                            type="password"
-                            name="admin_password"
-                            id="student-review-admin-password"
-                            required
-                            autocomplete="current-password"
-                            class="w-full rounded-xl border border-arcade-ink/15 bg-white px-4 py-3 text-sm font-medium outline-none transition focus:border-arcade-orange"
-                            placeholder="Enter your password to continue"
-                        >
-                    </label>
                 </div>
 
                 <div class="flex flex-wrap items-center justify-end gap-2 border-t border-arcade-ink/10 px-4 py-3">
@@ -339,13 +318,13 @@ $reviewActionIntent = [
     </div>
 </div>
 
-<div class="modal fade" id="student-id-preview-modal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
+<div class="modal fade" id="student-cor-preview-modal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-xl modal-dialog-scrollable">
         <div class="modal-content rounded-[24px] border-4 border-arcade-ink bg-arcade-panel text-arcade-ink shadow-[8px_8px_0_rgba(38,25,15,0.18)]">
             <div class="flex items-center justify-between gap-3 border-b border-arcade-ink/10 px-4 py-3">
                 <div>
-                    <p class="text-xs font-semibold uppercase tracking-[0.08em] text-arcade-ink/55">Student ID Preview</p>
-                    <h2 id="student-id-preview-title" class="mt-1 text-lg font-bold">Student ID</h2>
+                    <p class="text-xs font-semibold uppercase tracking-[0.08em] text-arcade-ink/55">Certificate of Registration</p>
+                    <h2 id="student-cor-preview-title" class="mt-1 text-lg font-bold">Student</h2>
                 </div>
                 <button type="button" class="grid h-10 w-10 place-items-center rounded-xl border-2 border-arcade-ink bg-white text-arcade-ink transition hover:bg-arcade-yellow/35" data-bs-dismiss="modal" aria-label="Close">
                     <i data-lucide="x" class="h-4 w-4" aria-hidden="true"></i>
@@ -353,11 +332,12 @@ $reviewActionIntent = [
             </div>
             <div class="p-4 md:p-5">
                 <div class="relative overflow-hidden rounded-[22px] border border-arcade-ink/10 bg-white">
-                    <div class="admin-image-loader" id="student-id-modal-loader">
+                    <div class="admin-image-loader" id="student-cor-modal-loader">
                         <span class="admin-image-loader__spinner" aria-hidden="true"></span>
                         <span class="text-[11px] font-semibold uppercase tracking-[0.08em] text-arcade-ink/50">Loading</span>
                     </div>
-                    <img id="student-id-modal-image" src="" alt="Student ID preview" class="hidden max-h-[70vh] w-full object-contain p-3">
+                    <img id="student-cor-modal-image" alt="Certificate of Registration preview" class="hidden max-h-[76vh] w-full object-contain p-3">
+                    <iframe id="student-cor-modal-pdf" title="Certificate of Registration PDF preview" class="hidden h-[76vh] w-full bg-white"></iframe>
                 </div>
             </div>
         </div>
@@ -387,11 +367,6 @@ $reviewActionIntent = [
     animation: adminImageSpin 800ms linear infinite;
 }
 
-.admin-lazy-image--hidden {
-    opacity: 0;
-    pointer-events: none;
-}
-
 .admin-review-submit-spinner {
     display: none;
     width: 1rem;
@@ -417,100 +392,60 @@ $reviewActionIntent = [
 window.addEventListener('load', () => {
     window.lucide?.createIcons();
 
-    const attachImageLoaders = (root = document) => {
-        const images = [...root.querySelectorAll('[data-image-target]')];
-        const revealImage = (image, loader) => {
-            image.classList.remove('admin-lazy-image--hidden');
-            loader?.classList.add('is-hidden');
-        };
+    const previewModal = document.getElementById('student-cor-preview-modal');
+    const modalTitle = document.getElementById('student-cor-preview-title');
+    const modalImage = document.getElementById('student-cor-modal-image');
+    const modalPdf = document.getElementById('student-cor-modal-pdf');
+    const modalLoader = document.getElementById('student-cor-modal-loader');
 
-        const failImage = (loader) => {
-            loader?.classList.add('is-hidden');
-        };
-
-        const startImageLoad = (image) => {
-            if (!(image instanceof HTMLImageElement) || image.dataset.loaded === '1') {
-                return;
-            }
-
-            const loader = image.parentElement?.querySelector('[data-image-loader]');
-            const source = image.dataset.src || '';
-
-            if (source === '') {
-                failImage(loader);
-                image.dataset.loaded = '1';
-                return;
-            }
-
-            image.dataset.loaded = '1';
-            image.addEventListener('load', () => revealImage(image, loader), { once: true });
-            image.addEventListener('error', () => failImage(loader), { once: true });
-            image.src = source;
-
-            if (image.complete && image.naturalWidth > 0) {
-                revealImage(image, loader);
-            }
-        };
-
-        if ('IntersectionObserver' in window) {
-            const observer = new IntersectionObserver((entries) => {
-                entries.forEach((entry) => {
-                    if (!entry.isIntersecting) {
-                        return;
-                    }
-
-                    startImageLoad(entry.target);
-                    observer.unobserve(entry.target);
-                });
-            }, {
-                rootMargin: '180px 0px',
-            });
-
-            images.forEach((image) => observer.observe(image));
-            return;
-        }
-
-        images.forEach((image) => startImageLoad(image));
-    };
-
-    attachImageLoaders();
-
-    const previewModal = document.getElementById('student-id-preview-modal');
-    const modalTitle = document.getElementById('student-id-preview-title');
-    const modalImage = document.getElementById('student-id-modal-image');
-    const modalLoader = document.getElementById('student-id-modal-loader');
-
-    if (previewModal && modalTitle && modalImage && modalLoader) {
+    if (previewModal && modalTitle && modalImage && modalPdf && modalLoader) {
         previewModal.addEventListener('show.bs.modal', (event) => {
             const trigger = event.relatedTarget;
             if (!(trigger instanceof HTMLElement)) {
                 return;
             }
 
-            const imageUrl = trigger.getAttribute('data-student-id-url') || '';
-            const studentName = trigger.getAttribute('data-student-name') || 'Student ID';
+            const fileUrl = trigger.getAttribute('data-student-cor-url') || '';
+            const studentName = trigger.getAttribute('data-student-name') || 'Student';
+            const isPdf = /\.pdf(?:$|[?#])/i.test(fileUrl);
 
             modalTitle.textContent = studentName;
             modalImage.classList.add('hidden');
+            modalPdf.classList.add('hidden');
             modalLoader.classList.remove('is-hidden');
 
             const finalize = () => {
                 modalLoader.classList.add('is-hidden');
-                modalImage.classList.remove('hidden');
+                (isPdf ? modalPdf : modalImage).classList.remove('hidden');
             };
 
             const fail = () => {
                 modalLoader.classList.add('is-hidden');
                 modalImage.classList.add('hidden');
+                modalPdf.classList.add('hidden');
             };
 
-            modalImage.onload = finalize;
-            modalImage.onerror = fail;
-            modalImage.src = imageUrl;
+            if (isPdf) {
+                modalPdf.onload = finalize;
+                modalPdf.onerror = fail;
+                modalPdf.src = fileUrl;
+            } else {
+                modalImage.onload = finalize;
+                modalImage.onerror = fail;
+                modalImage.src = fileUrl;
 
-            if (modalImage.complete && modalImage.naturalWidth > 0) {
-                finalize();
+                if (modalImage.complete && modalImage.naturalWidth > 0) {
+                    finalize();
+                }
             }
+        });
+
+        previewModal.addEventListener('hidden.bs.modal', () => {
+            modalImage.removeAttribute('src');
+            modalPdf.removeAttribute('src');
+            modalImage.classList.add('hidden');
+            modalPdf.classList.add('hidden');
+            modalLoader.classList.remove('is-hidden');
         });
     }
 
@@ -520,7 +455,6 @@ window.addEventListener('load', () => {
     const actionStudentName = document.getElementById('student-review-student-name');
     const actionField = document.getElementById('student-review-action-input');
     const studentIdField = document.getElementById('student-review-student-id-input');
-    const passwordField = document.getElementById('student-review-admin-password');
     const submitButton = document.getElementById('student-review-action-submit');
     const actionForm = document.getElementById('student-review-action-form');
     const submitLabel = submitButton?.querySelector('[data-review-submit-label]');
@@ -529,10 +463,9 @@ window.addEventListener('load', () => {
     const modalDismissControls = actionModal ? [...actionModal.querySelectorAll('[data-review-modal-close], [data-review-modal-cancel]')] : [];
     const actionIntent = <?= json_encode($reviewActionIntent, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?>;
 
-    if (actionModal && actionTitle && actionMessage && actionStudentName && actionField && studentIdField && passwordField && submitButton && submitLabel && submitIcon && submitSpinner) {
+    if (actionModal && actionTitle && actionMessage && actionStudentName && actionField && studentIdField && submitButton && submitLabel && submitIcon && submitSpinner) {
         const setReviewSubmitting = (isSubmitting) => {
             submitButton.disabled = isSubmitting;
-            passwordField.readOnly = isSubmitting;
             modalDismissControls.forEach((control) => {
                 control.disabled = isSubmitting;
             });
@@ -559,7 +492,6 @@ window.addEventListener('load', () => {
             actionStudentName.textContent = studentName;
             actionField.value = action;
             studentIdField.value = studentId;
-            passwordField.value = '';
             submitButton.className = intent.buttonClass || 'teacher-button teacher-button--primary gap-2';
             submitButton.dataset.defaultLabel = intent.button || 'Confirm';
             submitIcon.setAttribute('data-lucide', intent.icon || 'badge-check');

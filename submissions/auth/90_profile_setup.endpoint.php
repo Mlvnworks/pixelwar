@@ -22,8 +22,9 @@ if ($requestMethod === 'POST' && $requestedPage === 'profile-setup') {
         $firstname = trim((string) ($_POST['firstname'] ?? ''));
         $lastname = trim((string) ($_POST['lastname'] ?? ''));
         $studentNumber = trim((string) ($_POST['student_number'] ?? ''));
+        $section = trim((string) ($_POST['section'] ?? ''));
         $profileImageFile = $_FILES['profile_image'] ?? [];
-        $idPictureFile = $_FILES['id_picture'] ?? [];
+        $corUploadFile = $_FILES['cor_file'] ?? [];
         $errors = [];
 
         $_SESSION['profile_setup_old'] = [
@@ -32,6 +33,7 @@ if ($requestMethod === 'POST' && $requestedPage === 'profile-setup') {
             'firstname' => $firstname,
             'lastname' => $lastname,
             'student_number' => $studentNumber,
+            'section' => $section,
         ];
 
         if ($userId <= 0) {
@@ -76,13 +78,56 @@ if ($requestMethod === 'POST' && $requestedPage === 'profile-setup') {
             pixelwarRedirect('email-verification');
         }
 
+        $isSectionOnlySetup = !$isStaffSetup && pixelwarStudentNeedsSectionOnlySetup($users, $sessionUser);
+
+        if ($isSectionOnlySetup) {
+            if (!preg_match('/^[A-Za-z0-9][A-Za-z0-9 _.-]{0,99}$/', $section)) {
+                $errors[] = 'Section is required and must be 100 characters or fewer.';
+            }
+
+            if ($errors !== []) {
+                if ($profileSetupWantsJson) {
+                    pixelwarJsonResponse([
+                        'success' => false,
+                        'message' => implode(' ', $errors),
+                        'errors' => $errors,
+                    ], 422);
+                }
+
+                $_SESSION['profile_setup_errors'] = $errors;
+                pixelwarRedirect('profile-setup');
+            }
+
+            $users->updateStudentSection($userId, $section);
+            $users->updateActiveState($userId, 0);
+            pixelwarLogActivity($activityLogRepository ?? null, $userId, 'profile', 'Added student section and resubmitted profile for admin review.');
+
+            unset($_SESSION['profile_setup_old'], $_SESSION['profile_setup_errors']);
+            $savedSessionUser = $users->findSessionUser($userId) ?: $sessionUser;
+            pixelwarRefreshSessionUser($savedSessionUser);
+            $_SESSION['alert'] = [
+                'error' => false,
+                'content' => 'Section submitted. Your profile is ready for admin review.',
+            ];
+
+            if ($profileSetupWantsJson) {
+                pixelwarJsonResponse([
+                    'success' => true,
+                    'message' => 'Section submitted. Your profile is ready for admin review.',
+                    'redirect' => './?c=review-pending',
+                ]);
+            }
+
+            pixelwarRedirect('review-pending');
+        }
+
         if ($isStaffSetup) {
             if (!preg_match('/^[A-Za-z0-9_]{3,32}$/', $username)) {
                 $errors[] = 'Username must be 3-32 characters and only use letters, numbers, or underscores.';
             }
 
-            if (strlen($password) < 8) {
-                $errors[] = 'Password must be at least 8 characters.';
+            if (!PasswordPolicy::isValid($password)) {
+                $errors[] = PasswordPolicy::REQUIREMENTS_MESSAGE;
             }
 
             if ($password !== $confirmPassword) {
@@ -113,15 +158,19 @@ if ($requestMethod === 'POST' && $requestedPage === 'profile-setup') {
         }
 
         $hasExistingProfileImage = trim((string) ($existingDetails['avatar_url'] ?? ($sessionUser['avatar_url'] ?? ''))) !== '';
-        $hasExistingIdPicture = trim((string) ($existingDetails['id_picture_url'] ?? '')) !== '';
+        $hasExistingCorFile = trim((string) ($existingDetails['cor_file_url'] ?? '')) !== '';
 
         if (!$isStaffSetup) {
             if (!preg_match('/^[A-Za-z0-9-]{4,40}$/', $studentNumber)) {
                 $errors[] = 'Enter a valid student number.';
             }
 
-            if ((int) ($idPictureFile['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK && !$hasExistingIdPicture) {
-                $errors[] = 'Upload your ID picture before continuing.';
+            if (!preg_match('/^[A-Za-z0-9][A-Za-z0-9 _.-]{0,99}$/', $section)) {
+                $errors[] = 'Section is required and must be 100 characters or fewer.';
+            }
+
+            if ((int) ($corUploadFile['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK && !$hasExistingCorFile) {
+                $errors[] = 'Upload your Certificate of Registration before continuing.';
             }
         }
 
@@ -149,21 +198,21 @@ if ($requestMethod === 'POST' && $requestedPage === 'profile-setup') {
             SUPABASE_STORAGE_AVATAR_FOLDER
         );
         $profileImage = $hasExistingProfileImage ? trim((string) ($existingDetails['avatar_url'] ?? ($sessionUser['avatar_url'] ?? ''))) : '';
-        $idPictureImage = $hasExistingIdPicture ? trim((string) ($existingDetails['id_picture_url'] ?? '')) : null;
+        $corFileUrl = $hasExistingCorFile ? trim((string) ($existingDetails['cor_file_url'] ?? '')) : null;
 
         if ((int) ($profileImageFile['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_OK) {
             $profileImage = $supabaseStorage->uploadProfileImage($profileImageFile, $userId);
         }
 
         if (!$isStaffSetup) {
-            if ((int) ($idPictureFile['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_OK) {
-                $idPictureStorage = new SupabaseStorage(
+            if ((int) ($corUploadFile['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_OK) {
+                $corFileStorage = new SupabaseStorage(
                     SUPABASE_URL,
                     SUPABASE_SERVICE_ROLE_KEY,
                     SUPABASE_STORAGE_BUCKET,
-                    SUPABASE_STORAGE_ID_PICTURE_FOLDER
+                    SUPABASE_STORAGE_COR_FILE_FOLDER
                 );
-                $idPictureImage = $idPictureStorage->uploadProfileImage($idPictureFile, $userId);
+                $corFileUrl = $corFileStorage->uploadRegistrationDocument($corUploadFile, $userId);
             }
         }
 
@@ -196,7 +245,7 @@ if ($requestMethod === 'POST' && $requestedPage === 'profile-setup') {
             }
             $redirect = './?c=email-verification';
         } else {
-            $accounts->createProfileDetails($userId, $profileImage, $firstname, $lastname, $idPictureImage, $studentNumber);
+            $accounts->createProfileDetails($userId, $profileImage, $firstname, $lastname, $corFileUrl, $studentNumber, $section);
             pixelwarLogActivity($activityLogRepository ?? null, $userId, 'profile', 'Completed player profile setup.');
             $sessionUser['is_active'] = 0;
             $successMessage = 'Profile submitted. We are reviewing your details before unlocking the rest of Pixelwar.';

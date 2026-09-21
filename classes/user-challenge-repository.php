@@ -45,7 +45,7 @@ final class UserChallengeRepository
                 user_challenge.completed_at
              FROM user_challenge
              INNER JOIN rooms ON rooms.room_id = user_challenge.room_id
-             LEFT JOIN room_players
+             INNER JOIN room_players
                 ON room_players.room_id = user_challenge.room_id
                 AND room_players.user_id = user_challenge.user_id
              WHERE user_challenge.user_id = ?
@@ -53,7 +53,7 @@ final class UserChallengeRepository
                 AND user_challenge.completed_at IS NULL
                 AND rooms.started_at IS NOT NULL
                 AND rooms.ended_at IS NULL
-                AND (room_players.status IS NULL OR room_players.status <> 3)
+                AND room_players.status <> 3
              ORDER BY user_challenge.started_at DESC
              LIMIT 1'
         );
@@ -221,9 +221,29 @@ final class UserChallengeRepository
             'SELECT DISTINCT user_challenge.challenge_id
              FROM user_challenge
              LEFT JOIN rooms ON rooms.room_id = user_challenge.room_id
+             LEFT JOIN room_players
+                ON room_players.room_id = user_challenge.room_id
+                AND room_players.user_id = user_challenge.user_id
+             LEFT JOIN pvp_players
+                ON pvp_players.pvp_id = user_challenge.pvp_id
+                AND pvp_players.user_id = user_challenge.user_id
              WHERE user_challenge.user_id = ?
                 AND user_challenge.completed_at IS NULL
-                AND (user_challenge.room_id IS NULL OR rooms.ended_at IS NULL)'
+                AND (
+                    (
+                        user_challenge.room_id IS NULL
+                        AND user_challenge.pvp_id IS NULL
+                    )
+                    OR (
+                        user_challenge.room_id IS NOT NULL
+                        AND rooms.ended_at IS NULL
+                        AND room_players.status IN (0, 1)
+                    )
+                    OR (
+                        user_challenge.pvp_id IS NOT NULL
+                        AND pvp_players.status NOT IN (2, 3)
+                    )
+                )'
         );
         $statement->bind_param('i', $userId);
         $statement->execute();
@@ -407,7 +427,9 @@ final class UserChallengeRepository
                 user_challenge.started_at,
                 user_challenge.completed_at,
                 room_players.strict_mode_score,
-                rooms.strict_mode AS room_strict_mode,
+                code_solution.grade AS hard_code_grade,
+                rooms.mode AS room_mode,
+                rooms.room_points,
                 pvp_players.status AS pvp_player_status,
                 challenges.name,
                 challenges.instruction,
@@ -422,7 +444,7 @@ final class UserChallengeRepository
                 END AS attempt_status,
                 CASE
                     WHEN user_challenge.pvp_id IS NOT NULL AND pvp_players.status = 2 THEN difficulties.points
-                    WHEN user_challenge.room_id IS NOT NULL AND user_challenge.completed_at IS NOT NULL THEN difficulties.points
+                    WHEN user_challenge.room_id IS NOT NULL THEN 0
                     WHEN user_challenge.room_id IS NULL
                         AND user_challenge.completed_at IS NOT NULL
                         AND NOT EXISTS (
@@ -442,6 +464,7 @@ final class UserChallengeRepository
              INNER JOIN difficulties ON difficulties.difficulty_id = challenges.difficulty_id
              LEFT JOIN rooms ON rooms.room_id = user_challenge.room_id
              LEFT JOIN room_players ON room_players.room_id = user_challenge.room_id AND room_players.user_id = user_challenge.user_id
+             LEFT JOIN code_solution ON code_solution.rp_id = room_players.rp_id
              LEFT JOIN pvp_players ON pvp_players.pvp_id = user_challenge.pvp_id AND pvp_players.user_id = user_challenge.user_id
              WHERE user_challenge.user_id = ?
              ORDER BY COALESCE(user_challenge.completed_at, user_challenge.started_at) DESC
@@ -480,7 +503,9 @@ final class UserChallengeRepository
                 user_challenge.started_at,
                 user_challenge.completed_at,
                 room_players.strict_mode_score,
-                rooms.strict_mode AS room_strict_mode,
+                code_solution.grade AS hard_code_grade,
+                rooms.mode AS room_mode,
+                rooms.room_points,
                 pvp_players.status AS pvp_player_status,
                 challenges.name,
                 challenges.instruction,
@@ -495,7 +520,7 @@ final class UserChallengeRepository
                 END AS attempt_status,
                 CASE
                     WHEN user_challenge.pvp_id IS NOT NULL AND pvp_players.status = 2 THEN difficulties.points
-                    WHEN user_challenge.room_id IS NOT NULL AND user_challenge.completed_at IS NOT NULL THEN difficulties.points
+                    WHEN user_challenge.room_id IS NOT NULL THEN 0
                     WHEN user_challenge.room_id IS NULL
                         AND user_challenge.completed_at IS NOT NULL
                         AND NOT EXISTS (
@@ -515,6 +540,7 @@ final class UserChallengeRepository
              INNER JOIN difficulties ON difficulties.difficulty_id = challenges.difficulty_id
              LEFT JOIN rooms ON rooms.room_id = user_challenge.room_id
              LEFT JOIN room_players ON room_players.room_id = user_challenge.room_id AND room_players.user_id = user_challenge.user_id
+             LEFT JOIN code_solution ON code_solution.rp_id = room_players.rp_id
              LEFT JOIN pvp_players ON pvp_players.pvp_id = user_challenge.pvp_id AND pvp_players.user_id = user_challenge.user_id
              WHERE user_challenge.user_id = ?
                 AND COALESCE(user_challenge.completed_at, user_challenge.started_at) BETWEEN ? AND ?
@@ -799,7 +825,7 @@ final class UserChallengeRepository
                 user_challenge.started_at,
                 user_challenge.completed_at,
                 room_players.strict_mode_score,
-                rooms.strict_mode AS room_strict_mode,
+                rooms.mode AS room_mode,
                 rooms.status AS room_status,
                 rooms.ended_at AS room_ended_at,
                 room_players.status AS room_player_status,
@@ -818,6 +844,7 @@ final class UserChallengeRepository
                             WHEN user_challenge.completed_at IS NOT NULL THEN "pass"
                             ELSE "failed"
                         END
+                    WHEN user_challenge.room_id IS NOT NULL AND rooms.mode = 3 AND user_challenge.completed_at IS NOT NULL THEN "submitted"
                     WHEN user_challenge.completed_at IS NOT NULL THEN "done"
                     ELSE "ongoing"
                 END AS outcome_type
@@ -870,7 +897,7 @@ final class UserChallengeRepository
                 user_challenge.started_at,
                 user_challenge.completed_at,
                 room_players.strict_mode_score,
-                rooms.strict_mode AS room_strict_mode,
+                rooms.mode AS room_mode,
                 rooms.status AS room_status,
                 rooms.ended_at AS room_ended_at,
                 room_players.status AS room_player_status,
@@ -889,6 +916,7 @@ final class UserChallengeRepository
                             WHEN user_challenge.completed_at IS NOT NULL THEN "pass"
                             ELSE "failed"
                         END
+                    WHEN user_challenge.room_id IS NOT NULL AND rooms.mode = 3 AND user_challenge.completed_at IS NOT NULL THEN "submitted"
                     WHEN user_challenge.completed_at IS NOT NULL THEN "done"
                     ELSE "ongoing"
                 END AS outcome_type

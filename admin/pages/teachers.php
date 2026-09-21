@@ -267,12 +267,14 @@ $teacherBuildQuery = static function (array $overrides = []) use ($teacherSearch
                     <div class="grid gap-3 sm:grid-cols-2">
                         <label class="block text-sm font-bold" for="teacher-create-password">
                             Password
-                            <input id="teacher-create-password" name="password" type="password" required minlength="8" class="mt-1 w-full rounded-xl border-2 border-arcade-ink/15 bg-white px-3 py-2 outline-none transition focus:border-arcade-orange" placeholder="Minimum 8 characters">
+                            <input id="teacher-create-password" name="password" type="password" required minlength="8" class="mt-1 w-full rounded-xl border-2 border-arcade-ink/15 bg-white px-3 py-2 outline-none transition focus:border-arcade-orange" placeholder="Upper, lower, number, symbol">
+                            <span id="teacher-create-password-feedback" class="mt-1 block min-h-5 text-xs font-bold leading-5 text-arcade-ink/55"></span>
                         </label>
 
                         <label class="block text-sm font-bold" for="teacher-create-confirm-password">
                             Confirm Password
                             <input id="teacher-create-confirm-password" name="confirm_password" type="password" required minlength="8" class="mt-1 w-full rounded-xl border-2 border-arcade-ink/15 bg-white px-3 py-2 outline-none transition focus:border-arcade-orange" placeholder="Repeat password">
+                            <span id="teacher-create-confirm-password-feedback" class="mt-1 block min-h-5 text-xs font-bold leading-5 text-arcade-ink/55"></span>
                         </label>
                     </div>
                 </div>
@@ -419,12 +421,18 @@ window.addEventListener('load', () => {
     const emailInput = document.getElementById('teacher-create-email');
     const usernameFeedback = document.getElementById('teacher-create-username-feedback');
     const emailFeedback = document.getElementById('teacher-create-email-feedback');
+    const passwordInput = document.getElementById('teacher-create-password');
+    const confirmPasswordInput = document.getElementById('teacher-create-confirm-password');
+    const passwordFeedback = document.getElementById('teacher-create-password-feedback');
+    const confirmPasswordFeedback = document.getElementById('teacher-create-confirm-password-feedback');
     const submitButton = document.getElementById('teacher-create-submit');
 
-    if (createForm && usernameInput && emailInput && usernameFeedback && emailFeedback && submitButton) {
+    if (createForm && usernameInput && emailInput && usernameFeedback && emailFeedback && passwordInput && confirmPasswordInput && passwordFeedback && confirmPasswordFeedback && submitButton) {
         const fieldState = {
             username: { valid: false, available: false, pending: false },
             email: { valid: false, available: false, pending: false },
+            passwordValid: false,
+            confirmationValid: false,
         };
 
         const updateSubmitState = () => {
@@ -436,6 +444,8 @@ window.addEventListener('load', () => {
                 && fieldState.username.available
                 && fieldState.email.valid
                 && fieldState.email.available
+                && fieldState.passwordValid
+                && fieldState.confirmationValid
                 && !fieldState.username.pending
                 && !fieldState.email.pending;
 
@@ -463,6 +473,31 @@ window.addEventListener('load', () => {
         };
 
         const debouncedTimers = {};
+
+        const validatePasswords = () => {
+            const password = passwordInput.value;
+            const confirmation = confirmPasswordInput.value;
+            fieldState.passwordValid = password.length >= 8
+                && /[A-Z]/.test(password)
+                && /[a-z]/.test(password)
+                && /[0-9]/.test(password)
+                && /[^A-Za-z0-9]/.test(password);
+            fieldState.confirmationValid = confirmation !== '' && confirmation === password;
+
+            applyFeedback(
+                passwordInput,
+                passwordFeedback,
+                password === '' ? '' : (fieldState.passwordValid ? 'Password meets all requirements.' : 'Use 8+ characters with uppercase, lowercase, number, and symbol.'),
+                password === '' ? 'idle' : (fieldState.passwordValid ? 'valid' : 'invalid')
+            );
+            applyFeedback(
+                confirmPasswordInput,
+                confirmPasswordFeedback,
+                confirmation === '' ? '' : (fieldState.confirmationValid ? 'Passwords match.' : 'Password confirmation does not match.'),
+                confirmation === '' ? 'idle' : (fieldState.confirmationValid ? 'valid' : 'invalid')
+            );
+            updateSubmitState();
+        };
 
         const runAvailabilityCheck = (field, input, feedback) => {
             const value = input.value.trim();
@@ -519,6 +554,8 @@ window.addEventListener('load', () => {
 
         bindField('username', usernameInput, usernameFeedback);
         bindField('email', emailInput, emailFeedback);
+        passwordInput.addEventListener('input', validatePasswords);
+        confirmPasswordInput.addEventListener('input', validatePasswords);
 
         if (usernameInput.value.trim() !== '') {
             runAvailabilityCheck('username', usernameInput, usernameFeedback);

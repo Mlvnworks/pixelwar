@@ -10,7 +10,7 @@ final class ChallengeCreationService
     }
 
     /**
-     * @param array{name:string,instruction:string,difficulty:string,html:string,css:string} $data
+     * @param array{name:string,instruction:string,difficulty:string,visibility:string,html:string,css:string} $data
      * @return array{challenge_id:int,html_source:string,css_source:string}
      */
     public function create(int $userId, array $data): array
@@ -18,10 +18,13 @@ final class ChallengeCreationService
         $name = trim($data['name']);
         $instruction = trim($data['instruction']);
         $difficultyName = strtolower(trim($data['difficulty']));
+        $visibility = in_array((string) ($data['visibility'] ?? ''), ['0', '1'], true)
+            ? (int) $data['visibility']
+            : -1;
         $html = trim($data['html']);
         $css = trim($data['css']);
 
-        $this->validate($name, $instruction, $difficultyName, $html, $css);
+        $this->validate($name, $instruction, $difficultyName, $visibility, $html, $css);
 
         $difficulty = $this->challenges->findDifficultyByName($difficultyName);
 
@@ -49,7 +52,7 @@ final class ChallengeCreationService
                 $instruction,
                 $htmlUrl,
                 $cssUrl,
-                1
+                $visibility
             );
             $this->activityLogs->create($userId, 'challenge', 'Created challenge "' . $name . '".');
 
@@ -81,7 +84,7 @@ final class ChallengeCreationService
     }
 
     /**
-     * @param array{name:string,instruction:string,difficulty:string,html:string,css:string} $data
+     * @param array{name:string,instruction:string,difficulty:string,visibility:string,html:string,css:string} $data
      * @return array{challenge_id:int,html_source:string,css_source:string}
      */
     public function update(int $teacherId, int $challengeId, array $data): array
@@ -103,10 +106,13 @@ final class ChallengeCreationService
         $name = trim($data['name']);
         $instruction = trim($data['instruction']);
         $difficultyName = strtolower(trim($data['difficulty']));
+        $visibility = in_array((string) ($data['visibility'] ?? ''), ['0', '1'], true)
+            ? (int) $data['visibility']
+            : -1;
         $html = trim($data['html']);
         $css = trim($data['css']);
 
-        $this->validate($name, $instruction, $difficultyName, $html, $css);
+        $this->validate($name, $instruction, $difficultyName, $visibility, $html, $css);
 
         $difficulty = $this->challenges->findDifficultyByName($difficultyName);
 
@@ -135,7 +141,7 @@ final class ChallengeCreationService
                 $instruction,
                 $htmlUrl,
                 $cssUrl,
-                1
+                $visibility
             );
             $this->activityLogs->create($teacherId, 'challenge_update', 'Updated challenge "' . $name . '".');
 
@@ -176,7 +182,7 @@ final class ChallengeCreationService
         }
     }
 
-    private function validate(string $name, string $instruction, string $difficulty, string $html, string $css): void
+    private function validate(string $name, string $instruction, string $difficulty, int $visibility, string $html, string $css): void
     {
         $errors = [];
 
@@ -190,6 +196,10 @@ final class ChallengeCreationService
 
         if (!in_array($difficulty, ['easy', 'medium', 'hard'], true)) {
             $errors[] = 'Choose a valid difficulty.';
+        }
+
+        if (!in_array($visibility, [0, 1], true)) {
+            $errors[] = 'Choose a valid challenge visibility.';
         }
 
         if ($html === '') {

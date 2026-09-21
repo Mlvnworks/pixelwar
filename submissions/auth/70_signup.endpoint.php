@@ -26,8 +26,8 @@ if ($requestMethod === 'POST' && $requestedPage === 'signup') {
             $errors[] = 'Enter a valid email address.';
         }
 
-        if (strlen($password) < 8) {
-            $errors[] = 'Password must be at least 8 characters.';
+        if (!PasswordPolicy::isValid($password)) {
+            $errors[] = PasswordPolicy::REQUIREMENTS_MESSAGE;
         }
 
         if ($password !== $confirmPassword) {
