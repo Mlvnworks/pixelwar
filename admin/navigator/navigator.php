@@ -18,6 +18,7 @@ $adminTitles = [
     'challenge-completions' => 'Challenge Completion Records | ' . APP_NAME,
     'students' => 'Student Management | ' . APP_NAME,
     'student-view' => 'Student Overview | ' . APP_NAME,
+    'account-report' => 'Student Account Report | ' . APP_NAME,
     'student-submissions' => 'Student Submissions | ' . APP_NAME,
     'student-verification' => 'Pending Student Verification | ' . APP_NAME,
     'rank-management' => 'Rank Management | ' . APP_NAME,
@@ -80,7 +81,9 @@ $appDescription = 'Admin workspace for managing Pixelwar teachers and platform c
     <link rel="stylesheet" href="../styling/style.css">
     <link rel="stylesheet" href="./styling/style.css">
 
-    <?php if ($isAllowedPage && is_file($pageStyleFile)) : ?>
+    <?php if ($normalizedContent === 'account-report') : ?>
+        <link rel="stylesheet" href="../styling/page/account-report.css">
+    <?php elseif ($isAllowedPage && is_file($pageStyleFile)) : ?>
         <link rel="stylesheet" href="./styling/page/<?= htmlspecialchars($normalizedContent, ENT_QUOTES, 'UTF-8') ?>.css">
     <?php endif; ?>
     <link rel="stylesheet" href="./styling/theme.css">
@@ -103,9 +106,13 @@ $appDescription = 'Admin workspace for managing Pixelwar teachers and platform c
     </script>
     <?php
     if ($isAllowedPage) {
-        include $adminBasePath . '/components/navbar.php';
+        if ($normalizedContent !== 'account-report') {
+            include $adminBasePath . '/components/navbar.php';
+        }
         require $adminBasePath . '/pages/' . $normalizedContent . '.php';
-        include $adminBasePath . '/components/footer.php';
+        if ($normalizedContent !== 'account-report') {
+            include $adminBasePath . '/components/footer.php';
+        }
         $tools->alert();
     } else {
         http_response_code(404);

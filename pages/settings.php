@@ -63,29 +63,7 @@ $accountUsernameChangeLocked = $accountUsernameChangeAvailableAt > time();
             Back Home
         </a>
 
-        <div class="mt-5 grid gap-5 lg:grid-cols-[0.74fr_1.26fr]">
-            <aside
-                class="settings-card rounded-[28px] border-4 border-arcade-ink bg-arcade-panel p-5 shadow-[8px_8px_0_#26190f]">
-                <p class="font-arcade text-[10px] uppercase tracking-[0.24em] text-arcade-orange">Player Settings</p>
-                <div class="mt-5 flex flex-col items-center text-center">
-                    <div class="settings-avatar grid h-32 w-32 place-items-center overflow-hidden rounded-[32px] border-4 border-arcade-ink bg-arcade-yellow shadow-[7px_7px_0_rgba(38,25,15,0.24)]"
-                        aria-label="Current avatar preview">
-                        <?php if ($profileAvatarUrl !== ''): ?>
-                            <img id="settings-current-avatar"
-                                src="<?= htmlspecialchars($profileAvatarUrl, ENT_QUOTES, 'UTF-8') ?>"
-                                alt="<?= htmlspecialchars($profileName, ENT_QUOTES, 'UTF-8') ?> avatar"
-                                class="h-full w-full object-cover">
-                        <?php else: ?>
-                            <span id="settings-current-avatar-initials"
-                                class="font-arcade text-3xl text-arcade-ink"><?= htmlspecialchars($profileAvatarInitials, ENT_QUOTES, 'UTF-8') ?></span>
-                        <?php endif; ?>
-                    </div>
-                    <h1 class="mt-5 text-3xl font-bold leading-tight">
-                        <?= htmlspecialchars($profileName, ENT_QUOTES, 'UTF-8') ?></h1>
-                    <p class="mt-2 break-all text-sm font-bold text-arcade-ink/60">
-                        <?= htmlspecialchars($profileEmail, ENT_QUOTES, 'UTF-8') ?></p>
-                </div>
-            </aside>
+        <div class="mt-5">
 
             <form id="settings-password-reset-form" action="./?c=settings" method="post" class="hidden">
                 <?= pixelwarCsrfField() ?>
@@ -98,10 +76,17 @@ $accountUsernameChangeLocked = $accountUsernameChangeAvailableAt > time();
                 <?= pixelwarCsrfField() ?>
                 <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                     <div>
-                        <p class="font-arcade text-[10px] uppercase tracking-[0.24em] text-arcade-cyan">Edit Profile</p>
-                        <h2 class="mt-3 text-2xl font-bold">Account details</h2>
+                        <h2 class="text-2xl font-bold">Account details</h2>
                     </div>
                     <div class="flex flex-wrap items-center gap-2">
+                        <a href="./?c=account-report" target="_blank" rel="noopener noreferrer"
+                            class="inline-flex items-center gap-2 rounded-xl border-2 border-arcade-ink bg-arcade-cyan px-3 py-2 text-xs font-black text-arcade-ink no-underline shadow-[0_3px_0_#26190f] transition hover:-translate-y-0.5 hover:bg-arcade-yellow">
+                            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z" />
+                                <path d="M14 2v6h6M8 13h8M8 17h6" />
+                            </svg>
+                            Account Report
+                        </a>
                         <?php if (isset($_GET['updated'])): ?>
                             <span
                                 class="inline-flex rounded-full border-2 border-arcade-ink bg-arcade-mint px-3 py-1 text-xs font-extrabold uppercase tracking-[0.14em] text-arcade-ink">Saved</span>

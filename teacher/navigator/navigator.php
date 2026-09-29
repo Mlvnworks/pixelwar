@@ -22,6 +22,7 @@ $teacherTitles = [
     'room-session' => 'Teacher Room Session | ' . APP_NAME,
     'students' => 'Teacher Students | ' . APP_NAME,
     'student-view' => 'Teacher Student Details | ' . APP_NAME,
+    'account-report' => 'Student Account Report | ' . APP_NAME,
     'student-submissions' => 'Teacher Student Submissions | ' . APP_NAME,
     'settings' => 'Teacher Settings | ' . APP_NAME,
 ];
@@ -79,7 +80,9 @@ $appDescription = 'Teacher workspace for managing Pixelwar classes, challenges, 
     <link rel="stylesheet" href="../styling/style.css">
     <link rel="stylesheet" href="./styling/style.css">
 
-    <?php if ($isAllowedPage && is_file($pageStyleFile)) : ?>
+    <?php if ($normalizedContent === 'account-report') : ?>
+        <link rel="stylesheet" href="../styling/page/account-report.css">
+    <?php elseif ($isAllowedPage && is_file($pageStyleFile)) : ?>
         <link rel="stylesheet" href="./styling/page/<?= htmlspecialchars($normalizedContent, ENT_QUOTES, 'UTF-8') ?>.css">
     <?php endif; ?>
     <link rel="stylesheet" href="./styling/theme.css">
@@ -102,9 +105,13 @@ $appDescription = 'Teacher workspace for managing Pixelwar classes, challenges, 
     </script>
     <?php
     if ($isAllowedPage) {
-        include $teacherBasePath . '/components/navbar.php';
+        if ($normalizedContent !== 'account-report') {
+            include $teacherBasePath . '/components/navbar.php';
+        }
         require $teacherBasePath . '/pages/' . $normalizedContent . '.php';
-        include $teacherBasePath . '/components/footer.php';
+        if ($normalizedContent !== 'account-report') {
+            include $teacherBasePath . '/components/footer.php';
+        }
         $tools->alert();
     } else {
         http_response_code(404);

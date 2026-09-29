@@ -100,10 +100,18 @@ $studentViewBuildQuery = static function (array $overrides = []) use ($studentVi
 <main class="teacher-shell relative overflow-hidden px-4 py-6 text-arcade-ink md:py-8">
     <div class="teacher-bg absolute inset-0"></div>
     <section class="container relative grid gap-5">
-        <a href="./?c=students" class="teacher-button teacher-button--light gap-2 w-fit no-underline">
-            <i data-lucide="arrow-left" class="h-4 w-4" aria-hidden="true"></i>
-            <span>Back to Students</span>
-        </a>
+        <div class="flex flex-wrap items-center justify-between gap-3">
+            <a href="./?c=students" class="teacher-button teacher-button--light gap-2 w-fit no-underline">
+                <i data-lucide="arrow-left" class="h-4 w-4" aria-hidden="true"></i>
+                <span>Back to Students</span>
+            </a>
+            <?php if ($studentViewProfile !== null && (int) ($studentViewProfile['role_id'] ?? 0) === 3) : ?>
+                <a href="./?c=account-report&id=<?= (int) $studentViewId ?>" target="_blank" rel="noopener noreferrer" class="teacher-button teacher-button--primary gap-2 no-underline">
+                    <i data-lucide="file-chart-column" class="h-4 w-4" aria-hidden="true"></i>
+                    <span>Account Report</span>
+                </a>
+            <?php endif; ?>
+        </div>
 
         <?php if ($studentViewProfile === null) : ?>
             <section class="teacher-panel p-6">
@@ -111,11 +119,17 @@ $studentViewBuildQuery = static function (array $overrides = []) use ($studentVi
                 <p class="mt-2 text-sm font-medium leading-7 text-arcade-ink/62">The requested student profile is unavailable or has been removed.</p>
             </section>
         <?php else : ?>
-            <section class="student-view-shell grid gap-5 xl:grid-cols-[minmax(0,0.78fr)_minmax(0,1.22fr)]">
+            <section class="student-view-shell grid grid-cols-1 gap-5">
                 <aside class="teacher-panel student-admin-profile min-w-0 overflow-hidden p-0">
-                    <div class="student-admin-profile__hero relative overflow-hidden border-b-4 border-arcade-ink bg-gradient-to-br from-arcade-yellow via-arcade-peach to-arcade-cyan/55 p-5 md:p-6">
+                    <div class="student-admin-profile__hero relative overflow-hidden bg-gradient-to-br from-arcade-yellow via-arcade-peach to-arcade-cyan/55 p-5 md:p-6">
                         <div class="student-admin-profile__orb student-admin-profile__orb--one"></div>
                         <div class="student-admin-profile__orb student-admin-profile__orb--two"></div>
+                        <?php if ($studentCorFileUrl !== '') : ?>
+                            <button type="button" class="teacher-button teacher-button--light absolute right-5 top-5 z-20 gap-2 md:right-6 md:top-6" data-bs-toggle="modal" data-bs-target="#admin-student-cor-modal" data-cor-url="<?= htmlspecialchars($studentCorFileUrl, ENT_QUOTES, 'UTF-8') ?>">
+                                <i data-lucide="file-search" class="h-4 w-4" aria-hidden="true"></i>
+                                <span>View COR</span>
+                            </button>
+                        <?php endif; ?>
                         <div class="relative flex flex-col items-start gap-4 sm:flex-row">
                             <span class="grid h-24 w-24 shrink-0 place-items-center overflow-hidden rounded-[28px] border-4 border-arcade-ink bg-white font-arcade text-xl text-arcade-ink shadow-[7px_7px_0_#26190f]">
                                 <?php if ($studentAvatarUrl !== '') : ?>
@@ -124,7 +138,7 @@ $studentViewBuildQuery = static function (array $overrides = []) use ($studentVi
                                     <?= htmlspecialchars($studentInitials, ENT_QUOTES, 'UTF-8') ?>
                                 <?php endif; ?>
                             </span>
-                            <div class="min-w-0 w-full">
+                            <div class="min-w-0 w-full sm:pr-32">
                                 <p class="text-xs font-black uppercase tracking-[0.16em] text-arcade-ink/62">Student Profile</p>
                                 <h1 class="mt-2 break-words text-3xl font-black leading-tight md:text-4xl"><?= htmlspecialchars($studentDisplayName, ENT_QUOTES, 'UTF-8') ?></h1>
                                 <div class="mt-3 grid gap-1 rounded-2xl border-2 border-arcade-ink/10 bg-white/55 px-3 py-2 backdrop-blur">
@@ -153,24 +167,6 @@ $studentViewBuildQuery = static function (array $overrides = []) use ($studentVi
                         </div>
                     </div>
 
-                    <div class="p-5 md:p-6">
-                        <div class="student-admin-info-card rounded-[22px] p-4">
-                            <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                                <div>
-                                    <p class="text-sm font-semibold uppercase tracking-[0.08em] text-arcade-ink/60">Certificate of Registration</p>
-                                    <p class="mt-1 text-xs font-semibold text-arcade-ink/50">Open the submitted document in a large preview.</p>
-                                </div>
-                                <?php if ($studentCorFileUrl !== '') : ?>
-                                    <button type="button" class="teacher-button teacher-button--light gap-2" data-bs-toggle="modal" data-bs-target="#admin-student-cor-modal" data-cor-url="<?= htmlspecialchars($studentCorFileUrl, ENT_QUOTES, 'UTF-8') ?>">
-                                        <i data-lucide="file-search" class="h-4 w-4" aria-hidden="true"></i>
-                                        <span>View COR</span>
-                                    </button>
-                                <?php else : ?>
-                                    <span class="text-xs font-semibold text-arcade-ink/45">Not uploaded</span>
-                                <?php endif; ?>
-                            </div>
-                        </div>
-                    </div>
                 </aside>
 
                 <section class="grid min-w-0 gap-5">
@@ -381,7 +377,6 @@ $studentViewBuildQuery = static function (array $overrides = []) use ($studentVi
     box-shadow: 0 0 0 4px rgba(38, 25, 15, 0.06);
 }
 
-.student-admin-info-card,
 .student-admin-metric {
     border: 1px solid rgba(38, 25, 15, 0.1);
     background: rgba(255, 255, 255, 0.82);
@@ -439,7 +434,6 @@ body.pixelwar-dark-mode .admin-student-chart-shell {
 
 body.pixelwar-dark-mode .student-admin-profile,
 body.pixelwar-dark-mode .student-admin-panel,
-body.pixelwar-dark-mode .student-admin-info-card,
 body.pixelwar-dark-mode .student-admin-metric,
 body.pixelwar-dark-mode .student-admin-rank-card {
     background: linear-gradient(180deg, rgba(15, 23, 42, 0.94), rgba(30, 41, 59, 0.88));

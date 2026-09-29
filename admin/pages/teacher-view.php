@@ -106,7 +106,7 @@ $teacherViewBuildQuery = static function (array $overrides = []) use ($teacherVi
                 <p class="mt-2 text-sm font-medium leading-7 text-arcade-ink/62">The requested teacher profile is unavailable or has been removed.</p>
             </section>
         <?php else : ?>
-            <section class="student-view-shell grid gap-5 xl:grid-cols-[minmax(0,0.78fr)_minmax(0,1.22fr)]">
+            <section class="teacher-view-shell grid grid-cols-1 gap-5">
                 <aside class="teacher-panel min-w-0 p-5 md:p-6">
                     <div class="flex flex-col items-start gap-4 sm:flex-row">
                         <span class="grid h-20 w-20 shrink-0 place-items-center overflow-hidden rounded-[24px] border-4 border-arcade-ink bg-arcade-yellow font-arcade text-xl text-arcade-ink shadow-[6px_6px_0_rgba(38,25,15,0.18)]">
@@ -128,7 +128,7 @@ $teacherViewBuildQuery = static function (array $overrides = []) use ($teacherVi
                         </div>
                     </div>
 
-                    <div class="mt-5 grid gap-3 sm:grid-cols-2">
+                    <div class="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                         <div class="rounded-2xl border border-arcade-ink/10 bg-white/80 px-4 py-3">
                             <p class="text-[11px] font-semibold uppercase tracking-[0.08em] text-arcade-ink/55">Role</p>
                             <p class="mt-1 text-sm font-semibold text-arcade-ink">Teacher</p>
@@ -149,31 +149,6 @@ $teacherViewBuildQuery = static function (array $overrides = []) use ($teacherVi
                 </aside>
 
                 <section class="grid min-w-0 gap-5">
-                    <article class="teacher-panel min-w-0 p-5 md:p-6">
-                        <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                            <div>
-                                <p class="text-sm font-semibold uppercase tracking-[0.08em] text-arcade-ink/60">Account Snapshot</p>
-                                <h2 class="mt-1 text-2xl font-bold">Teacher account data</h2>
-                            </div>
-                            <p class="text-sm font-medium text-arcade-ink/55"><?= (int) $teacherLogTotal ?> recent log<?= $teacherLogTotal === 1 ? '' : 's' ?></p>
-                        </div>
-
-                        <div class="mt-5 grid gap-3 lg:grid-cols-2">
-                            <div class="rounded-2xl border border-arcade-ink/10 bg-white/80 px-4 py-4">
-                                <p class="text-[11px] font-semibold uppercase tracking-[0.08em] text-arcade-ink/55">Full name</p>
-                                <p class="mt-1 break-words text-sm font-semibold text-arcade-ink"><?= htmlspecialchars($teacherDisplayName, ENT_QUOTES, 'UTF-8') ?></p>
-                            </div>
-                            <div class="rounded-2xl border border-arcade-ink/10 bg-white/80 px-4 py-4">
-                                <p class="text-[11px] font-semibold uppercase tracking-[0.08em] text-arcade-ink/55">Username</p>
-                                <p class="mt-1 break-all text-sm font-semibold text-arcade-ink"><?= htmlspecialchars($teacherUsername, ENT_QUOTES, 'UTF-8') ?></p>
-                            </div>
-                            <div class="rounded-2xl border border-arcade-ink/10 bg-white/80 px-4 py-4 lg:col-span-2">
-                                <p class="text-[11px] font-semibold uppercase tracking-[0.08em] text-arcade-ink/55">Email</p>
-                                <p class="mt-1 break-all text-sm font-semibold text-arcade-ink"><?= htmlspecialchars($teacherEmail, ENT_QUOTES, 'UTF-8') ?></p>
-                            </div>
-                        </div>
-                    </article>
-
                     <article class="teacher-panel min-w-0 p-5 md:p-6">
                         <div class="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
                             <div>
@@ -257,6 +232,13 @@ $teacherViewBuildQuery = static function (array $overrides = []) use ($teacherVi
 </main>
 
 <style>
+.teacher-view-shell,
+.teacher-view-shell > *,
+.teacher-view-shell article,
+.teacher-view-shell aside {
+    min-width: 0;
+}
+
 .admin-teacher-chart-shell {
     border: 1px solid rgba(17, 24, 39, 0.08);
     border-radius: 1rem;

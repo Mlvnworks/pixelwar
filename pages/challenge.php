@@ -159,10 +159,16 @@ HTML;
     <div class="challenge-detail-grid absolute inset-0"></div>
 
     <section class="container relative">
-        <a href="./?c=home" class="inline-flex items-center gap-2 rounded-xl bg-white px-3 py-2 text-sm font-bold text-arcade-ink no-underline transition hover:bg-arcade-yellow/60">
-            <span aria-hidden="true">&larr;</span>
-            Back Home
-        </a>
+        <div class="flex flex-wrap items-center justify-between gap-3">
+            <a href="./?c=home" class="inline-flex items-center gap-2 rounded-xl bg-white px-3 py-2 text-sm font-bold text-arcade-ink no-underline transition hover:bg-arcade-yellow/60">
+                <span aria-hidden="true">&larr;</span>
+                Back Home
+            </a>
+            <button type="button" class="inline-flex items-center gap-2 rounded-xl border-2 border-arcade-ink bg-arcade-yellow px-4 py-2 text-sm font-black text-arcade-ink shadow-[0_4px_0_#26190f] transition hover:-translate-y-0.5 hover:bg-arcade-cyan" data-bs-toggle="modal" data-bs-target="#challenge-how-to-play-modal">
+                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="m10 8 6 4-6 4V8Z"/></svg>
+                How to Play
+            </button>
+        </div>
 
         <article class="challenge-detail-card mt-5 rounded-[28px] border-4 border-arcade-ink bg-arcade-panel p-5 shadow-[8px_8px_0_#26190f] md:p-7">
             <div class="challenge-detail-layout grid gap-7 xl:grid-cols-[1.05fr_0.95fr]">
@@ -286,6 +292,34 @@ HTML;
     </section>
 </main>
 
+<div class="modal fade challenge-how-to-modal" id="challenge-how-to-play-modal" tabindex="-1" aria-labelledby="challenge-how-to-play-modal-title" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content overflow-hidden rounded-[24px] border-4 border-arcade-ink bg-arcade-panel p-0 text-arcade-ink shadow-[8px_8px_0_#26190f]">
+            <div class="modal-header border-0 px-4 pb-3 pt-4 md:px-5 md:pt-5">
+                <div>
+                    <p class="font-arcade text-[10px] uppercase tracking-[0.24em] text-arcade-orange">Tutorial</p>
+                    <h2 id="challenge-how-to-play-modal-title" class="modal-title mt-2 text-2xl font-black">How to Play PixelWar</h2>
+                </div>
+                <button type="button" class="btn-close opacity-100" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body px-4 pb-4 pt-0 md:px-5 md:pb-5">
+                <div class="challenge-how-to-video overflow-hidden rounded-[18px] border-[3px] border-arcade-ink bg-black">
+                    <iframe
+                        id="challenge-how-to-play-video"
+                        class="block h-full w-full"
+                        src="about:blank"
+                        data-src="https://www.youtube.com/embed/IBK0ueRTFSg?si=2-3MlMnZLGYtsh3x"
+                        title="YouTube video player"
+                        frameborder="0"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                        referrerpolicy="strict-origin-when-cross-origin"
+                        allowfullscreen></iframe>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="modal fade challenge-preview-modal" id="challenge-preview-modal" tabindex="-1" aria-labelledby="challenge-preview-modal-title" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content rounded-[24px] border-4 border-arcade-ink bg-arcade-panel p-0 text-arcade-ink shadow-[8px_8px_0_#26190f]">
@@ -323,6 +357,19 @@ HTML;
 
 <script>
 (() => {
+    const tutorialModal = document.getElementById('challenge-how-to-play-modal');
+    const tutorialVideo = document.getElementById('challenge-how-to-play-video');
+    tutorialModal?.addEventListener('show.bs.modal', () => {
+        if (tutorialVideo instanceof HTMLIFrameElement) {
+            tutorialVideo.src = tutorialVideo.dataset.src || 'about:blank';
+        }
+    });
+    tutorialModal?.addEventListener('hidden.bs.modal', () => {
+        if (tutorialVideo instanceof HTMLIFrameElement) {
+            tutorialVideo.src = 'about:blank';
+        }
+    });
+
     const previewFrames = Array.from(document.querySelectorAll('.challenge-preview-frame'));
     const sourcePreviewFrames = Array.from(document.querySelectorAll('.challenge-preview-frame[data-html-source][data-css-source]'));
     const previewModal = document.getElementById('challenge-preview-modal');

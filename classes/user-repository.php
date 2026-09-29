@@ -268,6 +268,55 @@ class UserRepository
         return $row ? (int) ($row['rank_position'] ?? 0) : null;
     }
 
+    /**
+     * @return array{rank_position: int, points: int}|null
+     */
+    public function leaderboardRankForUserForSeason(int $userId, int $seasonId): ?array
+    {
+        if ($userId <= 0 || $seasonId <= 0) {
+            return null;
+        }
+
+        $statement = $this->connection->prepare(
+            'SELECT ranked.rank_position, ranked.points
+             FROM (
+                SELECT
+                    users.user_id,
+                    COALESCE(player_points.points, 0) AS points,
+                    ROW_NUMBER() OVER (
+                        ORDER BY COALESCE(player_points.points, 0) DESC, users.username ASC
+                    ) AS rank_position
+                FROM users
+                LEFT JOIN (
+                    SELECT user_id, SUM(points) AS points
+                    FROM player_progress
+                    WHERE season_id = ?
+                        OR (season_id IS NULL AND ? = (SELECT season_id FROM seasons ORDER BY start_date ASC, season_id ASC LIMIT 1))
+                    GROUP BY user_id
+                ) AS player_points ON player_points.user_id = users.user_id
+                WHERE users.role_id = 3
+                    AND users.is_verified = 1
+                    AND users.is_active = 1
+                    AND users.date_deleted IS NULL
+             ) AS ranked
+             WHERE ranked.user_id = ?
+             LIMIT 1'
+        );
+        $statement->bind_param('iii', $seasonId, $seasonId, $userId);
+        $statement->execute();
+        $row = $statement->get_result()->fetch_assoc();
+        $statement->close();
+
+        if (!$row) {
+            return null;
+        }
+
+        return [
+            'rank_position' => (int) ($row['rank_position'] ?? 0),
+            'points' => (int) ($row['points'] ?? 0),
+        ];
+    }
+
     public function findLoginUser(string $identity): ?array
     {
         $statement = $this->connection->prepare(
@@ -969,6 +1018,30 @@ class UserRepository
     {
         $statement = $this->connection->prepare('SELECT ud_id FROM user_details WHERE user_id = ? LIMIT 1');
         $statement->bind_param('i', $userId);
+        $statement->execute();
+        $exists = $statement->get_result()->fetch_assoc() !== null;
+        $statement->close();
+
+        return $exists;
+    }
+
+    public function studentNumberExistsForOtherUser(string $studentNumber, int $excludeUserId = 0): bool
+    {
+        $studentNumber = strtoupper(trim($studentNumber));
+        if ($studentNumber === '') {
+            return false;
+        }
+
+        $statement = $this->connection->prepare(
+            'SELECT user_details.ud_id
+             FROM user_details
+             INNER JOIN users ON users.user_id = user_details.user_id
+             WHERE UPPER(TRIM(user_details.student_number)) = ?
+                AND user_details.user_id <> ?
+                AND users.date_deleted IS NULL
+             LIMIT 1'
+        );
+        $statement->bind_param('si', $studentNumber, $excludeUserId);
         $statement->execute();
         $exists = $statement->get_result()->fetch_assoc() !== null;
         $statement->close();

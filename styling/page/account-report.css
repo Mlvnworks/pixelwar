@@ -1,0 +1,194 @@
+.account-report-page {
+    position: relative;
+    min-height: 100vh;
+    overflow-x: hidden;
+    background: #f4ead8;
+}
+
+.account-report-bg {
+    position: absolute;
+    inset: 0;
+    background:
+        radial-gradient(circle at 8% 10%, rgba(255, 209, 102, 0.3), transparent 25rem),
+        radial-gradient(circle at 92% 18%, rgba(76, 201, 240, 0.2), transparent 24rem),
+        linear-gradient(rgba(38, 25, 15, 0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(38, 25, 15, 0.04) 1px, transparent 1px);
+    background-size: auto, auto, 36px 36px, 36px 36px;
+    pointer-events: none;
+}
+
+.account-report-toolbar,
+.account-report-preview,
+.account-report-sheet {
+    position: relative;
+    z-index: 1;
+}
+
+.account-report-toolbar {
+    width: 1120px;
+    max-width: 100% !important;
+}
+
+.account-report-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+    border: 3px solid #26190f;
+    border-radius: 0.9rem;
+    padding: 0.65rem 0.9rem;
+    color: #26190f;
+    font-size: 0.82rem;
+    font-weight: 900;
+    text-decoration: none;
+    box-shadow: 0 4px 0 #26190f;
+    transition: transform 160ms ease, background 160ms ease;
+}
+
+.account-report-action:hover { transform: translateY(-2px); color: #26190f; }
+.account-report-action svg { width: 1rem; height: 1rem; }
+.account-report-action--light { background: #fffdf6; }
+.account-report-action--print { background: #ffd166; }
+.account-report-action--light:hover,
+.account-report-action--print:hover { background: #4cc9f0; }
+
+.account-report-sheet {
+    width: 1120px;
+    max-width: none !important;
+    height: 1400px;
+    overflow: hidden;
+    border: 4px solid #26190f;
+    border-radius: 1.75rem;
+    background: #fffdf6;
+    box-shadow: 12px 12px 0 rgba(38, 25, 15, 0.24);
+    animation: accountReportEnter 520ms ease both;
+}
+
+.account-report-preview {
+    --account-report-scale: 1;
+    width: 1120px;
+    height: 1400px;
+    margin: 1.25rem auto 0;
+}
+
+.account-report-preview .account-report-sheet {
+    margin: 0;
+    transform: scale(var(--account-report-scale));
+    transform-origin: top left;
+}
+
+.account-report-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 2rem;
+    border-bottom: 4px solid #26190f;
+    background: #26190f;
+    padding: 1.4rem 1.75rem;
+    color: #fff7e8;
+}
+
+.account-report-brand { display: flex; align-items: center; gap: 1rem; }
+.account-report-logo { display: grid; width: 4.5rem; height: 4.5rem; place-items: center; border: 3px solid #fff7e8; border-radius: 1.2rem; background: #fff7e8; }
+.account-report-logo img { width: 100%; height: 100%; object-fit: contain; }
+.account-report-brand p,
+.account-report-section-title p { margin: 0 0 0.35rem; color: #ffb55d; font-family: "Press Start 2P", cursive; font-size: 0.58rem; line-height: 1.6; letter-spacing: 0.15em; text-transform: uppercase; }
+.account-report-brand h1 { margin: 0; font-size: clamp(1.35rem, 3vw, 2.25rem); font-weight: 900; }
+.account-report-reference { flex: 0 0 auto; text-align: right; }
+.account-report-reference small { color: rgba(255, 247, 232, 0.65); font-size: 0.72rem; font-weight: 700; }
+
+.account-report-profile {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 1.15rem;
+    padding: 1.5rem 1.75rem;
+    background: linear-gradient(110deg, #ffd166, #ffd9a8 65%, #fff7e8);
+    color: #26190f;
+}
+
+.account-report-avatar { display: grid; width: 5.5rem; height: 5.5rem; place-items: center; overflow: hidden; border: 4px solid #26190f; border-radius: 1.5rem; background: #4cc9f0; box-shadow: 5px 5px 0 rgba(38, 25, 15, 0.25); font-family: "Press Start 2P", cursive; font-size: 1.25rem; }
+.account-report-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.account-report-player p { margin: 0; color: rgba(38, 25, 15, 0.58); font-size: 0.7rem; font-weight: 900; letter-spacing: 0.14em; text-transform: uppercase; }
+.account-report-player h2 { margin: 0.25rem 0 0; font-size: clamp(1.6rem, 4vw, 2.5rem); font-weight: 900; }
+.account-report-player span { font-size: 0.9rem; font-weight: 800; }
+.account-report-rank-badge { position: relative; display: inline-flex; min-width: 12rem; align-items: center; gap: 0.75rem; overflow: hidden; border: 3px solid #26190f; border-radius: 1rem; background: #fffdf6; padding: 0.6rem 0.85rem 0.6rem 0.65rem; color: #26190f; box-shadow: 4px 4px 0 rgba(38, 25, 15, 0.22); }
+.account-report-rank-badge::after { content: ""; position: absolute; right: -1rem; bottom: -1.35rem; width: 4rem; height: 4rem; border: 2px solid rgba(38, 25, 15, 0.12); background: rgba(76, 201, 240, 0.18); transform: rotate(35deg); }
+.account-report-rank-badge__emblem { position: relative; z-index: 1; display: grid; width: 3rem; height: 3rem; flex: 0 0 auto; place-items: center; border: 3px solid #26190f; border-radius: 0.8rem 0.8rem 1.2rem 1.2rem; background: #4cc9f0; font-family: "Press Start 2P", cursive; font-size: 0.9rem; box-shadow: 2px 2px 0 rgba(38, 25, 15, 0.22); }
+.account-report-rank-badge__copy { position: relative; z-index: 1; display: grid; line-height: 1.1; }
+.account-report-rank-badge__copy small { color: rgba(38, 25, 15, 0.55); font-size: 0.58rem; font-weight: 900; letter-spacing: 0.12em; text-transform: uppercase; }
+.account-report-rank-badge__copy strong { margin-top: 0.2rem; font-size: 1rem; font-weight: 900; }
+.account-report-rank-badge__copy b { margin-top: 0.25rem; color: #b84c16; font-size: 0.68rem; font-weight: 900; }
+
+.account-report-section { padding: 1.6rem 1.75rem; border-top: 2px solid rgba(38, 25, 15, 0.12); }
+.account-report-section-title { display: flex; align-items: center; gap: 0.9rem; margin-bottom: 1.1rem; }
+.account-report-section-title > span { display: grid; width: 2.65rem; height: 2.65rem; flex: 0 0 auto; place-items: center; border: 3px solid #26190f; border-radius: 0.75rem; background: #ff8c42; color: #fff; font-family: "Press Start 2P", cursive; font-size: 0.68rem; box-shadow: 3px 3px 0 #26190f; }
+.account-report-section-title p { color: #ff8c42; }
+.account-report-section-title h2 { margin: 0; font-size: 1.35rem; font-weight: 900; }
+
+.account-report-info-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border: 3px solid #26190f; border-radius: 1.15rem; overflow: hidden; }
+.account-report-info-grid > div { min-width: 0; padding: 0.95rem 1rem; border-right: 1px solid rgba(38, 25, 15, 0.14); border-bottom: 1px solid rgba(38, 25, 15, 0.14); background: #fff; }
+.account-report-info-grid span { display: block; margin-bottom: 0.3rem; color: rgba(38, 25, 15, 0.55); font-size: 0.66rem; font-weight: 900; letter-spacing: 0.12em; text-transform: uppercase; }
+.account-report-info-grid strong { display: block; overflow-wrap: anywhere; font-size: 0.93rem; }
+
+.account-report-achievement-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.85rem; }
+.account-report-stat { position: relative; isolation: isolate; min-width: 0; min-height: 10rem; overflow: hidden; border: 3px solid #26190f; border-radius: 1.15rem; padding: 1rem; color: #26190f; box-shadow: 5px 5px 0 rgba(38, 25, 15, 0.2); }
+.account-report-stat::before { content: ""; position: absolute; z-index: -1; top: -2.7rem; right: -2rem; width: 7rem; height: 7rem; border: 3px solid rgba(38, 25, 15, 0.16); border-radius: 1.5rem; background: rgba(255, 255, 255, 0.28); transform: rotate(18deg); }
+.account-report-stat::after { content: ""; position: absolute; z-index: -1; right: 1rem; bottom: 0.8rem; width: 0.65rem; height: 0.65rem; border-radius: 0.15rem; background: rgba(38, 25, 15, 0.22); box-shadow: -1rem 0.35rem 0 rgba(38, 25, 15, 0.13), 0.35rem 1rem 0 rgba(38, 25, 15, 0.1); transform: rotate(14deg); }
+.account-report-stat__heading { display: flex; min-height: 3.2rem; align-items: center; gap: 0.65rem; margin-bottom: 0.65rem; }
+.account-report-stat__icon { display: grid; width: 2.75rem; height: 2.75rem; flex: 0 0 auto; place-items: center; border: 3px solid #26190f; border-radius: 0.8rem; background: #fffdf6; box-shadow: 3px 3px 0 rgba(38, 25, 15, 0.2); transform: rotate(-4deg); }
+.account-report-stat__icon svg { width: 1.35rem; height: 1.35rem; }
+.account-report-stat__label { color: rgba(38, 25, 15, 0.67); font-size: 0.64rem; font-weight: 900; line-height: 1.55; letter-spacing: 0.1em; text-transform: uppercase; }
+.account-report-stat strong { display: block; overflow-wrap: anywhere; font-size: clamp(1.45rem, 3vw, 2rem); font-weight: 900; }
+.account-report-stat small { display: block; margin-top: 0.3rem; font-size: 0.73rem; font-weight: 800; line-height: 1.4; }
+.account-report-stat--yellow { background: #ffd166; }
+.account-report-stat--cyan { background: #bdeefe; }
+.account-report-stat--orange { background: #ffd9a8; }
+.account-report-stat--mint { background: #c9eee7; }
+
+.account-report-section-title--chart { flex-wrap: wrap; }
+.account-report-mode-summary { display: flex; flex-wrap: wrap; gap: 0.55rem 0.85rem; margin-left: auto; }
+.account-report-mode-summary b { display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.7rem; }
+.account-report-mode-summary i { width: 0.7rem; height: 0.7rem; border-radius: 0.2rem; }
+.account-report-mode-summary .is-solo { background: #ff8c42; }
+.account-report-mode-summary .is-pvp { background: #4cc9f0; }
+.account-report-mode-summary .is-room { background: #2f9e88; }
+.account-report-chart-wrap { position: relative; height: 22rem; border: 3px solid #26190f; border-radius: 1.15rem; background: #fff; padding: 1rem; }
+.account-report-chart-wrap canvas { display: block; width: 1020px !important; height: 310px !important; max-width: none; }
+
+.account-report-footer { display: flex; align-items: center; justify-content: space-between; gap: 1rem; border-top: 4px solid #26190f; background: #26190f; padding: 1rem 1.75rem; color: #fff7e8; font-size: 0.72rem; }
+.account-report-footer p { margin: 0; color: rgba(255, 247, 232, 0.7); font-weight: 700; }
+.account-report-footer strong { text-align: right; }
+
+@keyframes accountReportEnter { from { opacity: 0; } to { opacity: 1; } }
+
+body.pixelwar-dark-mode .account-report-page { background: #120d08; color: #fff7e8; }
+body.pixelwar-dark-mode .account-report-bg { opacity: 0.45; }
+body.pixelwar-dark-mode .account-report-sheet { border-color: #fff7e8; background: #1f160f; box-shadow: 12px 12px 0 rgba(255, 140, 66, 0.35); }
+body.pixelwar-dark-mode .account-report-section { border-color: rgba(255, 247, 232, 0.14); }
+body.pixelwar-dark-mode .account-report-info-grid { border-color: #fff7e8; }
+body.pixelwar-dark-mode .account-report-info-grid > div,
+body.pixelwar-dark-mode .account-report-chart-wrap { background: #2a1d13; color: #fff7e8; }
+body.pixelwar-dark-mode .account-report-info-grid span { color: rgba(255, 247, 232, 0.58); }
+
+@media print {
+    @page { size: A4 portrait; margin: 5mm; }
+    body { background: #fff !important; }
+    .pixelwar-header,
+    footer:not(.account-report-footer),
+    .account-report-toolbar,
+    .account-report-preview,
+    .account-report-bg { display: none !important; }
+    .account-report-page { min-width: 0; overflow: visible; padding: 0; background: #fff !important; color: #26190f !important; }
+    .account-report-preview { display: block !important; width: 1120px !important; height: 1400px !important; margin: 0 !important; }
+    .account-report-preview .account-report-sheet { width: 1120px; height: 1400px; margin: 0; border-color: #26190f !important; box-shadow: none !important; animation: none; background: #fffdf6 !important; color: #26190f !important; transform: none !important; zoom: 0.665; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+    .account-report-header,
+    .account-report-profile,
+    .account-report-stat,
+    .account-report-footer { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+    .account-report-section { break-inside: avoid; }
+    .account-report-info-grid > div { background: #fff !important; }
+    .account-report-chart-wrap { background: #fff !important; }
+    body.pixelwar-dark-mode .account-report-info-grid > div,
+    body.pixelwar-dark-mode .account-report-chart-wrap { background: #fff !important; color: #26190f !important; }
+    body.pixelwar-dark-mode .account-report-info-grid span { color: rgba(38, 25, 15, 0.55) !important; }
+}

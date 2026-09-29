@@ -11,13 +11,13 @@ $isAllowedPage = in_array($normalizedContent, $allowedPages, true);
 $pageStyleFile = __DIR__ . '/../styling/page/' . $normalizedContent . '.css';
 $appName = isset($pageMeta) ? $pageMeta->titleFor($normalizedContent) : APP_NAME;
 $appDescription = isset($pageMeta) ? $pageMeta->descriptionFor($normalizedContent) : 'Gamified CSS game for students';
-$headerlessPages = ['landing', 'pixelwar', 'matching'];
-$footerlessPages = ['landing', 'login', 'forgot-password', 'update-pass', 'signup', 'email-verification', 'profile-setup', 'review-pending', 'review-rejected', 'pixelwar', 'matching'];
+$headerlessPages = ['landing', 'pixelwar', 'matching', 'account-report'];
+$footerlessPages = ['landing', 'login', 'forgot-password', 'update-pass', 'signup', 'email-verification', 'profile-setup', 'review-pending', 'review-rejected', 'pixelwar', 'matching', 'account-report'];
 $hidesHeader = in_array($normalizedContent, $headerlessPages, true);
 $hidesFooter = in_array($normalizedContent, $footerlessPages, true);
 $globalVersusInviteEnabled = isset($_SESSION['user_id'])
     && $normalizedContent !== 'logout'
-    && $normalizedContent !== 'pixelwar'
+    && !in_array($normalizedContent, ['pixelwar', 'account-report'], true)
     && defined('PUSHER_KEY')
     && defined('PUSHER_CLUSTER')
     && trim((string) PUSHER_KEY) !== ''

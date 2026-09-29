@@ -177,6 +177,17 @@ body.pixelwar-dark-mode .challenge-preview-modal .modal-content {
     box-shadow: 8px 8px 0 rgba(0, 0, 0, 0.48) !important;
 }
 
+.challenge-how-to-video {
+    aspect-ratio: 16 / 9;
+}
+
+body.pixelwar-dark-mode .challenge-how-to-modal .modal-content {
+    border-color: rgba(255, 247, 232, 0.34) !important;
+    background: #1f160f !important;
+    color: #fff7e8 !important;
+    box-shadow: 8px 8px 0 rgba(0, 0, 0, 0.48) !important;
+}
+
 @media (min-width: 769px) {
     .challenge-preview-modal {
         display: none !important;

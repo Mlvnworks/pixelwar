@@ -156,9 +156,9 @@ $headerHasUnreadNotifications = $headerLatestNotificationId > $headerSeenNotific
                     <a class="pixelwar-profile__item no-underline" href="./?c=settings">
                         <span class="inline-flex items-center gap-2">
                             <svg class="h-4 w-4" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
-                                <path fill="currentColor" d="M7 1h2l.4 1.7c.4.1.8.3 1.1.5l1.5-.9 1.4 1.4-.9 1.5c.2.4.4.7.5 1.1L15 7v2l-1.7.4c-.1.4-.3.8-.5 1.1l.9 1.5-1.4 1.4-1.5-.9c-.4.2-.7.4-1.1.5L9 15H7l-.4-1.7c-.4-.1-.8-.3-1.1-.5l-1.5.9-1.4-1.4.9-1.5c-.2-.4-.4-.7-.5-1.1L1 9V7l1.7-.4c.1-.4.3-.8.5-1.1l-.9-1.5 1.4-1.4 1.5.9c.4-.2.7-.4 1.1-.5L7 1Zm1 5a2 2 0 1 0 0 4 2 2 0 0 0 0-4Z" />
+                                <path fill="currentColor" d="M8 1.5a3.25 3.25 0 1 1 0 6.5 3.25 3.25 0 0 1 0-6.5ZM2.25 14c.2-3.1 2.1-4.8 5.75-4.8s5.55 1.7 5.75 4.8H2.25Z" />
                             </svg>
-                            Settings
+                            Account
                         </span>
                         <span aria-hidden="true">&rsaquo;</span>
                     </a>

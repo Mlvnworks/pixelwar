@@ -102,10 +102,18 @@ $studentViewBuildQuery = static function (array $overrides = []) use ($studentVi
 <main class="teacher-shell teacher-student-view-page relative overflow-hidden px-4 py-6 text-arcade-ink md:py-8">
     <div class="teacher-bg absolute inset-0"></div>
     <section class="container relative grid gap-5">
-        <a href="./?c=students" class="teacher-button teacher-button--light gap-2 w-fit no-underline">
-            <i data-lucide="arrow-left" class="h-4 w-4" aria-hidden="true"></i>
-            <span>Back to Students</span>
-        </a>
+        <div class="flex flex-wrap items-center justify-between gap-3">
+            <a href="./?c=students" class="teacher-button teacher-button--light gap-2 w-fit no-underline">
+                <i data-lucide="arrow-left" class="h-4 w-4" aria-hidden="true"></i>
+                <span>Back to Students</span>
+            </a>
+            <?php if ($studentViewProfile !== null && (int) ($studentViewProfile['role_id'] ?? 0) === 3) : ?>
+                <a href="./?c=account-report&id=<?= (int) $studentViewId ?>" target="_blank" rel="noopener noreferrer" class="teacher-button teacher-button--primary gap-2 no-underline">
+                    <i data-lucide="file-chart-column" class="h-4 w-4" aria-hidden="true"></i>
+                    <span>Account Report</span>
+                </a>
+            <?php endif; ?>
+        </div>
 
         <?php if ($studentViewProfile === null) : ?>
             <section class="teacher-panel student-view-panel p-6">
@@ -113,8 +121,14 @@ $studentViewBuildQuery = static function (array $overrides = []) use ($studentVi
                 <p class="student-view-muted mt-2 text-sm font-medium leading-7">The requested student profile is unavailable or has been removed.</p>
             </section>
         <?php else : ?>
-            <section class="student-view-shell grid gap-5 xl:grid-cols-[minmax(0,0.78fr)_minmax(0,1.22fr)]">
-                <aside class="teacher-panel student-view-panel min-w-0 p-5 md:p-6">
+            <section class="student-view-shell grid grid-cols-1 gap-5">
+                <aside class="teacher-panel student-view-panel relative min-w-0 overflow-hidden p-5 md:p-6">
+                    <?php if ($studentCorFileUrl !== '') : ?>
+                        <button type="button" class="teacher-button teacher-button--light absolute right-5 top-5 z-20 gap-2 md:right-6 md:top-6" data-bs-toggle="modal" data-bs-target="#teacher-student-cor-modal" data-cor-url="<?= htmlspecialchars($studentCorFileUrl, ENT_QUOTES, 'UTF-8') ?>">
+                            <i data-lucide="file-search" class="h-4 w-4" aria-hidden="true"></i>
+                            <span>View COR</span>
+                        </button>
+                    <?php endif; ?>
                     <div class="flex flex-col items-start gap-4 sm:flex-row">
                         <span class="grid h-20 w-20 shrink-0 place-items-center overflow-hidden rounded-[24px] border-4 border-arcade-ink bg-arcade-yellow font-arcade text-xl text-arcade-ink shadow-[6px_6px_0_rgba(38,25,15,0.18)]">
                             <?php if ($studentAvatarUrl !== '') : ?>
@@ -123,7 +137,7 @@ $studentViewBuildQuery = static function (array $overrides = []) use ($studentVi
                                 <?= htmlspecialchars($studentInitials, ENT_QUOTES, 'UTF-8') ?>
                             <?php endif; ?>
                         </span>
-                        <div class="min-w-0 w-full">
+                        <div class="min-w-0 w-full sm:pr-32">
                             <p class="student-view-label text-sm font-semibold uppercase tracking-[0.08em]">Student Profile</p>
                             <h1 class="mt-1 break-words text-3xl font-bold leading-tight"><?= htmlspecialchars($studentDisplayName, ENT_QUOTES, 'UTF-8') ?></h1>
                             <p class="student-view-muted mt-2 break-all text-sm font-medium">@<?= htmlspecialchars($studentUsername, ENT_QUOTES, 'UTF-8') ?></p>
@@ -149,22 +163,6 @@ $studentViewBuildQuery = static function (array $overrides = []) use ($studentVi
                         </div>
                     </div>
 
-                    <div class="student-view-surface mt-5 rounded-[22px] p-4">
-                        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                            <div>
-                                <p class="student-view-label text-sm font-semibold uppercase tracking-[0.08em]">Certificate of Registration</p>
-                                <p class="student-view-muted mt-1 text-xs font-semibold">Open the submitted document in a large preview.</p>
-                            </div>
-                            <?php if ($studentCorFileUrl !== '') : ?>
-                                <button type="button" class="teacher-button teacher-button--light gap-2" data-bs-toggle="modal" data-bs-target="#teacher-student-cor-modal" data-cor-url="<?= htmlspecialchars($studentCorFileUrl, ENT_QUOTES, 'UTF-8') ?>">
-                                    <i data-lucide="file-search" class="h-4 w-4" aria-hidden="true"></i>
-                                    <span>View COR</span>
-                                </button>
-                            <?php else : ?>
-                                <span class="student-view-muted text-xs font-semibold">Not uploaded</span>
-                            <?php endif; ?>
-                        </div>
-                    </div>
                 </aside>
 
                 <section class="grid min-w-0 gap-5">

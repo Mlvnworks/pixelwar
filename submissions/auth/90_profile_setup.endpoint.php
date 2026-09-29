@@ -21,7 +21,7 @@ if ($requestMethod === 'POST' && $requestedPage === 'profile-setup') {
         $confirmPassword = (string) ($_POST['confirm_password'] ?? '');
         $firstname = trim((string) ($_POST['firstname'] ?? ''));
         $lastname = trim((string) ($_POST['lastname'] ?? ''));
-        $studentNumber = trim((string) ($_POST['student_number'] ?? ''));
+        $studentNumber = strtoupper(trim((string) ($_POST['student_number'] ?? '')));
         $section = trim((string) ($_POST['section'] ?? ''));
         $profileImageFile = $_FILES['profile_image'] ?? [];
         $corUploadFile = $_FILES['cor_file'] ?? [];
@@ -161,8 +161,10 @@ if ($requestMethod === 'POST' && $requestedPage === 'profile-setup') {
         $hasExistingCorFile = trim((string) ($existingDetails['cor_file_url'] ?? '')) !== '';
 
         if (!$isStaffSetup) {
-            if (!preg_match('/^[A-Za-z0-9-]{4,40}$/', $studentNumber)) {
-                $errors[] = 'Enter a valid student number.';
+            if (!preg_match('/^TAL\d{4}-\d{5}$/', $studentNumber)) {
+                $errors[] = 'Student number must use the exact format TAL2024-00287.';
+            } elseif ($users->studentNumberExistsForOtherUser($studentNumber)) {
+                $errors[] = 'This student number is already registered.';
             }
 
             if (!preg_match('/^[A-Za-z0-9][A-Za-z0-9 _.-]{0,99}$/', $section)) {

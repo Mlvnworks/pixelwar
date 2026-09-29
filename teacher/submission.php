@@ -18,6 +18,7 @@ require_once $rootPath . '/classes/challenge-creation-service.php';
 require_once $rootPath . '/classes/room-repository.php';
 require_once $rootPath . '/classes/room-player-repository.php';
 require_once $rootPath . '/classes/rank-repository.php';
+require_once $rootPath . '/classes/season-repository.php';
 
 $pageMeta = new PageMeta();
 $tools = new Tools($connection);
@@ -32,6 +33,7 @@ $activityLogRepository = $connection instanceof mysqli ? new ActivityLogReposito
 $roomRepository = $connection instanceof mysqli ? new RoomRepository($connection) : null;
 $roomPlayerRepository = $connection instanceof mysqli ? new RoomPlayerRepository($connection) : null;
 $rankRepository = $connection instanceof mysqli ? new RankRepository($connection) : null;
+$seasonRepository = $connection instanceof mysqli ? new SeasonRepository($connection) : null;
 $pusherService = new PusherService(PUSHER_APP_ID, PUSHER_KEY, PUSHER_SECRET, PUSHER_CLUSTER);
 $challengeCreationService = $connection instanceof mysqli
     && $challengeRepository instanceof ChallengeRepository

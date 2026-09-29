@@ -27,6 +27,10 @@ $profileLastnameValue = (string) ($profileSetupOld['lastname'] ?? $existingLastn
 $profileUsernameValue = (string) ($profileSetupOld['username'] ?? $setupUsername);
 $profileEmailValue = (string) ($profileSetupOld['email'] ?? $setupEmail);
 $profileStudentNumberValue = (string) ($profileSetupOld['student_number'] ?? $existingStudentNumber);
+$profileStudentNumberEntry = '';
+if (preg_match('/^TAL(\d{4})-(\d{5})$/i', trim($profileStudentNumberValue), $studentNumberParts) === 1) {
+    $profileStudentNumberEntry = $studentNumberParts[1] . '-' . $studentNumberParts[2];
+}
 $profileSectionValue = (string) ($profileSetupOld['section'] ?? $existingSection);
 $isSectionOnlySetup = !$isStaffSetup
     && is_array($existingSessionUser)
@@ -45,7 +49,7 @@ $profileDescription = $isTeacherSetup
         : 'Welcome ' . htmlspecialchars($setupUsername, ENT_QUOTES, 'UTF-8') . '. Add your details before entering the arena.');
 $submitLabel = $isTeacherSetup
     ? 'Finish Teacher Setup'
-    : ($isAdminSetup ? 'Save Admin Setup' : 'Enter Pixelwar');
+    : ($isAdminSetup ? 'Save Admin Setup' : 'Submit Profile');
 $profileCardWidthClass = $isStaffSetup ? 'max-w-[25rem]' : 'max-w-[31rem]';
 
 if ($isSectionOnlySetup) {
@@ -172,15 +176,18 @@ unset($_SESSION['profile_setup_errors'], $_SESSION['profile_setup_old']);
                             <p class="text-sm font-extrabold text-arcade-ink">Student Details</p>
                             <p class="mt-1 text-xs font-bold leading-5 text-arcade-ink/55">Add your student number and section, then upload a clear Certificate of Registration for review.</p>
                         </div>
-                        <span class="inline-flex rounded-full border-2 border-arcade-ink bg-arcade-yellow px-2 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-arcade-ink">Required</span>
+                        <span class="inline-flex min-h-7 shrink-0 items-center justify-center whitespace-nowrap rounded-full border-2 border-arcade-ink bg-arcade-yellow px-3 py-1 text-[10px] font-black uppercase leading-none tracking-[0.14em] text-arcade-ink">Required</span>
                     </div>
 
                     <div class="mt-4 space-y-4">
-                        <label class="block text-sm font-bold" for="student-number">
+                        <label class="block text-sm font-bold" for="student-number-entry">
                             Student Number
-                            <input id="student-number" name="student_number" type="text" autocomplete="off" required maxlength="40" value="<?= htmlspecialchars($profileStudentNumberValue, ENT_QUOTES, 'UTF-8') ?>" class="mt-1 w-full rounded-xl border-2 border-arcade-ink/15 bg-white px-3 py-2 outline-none transition focus:border-arcade-orange" placeholder="2026-000123">
+                            <span id="student-number-control" class="mt-1 flex w-full items-center overflow-hidden rounded-xl border-2 border-arcade-ink/15 bg-white transition focus-within:border-arcade-orange focus-within:shadow-[0_0_0_4px_rgba(255,140,66,0.16)]">
+                                <span class="border-r-2 border-arcade-ink/10 bg-arcade-cyan/20 px-3 py-2 font-black text-arcade-ink">TAL</span>
+                                <input id="student-number-entry" type="text" inputmode="numeric" autocomplete="off" required maxlength="10" value="<?= htmlspecialchars($profileStudentNumberEntry, ENT_QUOTES, 'UTF-8') ?>" class="min-w-0 flex-1 border-0 bg-transparent px-3 py-2 font-black outline-none" placeholder="0000-00000" aria-label="Student number digits">
+                            </span>
+                            <input id="student-number" name="student_number" type="hidden" value="<?= htmlspecialchars($profileStudentNumberValue, ENT_QUOTES, 'UTF-8') ?>">
                             <span id="student-number-message" class="mt-1 block min-h-4 text-xs font-bold leading-5 text-arcade-coral" aria-live="polite"></span>
-                            <span class="mt-1 block text-xs font-bold leading-5 text-arcade-ink/55">Use the number printed on your active school record or ID.</span>
                         </label>
 
                         <label class="block text-sm font-bold" for="student-section">
@@ -473,6 +480,8 @@ unset($_SESSION['profile_setup_errors'], $_SESSION['profile_setup_old']);
     const corFileName = document.querySelector('#cor-upload-file-name');
     const corMessage = document.querySelector('#cor-upload-message');
     const studentNumberInput = document.querySelector('#student-number');
+    const studentNumberControl = document.querySelector('#student-number-control');
+    const studentNumberEntryInput = document.querySelector('#student-number-entry');
     const studentNumberMessage = document.querySelector('#student-number-message');
     const sectionInput = document.querySelector('#student-section');
     const sectionMessage = document.querySelector('#student-section-message');
@@ -524,6 +533,7 @@ unset($_SESSION['profile_setup_errors'], $_SESSION['profile_setup_old']);
     const maxCorSize = 5 * 1024 * 1024;
     const requiresTeacherUsernameCheck = Boolean(usernameInput && usernameFeedback);
     const requiresAdminEmailCheck = Boolean(emailInput && emailFeedback);
+    const requiresStudentNumberCheck = Boolean(studentNumberInput && studentNumberEntryInput && studentNumberMessage);
     const teacherUsernameState = {
         valid: !requiresTeacherUsernameCheck,
         available: !requiresTeacherUsernameCheck,
@@ -532,6 +542,11 @@ unset($_SESSION['profile_setup_errors'], $_SESSION['profile_setup_old']);
     const adminEmailState = {
         valid: !requiresAdminEmailCheck,
         available: !requiresAdminEmailCheck,
+        pending: false,
+    };
+    const studentNumberState = {
+        valid: !requiresStudentNumberCheck,
+        available: !requiresStudentNumberCheck,
         pending: false,
     };
     let selectedProfileFile = null;
@@ -546,15 +561,6 @@ unset($_SESSION['profile_setup_errors'], $_SESSION['profile_setup_old']);
 
         targetMessage.textContent = text;
         targetDropzone.classList.toggle('is-invalid', text !== '');
-    };
-
-    const setStudentNumberError = (text) => {
-        if (!studentNumberInput || !studentNumberMessage) {
-            return;
-        }
-
-        studentNumberMessage.textContent = text;
-        studentNumberInput.classList.toggle('border-arcade-coral', text !== '');
     };
 
     const setSectionError = (text) => {
@@ -581,10 +587,6 @@ unset($_SESSION['profile_setup_errors'], $_SESSION['profile_setup_old']);
     };
 
     const updateSubmitAvailability = () => {
-        if (!requiresTeacherUsernameCheck) {
-            return;
-        }
-
         if (submitButton.classList.contains('is-loading')) {
             return;
         }
@@ -595,6 +597,9 @@ unset($_SESSION['profile_setup_errors'], $_SESSION['profile_setup_old']);
             || !adminEmailState.valid
             || !adminEmailState.available
             || adminEmailState.pending
+            || !studentNumberState.valid
+            || !studentNumberState.available
+            || studentNumberState.pending
             || !setupPasswordValid
             || !setupPasswordConfirmationValid;
     };
@@ -668,6 +673,94 @@ unset($_SESSION['profile_setup_errors'], $_SESSION['profile_setup_old']);
 
     let usernameCheckTimer = null;
     let emailCheckTimer = null;
+    let studentNumberCheckTimer = null;
+    let studentNumberCheckSequence = 0;
+
+    const applyStudentNumberFeedback = (messageText, tone) => {
+        if (!studentNumberMessage || !studentNumberControl) {
+            return;
+        }
+
+        studentNumberControl.classList.remove('border-arcade-coral', 'border-arcade-mint', 'border-arcade-yellow');
+        studentNumberMessage.classList.remove('text-arcade-coral', 'text-arcade-mint', 'text-arcade-orange', 'text-arcade-ink/55');
+
+        if (tone === 'invalid') {
+            studentNumberControl.classList.add('border-arcade-coral');
+            studentNumberMessage.classList.add('text-arcade-coral');
+        } else if (tone === 'valid') {
+            studentNumberControl.classList.add('border-arcade-mint');
+            studentNumberMessage.classList.add('text-arcade-mint');
+        } else if (tone === 'loading') {
+            studentNumberControl.classList.add('border-arcade-yellow');
+            studentNumberMessage.classList.add('text-arcade-orange');
+        } else {
+            studentNumberMessage.classList.add('text-arcade-ink/55');
+        }
+
+        studentNumberMessage.textContent = messageText;
+    };
+
+    const syncStudentNumber = () => {
+        if (!requiresStudentNumberCheck) {
+            return '';
+        }
+
+        const digits = studentNumberEntryInput.value.replace(/\D/g, '').slice(0, 9);
+        const formatted = digits.length >= 4
+            ? `${digits.slice(0, 4)}-${digits.slice(4)}`
+            : digits;
+        studentNumberEntryInput.value = formatted;
+        studentNumberInput.value = `TAL${formatted}`;
+        return studentNumberInput.value;
+    };
+
+    const runStudentNumberCheck = () => {
+        if (!requiresStudentNumberCheck) {
+            return;
+        }
+
+        const value = syncStudentNumber();
+        const requestSequence = ++studentNumberCheckSequence;
+        if (!/^TAL\d{4}-\d{5}$/.test(value)) {
+            studentNumberState.valid = false;
+            studentNumberState.available = false;
+            studentNumberState.pending = false;
+            applyStudentNumberFeedback('', 'idle');
+            updateSubmitAvailability();
+            return;
+        }
+
+        studentNumberState.pending = true;
+        updateSubmitAvailability();
+        applyStudentNumberFeedback('Checking student number...', 'loading');
+
+        const url = new URL('./?c=profile-setup', window.location.href);
+        url.searchParams.set('check_student_number', '1');
+        url.searchParams.set('student_number', value);
+
+        fetch(url.toString(), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+            .then((response) => response.json())
+            .then((payload) => {
+                if (requestSequence !== studentNumberCheckSequence) {
+                    return;
+                }
+                studentNumberState.valid = Boolean(payload.valid);
+                studentNumberState.available = Boolean(payload.available);
+                studentNumberState.pending = false;
+                applyStudentNumberFeedback(payload.message || '', payload.valid && payload.available ? 'valid' : 'invalid');
+                updateSubmitAvailability();
+            })
+            .catch(() => {
+                if (requestSequence !== studentNumberCheckSequence) {
+                    return;
+                }
+                studentNumberState.valid = false;
+                studentNumberState.available = false;
+                studentNumberState.pending = false;
+                applyStudentNumberFeedback('Unable to check the student number right now.', 'invalid');
+                updateSubmitAvailability();
+            });
+    };
 
     const runTeacherUsernameCheck = () => {
         if (!usernameInput) {
@@ -992,10 +1085,31 @@ unset($_SESSION['profile_setup_errors'], $_SESSION['profile_setup_old']);
         }
     }
 
-    if (studentNumberInput) {
-        studentNumberInput.addEventListener('input', () => {
-            setStudentNumberError('');
+    if (requiresStudentNumberCheck) {
+        studentNumberEntryInput.addEventListener('keydown', (event) => {
+            if (event.key === 'Backspace' && studentNumberEntryInput.value.endsWith('-')) {
+                event.preventDefault();
+                studentNumberEntryInput.value = studentNumberEntryInput.value.slice(0, -2);
+                studentNumberEntryInput.dispatchEvent(new Event('input', { bubbles: true }));
+            }
         });
+        studentNumberEntryInput.addEventListener('input', () => {
+            studentNumberCheckSequence += 1;
+            syncStudentNumber();
+            studentNumberState.valid = false;
+            studentNumberState.available = false;
+            studentNumberState.pending = false;
+            applyStudentNumberFeedback('', 'idle');
+            updateSubmitAvailability();
+            window.clearTimeout(studentNumberCheckTimer);
+            studentNumberCheckTimer = window.setTimeout(runStudentNumberCheck, 320);
+        });
+        studentNumberEntryInput.addEventListener('blur', () => {
+            window.clearTimeout(studentNumberCheckTimer);
+            runStudentNumberCheck();
+        });
+        syncStudentNumber();
+        runStudentNumberCheck();
     }
 
     sectionInput?.addEventListener('input', () => setSectionError(''));
@@ -1004,6 +1118,7 @@ unset($_SESSION['profile_setup_errors'], $_SESSION['profile_setup_old']);
 
     const submitWithProgress = () => {
         const request = new XMLHttpRequest();
+        syncStudentNumber();
         const formData = new FormData(form);
 
         if (selectedProfileFile) {
@@ -1057,9 +1172,12 @@ unset($_SESSION['profile_setup_errors'], $_SESSION['profile_setup_old']);
                 ? response.message
                 : (rawResponse !== '' ? rawResponse.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim() : 'Profile setup failed. Please try again.');
 
-            if (responseMessage.includes('Enter a valid student number.')) {
-                setStudentNumberError('Enter a valid student number.');
-                studentNumberInput?.focus();
+            if (responseMessage.includes('Student number must use') || responseMessage.includes('student number is already registered')) {
+                applyStudentNumberFeedback(
+                    responseMessage.includes('already registered') ? 'This student number is already registered.' : 'Use the exact format TAL2024-00287.',
+                    'invalid'
+                );
+                studentNumberEntryInput?.focus();
                 return;
             }
 
@@ -1130,12 +1248,12 @@ unset($_SESSION['profile_setup_errors'], $_SESSION['profile_setup_old']);
             return;
         }
 
-        setStudentNumberError('');
+        applyStudentNumberFeedback('', 'idle');
         setSectionError('');
 
-        if (studentNumberInput && !/^[A-Za-z0-9-]{4,40}$/.test(studentNumberInput.value.trim())) {
-            setStudentNumberError('Enter a valid student number.');
-            studentNumberInput.focus();
+        if (requiresStudentNumberCheck && (!studentNumberState.valid || !studentNumberState.available || studentNumberState.pending)) {
+            applyStudentNumberFeedback('Use a valid and available student number before continuing.', 'invalid');
+            studentNumberEntryInput.focus();
             return;
         }
 
