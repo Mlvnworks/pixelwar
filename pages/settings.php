@@ -8,6 +8,7 @@ $profileFirstname = trim((string) ($_SESSION['firstname'] ?? ''));
 $profileLastname = trim((string) ($_SESSION['lastname'] ?? ''));
 $profileStudentNumber = '';
 $profileSection = '';
+$profileUsesGoogle = strtolower(trim((string) ($_SESSION['acc_type'] ?? 'manual'))) === 'google';
 $accountUsernameChangeAvailableAt = 0;
 $settingsPasswordResetAvailableAt = function_exists('pixelwarForgotPasswordCooldownAvailableAt')
     ? pixelwarForgotPasswordCooldownAvailableAt()
@@ -20,7 +21,7 @@ if (isset($connection) && $connection instanceof mysqli && isset($_SESSION['user
         $accountUsernameChangeAvailableAt = $userRepository->accountChangeAvailableAt($settingsUserId, 'username');
     }
     $settingsProfile = $connection->prepare(
-        'SELECT users.username, users.email, user_details.firstname, user_details.lastname, user_details.student_number, user_details.section, images.source AS avatar_url
+        'SELECT users.username, users.email, users.acc_type, user_details.firstname, user_details.lastname, user_details.student_number, user_details.section, images.source AS avatar_url
          FROM users
          LEFT JOIN user_details ON user_details.user_id = users.user_id
          LEFT JOIN images ON images.img_id = user_details.image_id
@@ -33,6 +34,7 @@ if (isset($connection) && $connection instanceof mysqli && isset($_SESSION['user
     $settingsProfile->close();
 
     if ($settingsProfileRow) {
+        $profileUsesGoogle = strtolower(trim((string) ($settingsProfileRow['acc_type'] ?? 'manual'))) === 'google';
         $settingsFirstname = trim((string) ($settingsProfileRow['firstname'] ?? ''));
         $settingsLastname = trim((string) ($settingsProfileRow['lastname'] ?? ''));
         $settingsFullName = trim($settingsFirstname . ' ' . $settingsLastname);
@@ -65,10 +67,12 @@ $accountUsernameChangeLocked = $accountUsernameChangeAvailableAt > time();
 
         <div class="mt-5">
 
+            <?php if (!$profileUsesGoogle) : ?>
             <form id="settings-password-reset-form" action="./?c=settings" method="post" class="hidden">
                 <?= pixelwarCsrfField() ?>
                 <input type="hidden" name="settings_action" value="password_reset">
             </form>
+            <?php endif; ?>
 
             <form
                 class="settings-form rounded-[28px] border-4 border-arcade-ink bg-arcade-panel p-5 shadow-[8px_8px_0_#26190f] md:p-6"
@@ -186,11 +190,16 @@ $accountUsernameChangeLocked = $accountUsernameChangeAvailableAt > time();
                     <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                         <div class="min-w-0">
                             <p class="text-xs font-extrabold uppercase tracking-[0.18em] text-arcade-orange">Security</p>
+                            <?php if ($profileUsesGoogle) : ?>
+                            <h3 class="mt-1 text-lg font-bold text-arcade-ink">Signed in with Google</h3>
+                            <?php else : ?>
                             <h3 class="mt-1 text-lg font-bold text-arcade-ink">Password access</h3>
                             <p class="mt-1 text-sm font-bold leading-6 text-arcade-ink/58">
                                 Update your password through a secure reset link sent to your registered email.
                             </p>
+                            <?php endif; ?>
                         </div>
+                        <?php if (!$profileUsesGoogle) : ?>
                         <div class="flex shrink-0 flex-col items-start gap-2 sm:items-end">
                             <button
                                 type="submit"
@@ -213,6 +222,7 @@ $accountUsernameChangeLocked = $accountUsernameChangeAvailableAt > time();
                                 Resend available in <?= (int) $settingsPasswordResetSecondsLeft ?>s.
                             </p>
                         </div>
+                        <?php endif; ?>
                     </div>
                 </section>
 

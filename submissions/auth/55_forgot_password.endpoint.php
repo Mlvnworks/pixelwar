@@ -93,6 +93,16 @@ if (
             pixelwarRedirect($redirectPage);
         }
 
+        if (strtolower(trim((string) ($user['acc_type'] ?? 'manual'))) === 'google') {
+            $message = 'This account uses Google sign-in. Please select "Continue with Google" to access your account.';
+            if ($isSettingsPasswordReset) {
+                $_SESSION['alert'] = ['error' => true, 'content' => $message];
+            } else {
+                $_SESSION['forgot_password_errors'] = [$message];
+            }
+            pixelwarRedirect($redirectPage);
+        }
+
         if ((int) ($user['role_id'] ?? 0) === pixelwarStudentRoleId()) {
             $passwordAvailableAt = $users->accountChangeAvailableAt($userId, 'password');
             if ($passwordAvailableAt > time()) {

@@ -12,7 +12,9 @@ if ($resetUserId > 0 && $resetToken !== '' && $userRepository instanceof UserRep
     $resetUser = $userRepository->findAuthUserById($resetUserId);
     $resetVerification = $resetUser ? $verificationRepository->findLatest($resetUserId, 'password change') : null;
 
-    if (!$resetUser || !$resetVerification) {
+    if ($resetUser && strtolower(trim((string) ($resetUser['acc_type'] ?? 'manual'))) === 'google') {
+        $resetLinkMessage = 'This account uses Google sign-in. Please select "Continue with Google" to access your account.';
+    } elseif (!$resetUser || !$resetVerification) {
         $resetLinkMessage = 'This password reset link is invalid. Request a new one.';
     } else {
         $resetStatus = (int) ($resetVerification['status'] ?? 0);

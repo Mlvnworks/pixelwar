@@ -33,6 +33,10 @@ if ($requestMethod === 'POST' && $requestedPage === 'update-pass') {
             $errors[] = 'Password reset link is invalid. Request a new one.';
         }
 
+        if ($errors === [] && strtolower(trim((string) ($user['acc_type'] ?? 'manual'))) === 'google') {
+            $errors[] = 'This account uses Google sign-in. Please select "Continue with Google" to access your account.';
+        }
+
         if ($errors === [] && (int) ($user['role_id'] ?? 0) === pixelwarStudentRoleId()) {
             $passwordAvailableAt = $users->accountChangeAvailableAt($userId, 'password');
             if ($passwordAvailableAt > time()) {

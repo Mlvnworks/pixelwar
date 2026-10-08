@@ -105,7 +105,7 @@ unset($_SESSION['profile_setup_errors'], $_SESSION['profile_setup_old']);
                     </div>
                     <label class="mt-4 block text-sm font-bold" for="student-section">
                         Section
-                        <input id="student-section" name="section" type="text" autocomplete="organization" required maxlength="100" value="<?= htmlspecialchars($profileSectionValue, ENT_QUOTES, 'UTF-8') ?>" class="mt-1 w-full rounded-xl border-2 border-arcade-ink/15 bg-white px-3 py-2 outline-none transition focus:border-arcade-orange" placeholder="Example: BSIT 4-A">
+                        <input id="student-section" name="section" type="text" autocomplete="organization" required maxlength="100" value="<?= htmlspecialchars($profileSectionValue, ENT_QUOTES, 'UTF-8') ?>" class="mt-1 w-full rounded-xl border-2 border-arcade-ink/15 bg-white px-3 py-2 outline-none transition focus:border-arcade-orange" placeholder="BSIT1A">
                         <span id="student-section-message" class="mt-1 block min-h-4 text-xs font-bold leading-5 text-arcade-coral" aria-live="polite"></span>
                     </label>
                 </section>
@@ -192,7 +192,7 @@ unset($_SESSION['profile_setup_errors'], $_SESSION['profile_setup_old']);
 
                         <label class="block text-sm font-bold" for="student-section">
                             Section
-                            <input id="student-section" name="section" type="text" autocomplete="organization" required maxlength="100" value="<?= htmlspecialchars($profileSectionValue, ENT_QUOTES, 'UTF-8') ?>" class="mt-1 w-full rounded-xl border-2 border-arcade-ink/15 bg-white px-3 py-2 outline-none transition focus:border-arcade-orange" placeholder="Example: BSIT 4-A">
+                            <input id="student-section" name="section" type="text" autocomplete="organization" required maxlength="100" value="<?= htmlspecialchars($profileSectionValue, ENT_QUOTES, 'UTF-8') ?>" class="mt-1 w-full rounded-xl border-2 border-arcade-ink/15 bg-white px-3 py-2 outline-none transition focus:border-arcade-orange" placeholder="BSIT1A">
                             <span id="student-section-message" class="mt-1 block min-h-4 text-xs font-bold leading-5 text-arcade-coral" aria-live="polite"></span>
                         </label>
 
