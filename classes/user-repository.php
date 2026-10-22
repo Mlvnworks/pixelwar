@@ -565,23 +565,32 @@ class UserRepository
         return (int) ($row['total'] ?? 0);
     }
 
+    private function studentReviewEligibilitySql(): string
+    {
+        // Completed reviews remain visible even when older profiles lack newer fields.
+        return "(users.is_active IN (1, -1) OR (
+            users.is_active = 0
+            AND TRIM(COALESCE(user_details.firstname, '')) <> ''
+            AND TRIM(COALESCE(user_details.lastname, '')) <> ''
+            AND TRIM(COALESCE(user_details.student_number, '')) <> ''
+            AND TRIM(COALESCE(user_details.section, '')) <> ''
+            AND user_details.image_id IS NOT NULL
+            AND user_details.cor_file IS NOT NULL
+        ))";
+    }
+
     public function countPendingStudentReviews(string $search = '', ?int $activeStatus = 0): int
     {
         $search = trim($search);
         $sql = 'SELECT COUNT(*) AS total
                 FROM users
-                INNER JOIN user_details ON user_details.user_id = users.user_id
+                LEFT JOIN user_details ON user_details.user_id = users.user_id
                 LEFT JOIN images AS avatar_images ON avatar_images.img_id = user_details.image_id
                 LEFT JOIN images AS cor_files ON cor_files.img_id = user_details.cor_file
                 WHERE users.role_id = 3
                     AND users.date_deleted IS NULL
                     AND users.is_verified = 1
-                    AND TRIM(COALESCE(user_details.firstname, \'\')) <> \'\'
-                    AND TRIM(COALESCE(user_details.lastname, \'\')) <> \'\'
-                    AND TRIM(COALESCE(user_details.student_number, \'\')) <> \'\'
-                    AND TRIM(COALESCE(user_details.section, \'\')) <> \'\'
-                    AND user_details.image_id IS NOT NULL
-                    AND user_details.cor_file IS NOT NULL';
+                    AND ' . $this->studentReviewEligibilitySql();
         $types = '';
         $params = [];
 
@@ -931,18 +940,13 @@ class UserRepository
                     avatar_images.source AS avatar_url,
                     cor_files.source AS cor_file_url
                 FROM users
-                INNER JOIN user_details ON user_details.user_id = users.user_id
+                LEFT JOIN user_details ON user_details.user_id = users.user_id
                 LEFT JOIN images AS avatar_images ON avatar_images.img_id = user_details.image_id
                 LEFT JOIN images AS cor_files ON cor_files.img_id = user_details.cor_file
                 WHERE users.role_id = 3
                     AND users.date_deleted IS NULL
                     AND users.is_verified = 1
-                    AND TRIM(COALESCE(user_details.firstname, \'\')) <> \'\'
-                    AND TRIM(COALESCE(user_details.lastname, \'\')) <> \'\'
-                    AND TRIM(COALESCE(user_details.student_number, \'\')) <> \'\'
-                    AND TRIM(COALESCE(user_details.section, \'\')) <> \'\'
-                    AND user_details.image_id IS NOT NULL
-                    AND user_details.cor_file IS NOT NULL';
+                    AND ' . $this->studentReviewEligibilitySql();
         $types = '';
         $params = [];
 
