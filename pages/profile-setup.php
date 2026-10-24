@@ -11,6 +11,7 @@ $isStaffSetup = $isTeacherSetup || $isAdminSetup;
 $existingSessionUser = $userRepository instanceof UserRepository && $setupUserId > 0
     ? $userRepository->findSessionUser($setupUserId)
     : null;
+$isProfileResubmission = is_array($existingSessionUser) && pixelwarStudentNeedsResubmission($existingSessionUser);
 $existingDetails = $userRepository instanceof UserRepository && $setupUserId > 0
     ? $userRepository->findUserDetailsAvatar($setupUserId)
     : null;
@@ -93,6 +94,11 @@ unset($_SESSION['profile_setup_errors'], $_SESSION['profile_setup_old']);
                 </div>
             <?php endif; ?>
 
+            <?php if ($isProfileResubmission) : ?>
+                <div class="mt-4 rounded-2xl border-2 border-arcade-orange/40 bg-arcade-yellow/20 p-4 text-sm font-bold" role="status">
+                    Your profile needs corrections. Review your saved details and replace your COR if needed, then submit again for admin approval.
+                </div>
+            <?php endif; ?>
             <?php if ($isSectionOnlySetup) : ?>
                 <section class="mt-4 rounded-[22px] border-2 border-arcade-ink/12 bg-white/75 p-4">
                     <div class="flex items-start gap-3">

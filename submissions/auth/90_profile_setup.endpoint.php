@@ -65,6 +65,30 @@ if ($requestMethod === 'POST' && $requestedPage === 'profile-setup') {
             pixelwarRedirect('login');
         }
 
+        // Setup must not become an alternate account-editing route for completed accounts.
+        $setupRedirect = null;
+        if ($isStaffSetup && $users->userDetailsExist($userId)) {
+            $setupRedirect = (int) ($sessionUser['is_verified'] ?? 0) !== 1
+                ? './?c=email-verification'
+                : ($isAdminSetup ? './admin/?c=dashboard' : './teacher/?c=dashboard');
+        } elseif (!$isStaffSetup && pixelwarStudentRejected($sessionUser)) {
+            $setupRedirect = './?c=review-rejected';
+        } elseif (!$isStaffSetup && pixelwarStudentProfileComplete($users, $sessionUser)) {
+            $setupRedirect = pixelwarStudentUnderReview($sessionUser) ? './?c=review-pending' : './?c=home';
+        }
+        if ($setupRedirect !== null) {
+            unset($_SESSION['profile_setup_old']);
+            if ($profileSetupWantsJson) {
+                pixelwarJsonResponse([
+                    'success' => false,
+                    'message' => 'Profile setup is not available for your current account status. Reload the page to continue.',
+                    'redirect' => $setupRedirect,
+                ], 409);
+            }
+            header('Location: ' . $setupRedirect);
+            exit;
+        }
+
         if (!$isStaffSetup && (int) $sessionUser['is_verified'] !== 1) {
             if ($profileSetupWantsJson) {
                 pixelwarJsonResponse([
@@ -159,11 +183,20 @@ if ($requestMethod === 'POST' && $requestedPage === 'profile-setup') {
 
         $hasExistingProfileImage = trim((string) ($existingDetails['avatar_url'] ?? ($sessionUser['avatar_url'] ?? ''))) !== '';
         $hasExistingCorFile = trim((string) ($existingDetails['cor_file_url'] ?? '')) !== '';
+        $profileUploadError = (int) ($profileImageFile['error'] ?? UPLOAD_ERR_NO_FILE);
+        $corUploadError = (int) ($corUploadFile['error'] ?? UPLOAD_ERR_NO_FILE);
+
+        if (!in_array($profileUploadError, [UPLOAD_ERR_OK, UPLOAD_ERR_NO_FILE], true)) {
+            $errors[] = 'Your profile image could not be uploaded. Try a smaller file and submit again.';
+        }
+        if (!$isStaffSetup && !in_array($corUploadError, [UPLOAD_ERR_OK, UPLOAD_ERR_NO_FILE], true)) {
+            $errors[] = 'Your Certificate of Registration could not be uploaded. Try a smaller file and submit again.';
+        }
 
         if (!$isStaffSetup) {
             if (!preg_match('/^TAL\d{4}-\d{5}$/', $studentNumber)) {
                 $errors[] = 'Student number must use the exact format TAL2024-00287.';
-            } elseif ($users->studentNumberExistsForOtherUser($studentNumber)) {
+            } elseif ($users->studentNumberExistsForOtherUser($studentNumber, $userId)) {
                 $errors[] = 'This student number is already registered.';
             }
 
@@ -199,7 +232,7 @@ if ($requestMethod === 'POST' && $requestedPage === 'profile-setup') {
             SUPABASE_STORAGE_BUCKET,
             SUPABASE_STORAGE_AVATAR_FOLDER
         );
-        $profileImage = $hasExistingProfileImage ? trim((string) ($existingDetails['avatar_url'] ?? ($sessionUser['avatar_url'] ?? ''))) : '';
+        $profileImage = $hasExistingProfileImage ? trim((string) ($existingDetails['avatar_original_url'] ?? $existingDetails['avatar_url'] ?? ($sessionUser['avatar_url'] ?? ''))) : '';
         $corFileUrl = $hasExistingCorFile ? trim((string) ($existingDetails['cor_file_url'] ?? '')) : null;
 
         if ((int) ($profileImageFile['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_OK) {

@@ -46,31 +46,30 @@ if ($adminRequestMethod === 'POST' && $adminRequestedPage === 'student-verificat
                 'content' => 'Student access approved successfully.',
             ];
         } elseif ($action === 'reject') {
-            $corFileUrl = $users->clearStudentCorFile($studentId);
-
-            if ($corFileUrl !== null) {
-                try {
-                    $storage = new SupabaseStorage(
-                        SUPABASE_URL,
-                        SUPABASE_SERVICE_ROLE_KEY,
-                        SUPABASE_STORAGE_BUCKET,
-                        SUPABASE_STORAGE_COR_FILE_FOLDER
-                    );
-
-                    if ($storage->isConfigured()) {
-                        $storage->deletePublicObject($corFileUrl);
-                    }
-                } catch (Throwable $cleanupError) {
-                    error_log('Pixelwar student COR cleanup error: ' . $cleanupError->getMessage());
-                }
-            }
-
             $users->updateActiveState($studentId, -1);
             $logs->create((int) ($_SESSION['user_id'] ?? 0), 'student', 'Rejected student verification for ' . $studentLabel . ' via admin review queue.');
+            try {
+                if (!$userAccountService instanceof UserAccountService) {
+                    throw new RuntimeException('Profile cleanup service is unavailable.');
+                }
+                $storage = new SupabaseStorage(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, SUPABASE_STORAGE_BUCKET, '');
+                $userAccountService->deleteBlockedStudentProfile($studentId, $storage);
+            } catch (Throwable $cleanupError) {
+                error_log('Pixelwar blocked student cleanup failed: ' . $cleanupError->getMessage());
+                throw new RuntimeException('Student access is blocked, but profile cleanup did not finish. Retry Reject and Block.');
+            }
             adminPanelSendStudentReviewEmail($toolsService, (string) ($student['email'] ?? ''), $studentLabel, 'rejected');
             $_SESSION['alert'] = [
                 'error' => false,
-                'content' => 'Student verification was marked as rejected.',
+                'content' => 'Student access blocked. Submitted profile information and uploaded profile files have been removed.',
+            ];
+        } elseif ($action === 'resubmission') {
+            $users->updateActiveState($studentId, -2);
+            $logs->create((int) ($_SESSION['user_id'] ?? 0), 'student', 'Requested profile resubmission for ' . $studentLabel . ' via admin review queue.');
+            adminPanelSendStudentReviewEmail($toolsService, (string) ($student['email'] ?? ''), $studentLabel, 'resubmission');
+            $_SESSION['alert'] = [
+                'error' => false,
+                'content' => 'Student can now correct and resubmit their saved profile for review.',
             ];
         } else {
             throw new RuntimeException('Verification action is not supported.');
@@ -79,7 +78,9 @@ if ($adminRequestMethod === 'POST' && $adminRequestedPage === 'student-verificat
         error_log('Pixelwar admin student verification error: ' . $err->getMessage());
         $_SESSION['alert'] = [
             'error' => true,
-            'content' => APP_DEBUG ? $err->getMessage() : 'Unable to update the student verification right now.',
+            'content' => isset($action) && $action === 'reject'
+                ? 'The rejection could not be fully completed. Check the student status and retry Reject and Block if cleanup is pending.'
+                : (APP_DEBUG ? $err->getMessage() : 'Unable to update the student verification right now.'),
         ];
     }
 

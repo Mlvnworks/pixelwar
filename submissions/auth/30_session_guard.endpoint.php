@@ -94,6 +94,7 @@ if (
     && $sessionUser !== null
     && (int) ($sessionUser['role_id'] ?? 0) === pixelwarStudentRoleId()
     && $userChallengeRepository instanceof UserChallengeRepository
+    && (int) ($sessionUser['is_active'] ?? 0) === 1
 ) {
     $activeRoomRun = $userChallengeRepository->findActiveRoomRunLock((int) ($sessionUser['user_id'] ?? 0));
     if ($activeRoomRun !== null) {
@@ -115,6 +116,7 @@ if (
     && $sessionUser !== null
     && (int) ($sessionUser['role_id'] ?? 0) === pixelwarStudentRoleId()
     && $userChallengeRepository instanceof UserChallengeRepository
+    && (int) ($sessionUser['is_active'] ?? 0) === 1
 ) {
     $activePvpRun = $userChallengeRepository->findActivePvpRunLock((int) ($sessionUser['user_id'] ?? 0));
     if ($activePvpRun !== null) {
@@ -177,6 +179,7 @@ if (
     && (int) $sessionUser['is_verified'] === 1
     && !pixelwarStudentProfileComplete(pixelwarRequireUserRepository($userRepository), $sessionUser)
     && $currentPage !== 'profile-setup'
+    && $currentPage !== 'logout'
 ) {
     pixelwarRedirect('profile-setup');
 }

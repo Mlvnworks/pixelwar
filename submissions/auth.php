@@ -139,6 +139,9 @@ function pixelwarUserDetailsExist(UserRepository $userRepository, int $userId): 
 
 function pixelwarStudentProfileComplete(UserRepository $userRepository, array $user): bool
 {
+    if (pixelwarStudentNeedsResubmission($user)) {
+        return false;
+    }
     if ((int) ($user['role_id'] ?? 0) !== pixelwarStudentRoleId()) {
         return true;
     }
@@ -162,6 +165,9 @@ function pixelwarStudentProfileComplete(UserRepository $userRepository, array $u
 
 function pixelwarStudentNeedsSectionOnlySetup(UserRepository $userRepository, array $user): bool
 {
+    if (pixelwarStudentNeedsResubmission($user)) {
+        return false;
+    }
     if ((int) ($user['role_id'] ?? 0) !== pixelwarStudentRoleId()) {
         return false;
     }
@@ -189,6 +195,12 @@ function pixelwarAdminNeedsSetup(UserRepository $userRepository, array $user): b
 {
     return (int) ($user['role_id'] ?? 0) === pixelwarAdminRoleId()
         && !pixelwarUserDetailsExist($userRepository, (int) ($user['user_id'] ?? 0));
+}
+
+function pixelwarStudentNeedsResubmission(array $user): bool
+{
+    return (int) ($user['role_id'] ?? 0) === pixelwarStudentRoleId()
+        && (int) ($user['is_active'] ?? 0) === -2;
 }
 
 function pixelwarStudentUnderReview(array $user): bool
@@ -223,20 +235,21 @@ function pixelwarRefreshSessionUser(array $user): void
     $lastname = trim((string) ($user['lastname'] ?? ''));
     $avatarUrl = trim((string) ($user['avatar_url'] ?? ''));
 
-    if ($firstname !== '') {
+    if (array_key_exists('firstname', $user)) {
         $_SESSION['firstname'] = $firstname;
     }
 
-    if ($lastname !== '') {
+    if (array_key_exists('lastname', $user)) {
         $_SESSION['lastname'] = $lastname;
     }
 
-    if ($firstname !== '' || $lastname !== '') {
-        $_SESSION['avatar_initials'] = strtoupper(substr($firstname, 0, 1) . substr($lastname, 0, 1));
+    if (array_key_exists('firstname', $user) || array_key_exists('lastname', $user)) {
+        $_SESSION['avatar_initials'] = strtoupper(substr($firstname, 0, 1) . substr($lastname, 0, 1))
+            ?: strtoupper(substr((string) $user['username'], 0, 2));
     }
 
-    if ($avatarUrl !== '') {
-        $_SESSION['avatar_url'] = function_exists('pixelwarAvatarUrl') ? pixelwarAvatarUrl($avatarUrl, 128) : $avatarUrl;
+    if (array_key_exists('avatar_url', $user)) {
+        $_SESSION['avatar_url'] = $avatarUrl !== '' && function_exists('pixelwarAvatarUrl') ? pixelwarAvatarUrl($avatarUrl, 128) : $avatarUrl;
     }
 }
 
@@ -338,12 +351,12 @@ function pixelwarRedirectAfterAuthState(UserRepository $userRepository, array $u
         pixelwarRedirect('email-verification');
     }
 
-    if (!pixelwarStudentProfileComplete($userRepository, $user)) {
-        pixelwarRedirect('profile-setup');
-    }
-
     if (pixelwarStudentRejected($user)) {
         pixelwarRedirect('review-rejected');
+    }
+
+    if (!pixelwarStudentProfileComplete($userRepository, $user)) {
+        pixelwarRedirect('profile-setup');
     }
 
     if (pixelwarStudentUnderReview($user)) {

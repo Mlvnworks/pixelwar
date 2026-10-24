@@ -143,7 +143,7 @@ $studentBuildQuery = static function (array $overrides = []) use ($studentSearch
                                     $hasProfile = (int) ($student['user_details_id'] ?? 0) > 0;
                                     $isEmailVerified = (int) ($student['is_verified'] ?? 0) === 1;
                                     $activeState = (int) ($student['is_active'] ?? 0);
-                                    $statusLabel = $activeState === 1 ? 'Verified' : ($activeState === -1 ? 'Rejected' : 'Pending');
+                                    $statusLabel = $activeState === 1 ? 'Verified' : ($activeState === -1 ? 'Rejected and blocked' : ($activeState === -2 ? 'Resubmission required' : 'Pending'));
                                     $statusClass = $activeState === 1 ? 'bg-arcade-mint' : ($activeState === -1 ? 'bg-arcade-coral/30' : 'bg-arcade-yellow/40');
                                     $isOnline = !empty($student['last_seen_at']) && strtotime((string) $student['last_seen_at']) >= $studentPresenceThreshold;
                                     ?>
@@ -209,33 +209,19 @@ $studentBuildQuery = static function (array $overrides = []) use ($studentSearch
                                                     <span>Open</span>
                                                 </a>
 
-                                                <?php if ($activeState === 1) : ?>
-                                                    <button
-                                                        type="button"
-                                                        class="teacher-button teacher-button--light gap-2"
-                                                        data-bs-toggle="modal"
-                                                        data-bs-target="#student-action-modal"
-                                                        data-student-action="unverify"
-                                                        data-student-id="<?= (int) ($student['user_id'] ?? 0) ?>"
-                                                        data-student-name="<?= htmlspecialchars($displayName, ENT_QUOTES, 'UTF-8') ?>"
-                                                    >
-                                                        <i data-lucide="shield-alert" class="h-4 w-4" aria-hidden="true"></i>
-                                                        <span>Unverify</span>
-                                                    </button>
-                                                <?php else : ?>
-                                                    <button
-                                                        type="button"
-                                                        class="teacher-button teacher-button--primary gap-2"
-                                                        data-bs-toggle="modal"
-                                                        data-bs-target="#student-action-modal"
-                                                        data-student-action="verify"
-                                                        data-student-id="<?= (int) ($student['user_id'] ?? 0) ?>"
-                                                        data-student-name="<?= htmlspecialchars($displayName, ENT_QUOTES, 'UTF-8') ?>"
-                                                    >
-                                                        <i data-lucide="badge-check" class="h-4 w-4" aria-hidden="true"></i>
-                                                        <span>Verify</span>
-                                                    </button>
-                                                <?php endif; ?>
+                                                <button
+                                                    type="button"
+                                                    class="teacher-button teacher-button--light gap-2"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#student-action-modal"
+                                                    data-student-action="resubmission"
+                                                    data-student-id="<?= (int) ($student['user_id'] ?? 0) ?>"
+                                                    data-student-name="<?= htmlspecialchars($displayName, ENT_QUOTES, 'UTF-8') ?>"
+                                                >
+                                                    <i data-lucide="file-pen-line" class="h-4 w-4" aria-hidden="true"></i>
+                                                    <span>Request Resubmission</span>
+                                                </button>
+
 
                                                 <button
                                                     type="button"
@@ -431,19 +417,12 @@ window.addEventListener('load', () => {
     const actionPassword = document.getElementById('student-action-password');
     const actionSubmit = document.getElementById('student-action-submit');
     const actionConfig = {
-        verify: {
-            title: 'Verify student account',
-            message: 'This will mark the student as verified and restore access to the student panel.',
+        resubmission: {
+            title: 'Request profile resubmission',
+            message: 'This will lock student access until they correct and resubmit their profile and an admin approves it. Existing details remain available for correction. An email will explain the next step.',
             buttonClass: 'teacher-button teacher-button--primary gap-2',
-            icon: 'badge-check',
-            label: 'Verify account',
-        },
-        unverify: {
-            title: 'Move student to pending',
-            message: 'This will remove current access and place the student back into pending review.',
-            buttonClass: 'teacher-button teacher-button--light gap-2',
-            icon: 'shield-alert',
-            label: 'Unverify account',
+            icon: 'file-pen-line',
+            label: 'Request Resubmission',
         },
         delete: {
             title: 'Delete student account',
@@ -461,8 +440,8 @@ window.addEventListener('load', () => {
                 return;
             }
 
-            const action = trigger.getAttribute('data-student-action') || 'verify';
-            const config = actionConfig[action] || actionConfig.verify;
+            const action = trigger.getAttribute('data-student-action') || 'resubmission';
+            const config = actionConfig[action] || actionConfig.resubmission;
 
             actionInput.value = action;
             actionId.value = trigger.getAttribute('data-student-id') || '';

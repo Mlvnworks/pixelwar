@@ -568,7 +568,7 @@ class UserRepository
     private function studentReviewEligibilitySql(): string
     {
         // Completed reviews remain visible even when older profiles lack newer fields.
-        return "(users.is_active IN (1, -1) OR (
+        return "(users.is_active IN (1, -1, -2) OR (
             users.is_active = 0
             AND TRIM(COALESCE(user_details.firstname, '')) <> ''
             AND TRIM(COALESCE(user_details.lastname, '')) <> ''
@@ -1616,6 +1616,7 @@ class UserRepository
                 user_details.student_number,
                 user_details.section,
                 images.source AS avatar_url,
+                images.source AS avatar_original_url,
                 cor_files.source AS cor_file_url
              FROM user_details
              LEFT JOIN images ON images.img_id = user_details.image_id

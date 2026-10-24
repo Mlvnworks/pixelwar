@@ -6,6 +6,7 @@ $reviewStatusMap = [
     'pending' => 0,
     'approved' => 1,
     'rejected' => -1,
+    'resubmission' => -2,
 ];
 $reviewActiveFilter = array_key_exists($reviewStatus, $reviewStatusMap) ? $reviewStatusMap[$reviewStatus] : null;
 $reviewPerPage = 12;
@@ -22,6 +23,7 @@ $reviewStudents = $userRepository instanceof UserRepository
 $pendingReviewCount = $userRepository instanceof UserRepository ? $userRepository->countPendingStudentReviews('', 0) : 0;
 $approvedReviewCount = $userRepository instanceof UserRepository ? $userRepository->countPendingStudentReviews('', 1) : 0;
 $rejectedReviewCount = $userRepository instanceof UserRepository ? $userRepository->countPendingStudentReviews('', -1) : 0;
+$resubmissionReviewCount = $userRepository instanceof UserRepository ? $userRepository->countPendingStudentReviews('', -2) : 0;
 
 $reviewBuildQuery = static function (array $overrides = []) use ($reviewSearch, $reviewStatus, $reviewPage): string {
     $query = [
@@ -51,11 +53,18 @@ $reviewActionIntent = [
         'icon' => 'badge-check',
     ],
     'reject' => [
-        'title' => 'Reject student verification',
-        'message' => 'This will keep the account locked and send a rejection email to the student.',
-        'button' => 'Confirm rejection',
+        'title' => 'Reject and block',
+        'message' => 'Block access and prevent profile resubmission. Submitted profile details, avatar, and COR will be permanently deleted, including uploaded files in Supabase. The account and gameplay records remain. The student will receive an email asking them to contact their instructor or System administrator.',
+        'button' => 'Reject and block',
         'buttonClass' => 'teacher-button teacher-button--light gap-2 text-arcade-coral',
         'icon' => 'shield-x',
+    ],
+    'resubmission' => [
+        'title' => 'Reject and request resubmission',
+        'message' => 'Allow the student to correct their saved profile and replace their COR. Access stays locked until approval. An email will explain how to resubmit.',
+        'button' => 'Request resubmission',
+        'buttonClass' => 'teacher-button teacher-button--primary gap-2',
+        'icon' => 'file-pen-line',
     ],
 ];
 ?>
@@ -68,7 +77,7 @@ $reviewActionIntent = [
                 <p class="text-sm font-semibold uppercase tracking-[0.08em] text-arcade-ink/60">Verification Queue</p>
                 <h1 class="mt-1 text-3xl font-bold md:text-4xl">Student verification</h1>
             </div>
-            <div class="grid gap-2 sm:grid-cols-3 lg:min-w-[26rem]">
+            <div class="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
                 <article class="teacher-panel px-4 py-3">
                     <p class="text-xs font-semibold uppercase tracking-[0.08em] text-arcade-ink/55">Pending</p>
                     <strong class="mt-1 block text-2xl font-bold"><?= (int) $pendingReviewCount ?></strong>
@@ -78,8 +87,12 @@ $reviewActionIntent = [
                     <strong class="mt-1 block text-2xl font-bold"><?= (int) $approvedReviewCount ?></strong>
                 </article>
                 <article class="teacher-panel px-4 py-3">
-                    <p class="text-xs font-semibold uppercase tracking-[0.08em] text-arcade-ink/55">Rejected</p>
+                    <p class="text-xs font-semibold uppercase tracking-[0.08em] text-arcade-ink/55">Blocked</p>
                     <strong class="mt-1 block text-2xl font-bold"><?= (int) $rejectedReviewCount ?></strong>
+                </article>
+                <article class="teacher-panel px-4 py-3">
+                    <p class="text-xs font-semibold uppercase tracking-[0.08em] text-arcade-ink/55">Resubmission Required</p>
+                    <strong class="mt-1 block text-2xl font-bold"><?= (int) $resubmissionReviewCount ?></strong>
                 </article>
             </div>
         </section>
@@ -108,7 +121,8 @@ $reviewActionIntent = [
                         <option value="all" <?= $reviewStatus === 'all' ? 'selected' : '' ?>>All</option>
                         <option value="pending" <?= $reviewStatus === 'pending' ? 'selected' : '' ?>>Pending</option>
                         <option value="approved" <?= $reviewStatus === 'approved' ? 'selected' : '' ?>>Approved</option>
-                        <option value="rejected" <?= $reviewStatus === 'rejected' ? 'selected' : '' ?>>Rejected</option>
+                        <option value="rejected" <?= $reviewStatus === 'rejected' ? 'selected' : '' ?>>Rejected and blocked</option>
+                        <option value="resubmission" <?= $reviewStatus === 'resubmission' ? 'selected' : '' ?>>Resubmission required</option>
                     </select>
                 </label>
 
@@ -138,7 +152,7 @@ $reviewActionIntent = [
                         $studentNumber = trim((string) ($student['student_number'] ?? ''));
                         $studentSection = trim((string) ($student['section'] ?? ''));
                         $activeState = (int) ($student['is_active'] ?? 0);
-                        $statusLabel = $activeState === 1 ? 'Approved' : ($activeState === -1 ? 'Rejected' : 'Pending');
+                        $statusLabel = $activeState === 1 ? 'Approved' : ($activeState === -1 ? 'Rejected and blocked' : ($activeState === -2 ? 'Resubmission required' : 'Pending'));
                         $statusPillClass = $activeState === 1
                             ? 'bg-arcade-mint/35'
                             : ($activeState === -1 ? 'bg-arcade-coral/35' : 'bg-arcade-yellow/35');
@@ -214,7 +228,7 @@ $reviewActionIntent = [
                                         ? 'This student already has access to the student resources.'
                                         : ($activeState === -1
                                             ? 'This student was previously rejected and still has no access.'
-                                            : 'Review the submitted Certificate of Registration and choose whether to unlock student access.'); ?>
+                                            : ($activeState === -2 ? 'Waiting for the student to correct and resubmit their profile.' : 'Review the submitted Certificate of Registration and choose whether to unlock student access.')); ?>
                                 </p>
                                 <div class="flex flex-wrap gap-2">
                                     <?php if ($activeState !== 1) : ?>
@@ -231,7 +245,7 @@ $reviewActionIntent = [
                                             <span>Approve</span>
                                         </button>
                                     <?php endif; ?>
-                                    <?php if ($activeState !== -1) : ?>
+                                    <?php if ($activeState !== -1 || !empty($student['ud_id'])) : ?>
                                         <button
                                             type="button"
                                             class="teacher-button teacher-button--light gap-2 text-arcade-coral"
@@ -242,7 +256,17 @@ $reviewActionIntent = [
                                             data-review-student-name="<?= htmlspecialchars($displayName, ENT_QUOTES, 'UTF-8') ?>"
                                         >
                                             <i data-lucide="shield-x" class="h-4 w-4" aria-hidden="true"></i>
-                                            <span>Reject</span>
+                                            <span>Reject and Block</span>
+                                        </button>
+                                    <?php endif; ?>
+                                    <?php if ($activeState !== -2) : ?>
+                                        <button type="button" class="teacher-button teacher-button--light gap-2"
+                                            data-bs-toggle="modal" data-bs-target="#student-review-action-modal"
+                                            data-review-action="resubmission"
+                                            data-review-student-id="<?= (int) ($student['user_id'] ?? 0) ?>"
+                                            data-review-student-name="<?= htmlspecialchars($displayName, ENT_QUOTES, 'UTF-8') ?>">
+                                            <i data-lucide="file-pen-line" class="h-4 w-4" aria-hidden="true"></i>
+                                            <span>Reject and Request Resubmission</span>
                                         </button>
                                     <?php endif; ?>
                                 </div>
@@ -472,7 +496,7 @@ window.addEventListener('load', () => {
             submitSpinner.classList.toggle('is-visible', isSubmitting);
             submitIcon.classList.toggle('hidden', isSubmitting);
             submitLabel.textContent = isSubmitting
-                ? (actionField.value === 'reject' ? 'Rejecting...' : 'Approving...')
+                ? (actionField.value === 'reject' ? 'Blocking...' : (actionField.value === 'resubmission' ? 'Requesting...' : 'Approving...'))
                 : (submitButton.dataset.defaultLabel || 'Confirm');
         };
 

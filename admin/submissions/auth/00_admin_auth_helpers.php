@@ -311,6 +311,15 @@ function adminPanelSendStudentReviewEmail(Tools $tools, string $email, string $s
         ? 'Your submitted student details have been reviewed and approved. You can now sign in and access your Pixelwar dashboard and learning resources.'
         : 'We reviewed the submitted student details, but we could not approve the account yet. Please contact your instructor or admin so they can guide you on the next step.';
 
+    if ($status === 'resubmission') {
+        $subject = 'Please resubmit your Pixelwar student profile';
+        $headline = 'Your profile needs corrections';
+        $accent = '#ffd166';
+        $message = 'Your student profile was not approved. Sign in to Pixelwar to correct your saved information and upload a replacement Certificate of Registration if needed. Submit your profile again for admin review. Your dashboard remains locked until approval.';
+    } elseif ($status === 'rejected') {
+        $message = 'Your student profile was rejected and access is blocked. Your submitted profile information and uploaded profile files have been removed. You cannot resubmit your profile at this time. Please contact your instructor or System administrator for assistance.';
+    }
+
     $content = '<!doctype html>'
         . '<html lang="en">'
         . '<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Pixelwar Account Review</title></head>'
@@ -326,7 +335,7 @@ function adminPanelSendStudentReviewEmail(Tools $tools, string $email, string $s
         . '<p style="margin:0 0 14px;font-size:16px;line-height:1.65;color:#26190f;">Hello <strong>' . $safeName . '</strong>,</p>'
         . '<p style="margin:0;font-size:15px;line-height:1.7;color:#374151;">' . htmlspecialchars($message, ENT_QUOTES, 'UTF-8') . '</p>'
         . '<div style="margin:18px 0 0;padding:14px 16px;background:#ffffff;border:2px solid rgba(38,25,15,0.12);border-radius:18px;">'
-        . '<p style="margin:0;font-size:13px;line-height:1.65;color:#6b7280;">If you need help, reply to your school administrator or the team handling your registration.</p>'
+        . '<p style="margin:0;font-size:13px;line-height:1.65;color:#6b7280;">If you need help, contact your System administrator or the team handling your registration.</p>'
         . '</div>'
         . '</td></tr>'
         . '</table>'

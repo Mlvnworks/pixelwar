@@ -30,8 +30,8 @@ if ($requestMethod === 'GET' && $requestedPage === 'profile-setup' && isset($_GE
             ]);
         }
 
-        // Profile setup only accepts a student number that has never been assigned.
-        $exists = $users->studentNumberExistsForOtherUser($studentNumber);
+        // Existing students may keep their own number when completing setup again.
+        $exists = $users->studentNumberExistsForOtherUser($studentNumber, $userId);
         pixelwarJsonResponse([
             'valid' => true,
             'available' => !$exists,

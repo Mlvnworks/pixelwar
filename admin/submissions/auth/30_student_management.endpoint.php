@@ -43,19 +43,15 @@ if ($adminRequestMethod === 'POST' && $adminRequestedPage === 'students' && isse
         $studentLabel = trim((string) ($student['firstname'] ?? '') . ' ' . (string) ($student['lastname'] ?? ''));
         $studentLabel = $studentLabel !== '' ? $studentLabel : ((string) ($student['username'] ?? ('Student #' . $studentId)));
 
-        if ($action === 'verify') {
-            $users->updateActiveState($studentId, 1);
-            $logs->create((int) ($_SESSION['user_id'] ?? 0), 'student', 'Verified student account "' . $studentLabel . '" from admin students.');
+        if ($action === 'resubmission') {
+            $users->updateActiveState($studentId, -2);
+            $logs->create((int) ($_SESSION['user_id'] ?? 0), 'student', 'Requested profile resubmission for ' . $studentLabel . ' from admin students.');
+            $mailSent = adminPanelSendStudentReviewEmail(adminPanelRequireTools($tools ?? null), (string) ($student['email'] ?? ''), $studentLabel, 'resubmission');
             $_SESSION['alert'] = [
-                'error' => false,
-                'content' => 'Student account verified successfully.',
-            ];
-        } elseif ($action === 'unverify') {
-            $users->updateActiveState($studentId, 0);
-            $logs->create((int) ($_SESSION['user_id'] ?? 0), 'student', 'Marked student account "' . $studentLabel . '" as unverified from admin students.');
-            $_SESSION['alert'] = [
-                'error' => false,
-                'content' => 'Student account moved back to pending review.',
+                'error' => !$mailSent,
+                'content' => $mailSent
+                    ? 'Profile resubmission requested. The student has been notified by email.'
+                    : 'Profile resubmission requested, but the notification email could not be sent.',
             ];
         } elseif ($action === 'delete') {
             $users->softDeleteUser($studentId);
