@@ -1,5 +1,5 @@
 <?php
-$navbarLockedPages = ['email-verification', 'profile-setup', 'review-pending', 'review-rejected'];
+$navbarLockedPages = ['email-verification', 'profile-setup', 'review-pending', 'review-rejected', 'update-pass'];
 $navbarCurrentPage = isset($normalizedContent) ? (string) $normalizedContent : '';
 $isNavbarLocked = in_array($navbarCurrentPage, $navbarLockedPages, true);
 $isLoggedIn = !$isNavbarLocked && isset($_SESSION['username']) && trim((string) $_SESSION['username']) !== '';

@@ -1,5 +1,7 @@
 <?php
 
+require_once __DIR__ . '/rank-repository.php';
+
 class UserRepository
 {
     public function __construct(private mysqli $connection)
@@ -115,6 +117,7 @@ class UserRepository
             $statement->close();
 
             if ($updated) {
+                (new RankRepository($this->connection))->syncPlayerProgressRanks($userId);
                 return;
             }
 
@@ -125,6 +128,7 @@ class UserRepository
             $statement->bind_param('ii', $userId, $points);
             $statement->execute();
             $statement->close();
+            (new RankRepository($this->connection))->syncPlayerProgressRanks($userId);
             return;
         }
 
@@ -136,6 +140,7 @@ class UserRepository
         $statement->bind_param('iii', $userId, $seasonId, $points);
         $statement->execute();
         $statement->close();
+        (new RankRepository($this->connection))->syncPlayerProgressRanks($userId);
     }
 
     private function currentActiveSeasonId(): ?int
@@ -1276,8 +1281,8 @@ class UserRepository
         }
 
         $statement = $this->connection->prepare(
-            'SELECT username, password
-             FROM acc_last_change
+            'SELECT usrn_last_change AS username, passw_last_change AS password
+             FROM users
              WHERE user_id = ?
              LIMIT 1'
         );
@@ -1309,14 +1314,10 @@ class UserRepository
 
         $statement = $field === 'username'
             ? $this->connection->prepare(
-                'INSERT INTO acc_last_change (user_id, username, password)
-                 VALUES (?, CURRENT_TIMESTAMP, NULL)
-                 ON DUPLICATE KEY UPDATE username = CURRENT_TIMESTAMP'
+                'UPDATE users SET usrn_last_change = CURRENT_TIMESTAMP WHERE user_id = ?'
             )
             : $this->connection->prepare(
-                'INSERT INTO acc_last_change (user_id, username, password)
-                 VALUES (?, NULL, CURRENT_TIMESTAMP)
-                 ON DUPLICATE KEY UPDATE password = CURRENT_TIMESTAMP'
+                'UPDATE users SET passw_last_change = CURRENT_TIMESTAMP WHERE user_id = ?'
             );
         $statement->bind_param('i', $userId);
         $statement->execute();

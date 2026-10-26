@@ -47,6 +47,51 @@ final class DatabaseInitializer
         }
     }
 
+    private function migrateAccountLastChange(mysqli $connection): void
+    {
+        if ($this->columnExists($connection, 'users', 'usrn_last_change')
+            && $this->columnExists($connection, 'users', 'passw_last_change')
+            && !$this->tableExists($connection, 'acc_last_change')) {
+            return;
+        }
+
+        // DDL commits implicitly; serialize this copy-and-drop migration across requests.
+        $lock = 'pw_account_change_' . substr(hash('sha256', $this->database), 0, 32);
+        $result = $connection->query("SELECT GET_LOCK('{$lock}', 15) AS acquired");
+        if (!$result || (int) ($result->fetch_assoc()['acquired'] ?? 0) !== 1) {
+            throw new RuntimeException('Could not acquire the account timestamp migration lock.');
+        }
+        try {
+            foreach (['usrn_last_change', 'passw_last_change'] as $column) {
+                if (!$this->columnExists($connection, 'users', $column)) {
+                    if (!$connection->query("ALTER TABLE `users` ADD `{$column}` TIMESTAMP NULL DEFAULT NULL")) {
+                        throw new RuntimeException('Could not add account change timestamps.');
+                    }
+                }
+            }
+
+            if ($this->tableExists($connection, 'acc_last_change')) {
+                $copied = $connection->query(
+                    'UPDATE users u INNER JOIN acc_last_change a ON a.user_id = u.user_id
+                     SET u.usrn_last_change = CASE
+                         WHEN u.usrn_last_change IS NULL OR a.username > u.usrn_last_change
+                         THEN a.username ELSE u.usrn_last_change END,
+                         u.passw_last_change = CASE
+                         WHEN u.passw_last_change IS NULL OR a.password > u.passw_last_change
+                         THEN a.password ELSE u.passw_last_change END'
+                );
+                if (!$copied) {
+                    throw new RuntimeException('Could not migrate account change history; the original table was retained.');
+                }
+                if (!$connection->query('DROP TABLE IF EXISTS `acc_last_change`')) {
+                    throw new RuntimeException('Account change history was copied but the old table could not be removed.');
+                }
+            }
+        } finally {
+            $connection->query("SELECT RELEASE_LOCK('{$lock}')");
+        }
+    }
+
     private function setConnectionTimezone(mysqli $connection): void
     {
         $connection->query("SET time_zone = '+08:00'");
@@ -83,6 +128,8 @@ final class DatabaseInitializer
                 `is_verified` INT NOT NULL DEFAULT 0,
                 `is_active` INT NOT NULL DEFAULT 0,
                 `last_seen_at` TIMESTAMP NULL DEFAULT NULL,
+                `usrn_last_change` TIMESTAMP NULL DEFAULT NULL,
+                `passw_last_change` TIMESTAMP NULL DEFAULT NULL,
                 `registration_date` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 `date_deleted` TIMESTAMP NULL DEFAULT NULL,
                 PRIMARY KEY (`user_id`),
@@ -90,13 +137,6 @@ final class DatabaseInitializer
                 UNIQUE KEY `users_email_unique` (`email`),
                 KEY `users_role_id_index` (`role_id`),
                 CONSTRAINT `users_role_id_foreign` FOREIGN KEY (`role_id`) REFERENCES `roles` (`role_id`)
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci',
-            'CREATE TABLE IF NOT EXISTS `acc_last_change` (
-                `user_id` INT NOT NULL,
-                `username` TIMESTAMP NULL DEFAULT NULL,
-                `password` TIMESTAMP NULL DEFAULT NULL,
-                PRIMARY KEY (`user_id`),
-                CONSTRAINT `acc_last_change_user_id_foreign` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci',
             'CREATE TABLE IF NOT EXISTS `verifications` (
                 `ev_id` INT NOT NULL AUTO_INCREMENT,
@@ -222,10 +262,12 @@ final class DatabaseInitializer
                 CONSTRAINT `room_players_room_id_foreign` FOREIGN KEY (`room_id`) REFERENCES `rooms` (`room_id`)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci',
             'CREATE TABLE IF NOT EXISTS `code_solution` (
+                `cs_id` INT NOT NULL AUTO_INCREMENT,
                 `rp_id` INT NOT NULL,
                 `css_code` TEXT NOT NULL,
                 `grade` INT NULL DEFAULT NULL,
-                PRIMARY KEY (`rp_id`),
+                PRIMARY KEY (`cs_id`),
+                UNIQUE KEY `code_solution_rp_id_unique` (`rp_id`),
                 CONSTRAINT `code_solution_rp_id_foreign` FOREIGN KEY (`rp_id`) REFERENCES `room_players` (`rp_id`)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci',
             'CREATE TABLE IF NOT EXISTS `pvp_matches` (
@@ -286,14 +328,17 @@ final class DatabaseInitializer
             'CREATE TABLE IF NOT EXISTS `player_progress` (
                 `pp_id` INT NOT NULL AUTO_INCREMENT,
                 `user_id` INT NOT NULL,
+                `rank_id` INT NULL DEFAULT NULL,
                 `season_id` INT NULL DEFAULT NULL,
                 `points` INT NOT NULL DEFAULT 0,
                 PRIMARY KEY (`pp_id`),
                 UNIQUE KEY `player_progress_user_season_unique` (`user_id`, `season_id`),
                 KEY `player_progress_user_id_index` (`user_id`),
                 KEY `player_progress_season_id_index` (`season_id`),
+                KEY `player_progress_rank_id_index` (`rank_id`),
                 CONSTRAINT `player_progress_user_id_foreign` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`),
-                CONSTRAINT `player_progress_season_id_foreign` FOREIGN KEY (`season_id`) REFERENCES `seasons` (`season_id`)
+                CONSTRAINT `player_progress_season_id_foreign` FOREIGN KEY (`season_id`) REFERENCES `seasons` (`season_id`),
+                CONSTRAINT `player_progress_rank_id_foreign` FOREIGN KEY (`rank_id`) REFERENCES `ranks` (`rank_id`) ON DELETE SET NULL
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci',
         ];
     }
@@ -517,6 +562,19 @@ final class DatabaseInitializer
             $connection->query('ALTER TABLE `code_solution` ADD `grade` INT NULL DEFAULT NULL AFTER `css_code`');
         }
 
+        if ($this->tableExists($connection, 'code_solution') && !$this->columnExists($connection, 'code_solution', 'cs_id')) {
+            // Preserve the foreign-key index and the existing one-solution-per-player upsert.
+            if (!$this->indexExists($connection, 'code_solution', 'code_solution_rp_id_unique')) {
+                $connection->query('ALTER TABLE `code_solution` ADD UNIQUE KEY `code_solution_rp_id_unique` (`rp_id`)');
+            }
+            $connection->query(
+                'ALTER TABLE `code_solution`
+                 ADD `cs_id` INT NOT NULL AUTO_INCREMENT FIRST,
+                 DROP PRIMARY KEY,
+                 ADD PRIMARY KEY (`cs_id`)'
+            );
+        }
+
         if ($this->tableExists($connection, 'pvp_matches') && !$this->columnExists($connection, 'pvp_matches', 'user_id')) {
             $connection->query('ALTER TABLE `pvp_matches` ADD `user_id` INT NOT NULL AFTER `pvp_id`');
         }
@@ -671,6 +729,20 @@ final class DatabaseInitializer
             $connection->query('ALTER TABLE `ranks` ADD UNIQUE KEY `ranks_points_requirements_unique` (`points_requirements`)');
         }
 
+        if ($this->tableExists($connection, 'player_progress')) {
+            if (!$this->columnExists($connection, 'player_progress', 'rank_id')) {
+                $connection->query('ALTER TABLE `player_progress` ADD `rank_id` INT NULL DEFAULT NULL AFTER `user_id`');
+            }
+            if (!$this->indexExists($connection, 'player_progress', 'player_progress_rank_id_index')) {
+                $connection->query('ALTER TABLE `player_progress` ADD KEY `player_progress_rank_id_index` (`rank_id`)');
+            }
+            if (!$this->constraintExists($connection, 'player_progress', 'player_progress_rank_id_foreign')) {
+                require_once __DIR__ . '/rank-repository.php';
+                (new RankRepository($connection))->syncPlayerProgressRanks();
+                $connection->query('ALTER TABLE `player_progress` ADD CONSTRAINT `player_progress_rank_id_foreign` FOREIGN KEY (`rank_id`) REFERENCES `ranks` (`rank_id`) ON DELETE SET NULL');
+            }
+        }
+
         if (
             $this->tableExists($connection, 'seasons')
             && $this->columnExists($connection, 'seasons', 'name')
@@ -787,6 +859,8 @@ final class DatabaseInitializer
         if ($this->tableExists($connection, 'users') && !$this->columnExists($connection, 'users', 'acc_type')) {
             $connection->query('ALTER TABLE `users` ADD `acc_type` VARCHAR(30) NOT NULL DEFAULT \'manual\' AFTER `password`');
         }
+
+        $this->migrateAccountLastChange($connection);
 
         if ($this->tableExists($connection, 'users') && !$this->columnExists($connection, 'users', 'is_active')) {
             $connection->query('ALTER TABLE `users` ADD `is_active` INT NOT NULL DEFAULT 0 AFTER `is_verified`');

@@ -17,7 +17,7 @@ $hidesHeader = in_array($normalizedContent, $headerlessPages, true);
 $hidesFooter = in_array($normalizedContent, $footerlessPages, true);
 $globalVersusInviteEnabled = isset($_SESSION['user_id'])
     && $normalizedContent !== 'logout'
-    && !in_array($normalizedContent, ['pixelwar', 'account-report'], true)
+    && !in_array($normalizedContent, ['pixelwar', 'account-report', 'update-pass'], true)
     && defined('PUSHER_KEY')
     && defined('PUSHER_CLUSTER')
     && trim((string) PUSHER_KEY) !== ''

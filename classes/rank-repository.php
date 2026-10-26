@@ -149,6 +149,8 @@ final class RankRepository
         $rankId = (int) $statement->insert_id;
         $statement->close();
 
+        $this->syncPlayerProgressRanks();
+
         return $rankId;
     }
 
@@ -222,6 +224,8 @@ final class RankRepository
         $updated = $statement->affected_rows >= 0;
         $statement->close();
 
+        $this->syncPlayerProgressRanks();
+
         return $updated;
     }
 
@@ -240,6 +244,35 @@ final class RankRepository
         $deleted = $statement->affected_rows > 0;
         $statement->close();
 
+        if ($deleted) {
+            $this->syncPlayerProgressRanks();
+        }
+
         return $deleted;
+    }
+
+    public function syncPlayerProgressRanks(?int $userId = null): void
+    {
+        // Dashboard rank uses all-season points; keep every row for a student consistent.
+        $filter = $userId !== null ? ' WHERE user_id = ?' : '';
+        $statement = $this->connection->prepare(
+            'UPDATE player_progress p
+             INNER JOIN (
+                 SELECT user_id, SUM(points) AS total_points
+                 FROM player_progress' . $filter . '
+                 GROUP BY user_id
+             ) totals ON totals.user_id = p.user_id
+             SET p.rank_id = (
+                 SELECT r.rank_id FROM ranks r
+                 WHERE r.points_requirements <= GREATEST(totals.total_points, 0)
+                 ORDER BY r.points_requirements DESC, r.rank_id DESC
+                 LIMIT 1
+             )'
+        );
+        if ($userId !== null) {
+            $statement->bind_param('i', $userId);
+        }
+        $statement->execute();
+        $statement->close();
     }
 }
